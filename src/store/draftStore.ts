@@ -6,12 +6,11 @@ import {
   DraftState,
   ConnectionStatus,
   Aoe2cmRawDraftData,
-  Aoe2cmRawPlayerData,
+  // Aoe2cmRawPlayerData, // Player data is more directly part of Aoe2cmRawDraftData
+  // Aoe2cmRawEventData, // Event structure is part of Aoe2cmRawDraftData
 } from '../types/draft';
 
-// Configurable base URL for the draft data API.
-// This should be set based on user's findings (e.g., from shtopr-aoe4.cowlandia.net or aoe2cm.net API).
-const DRAFT_DATA_API_BASE_URL = ''; // Intentionally empty - to be configured or discovered
+const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
 
 interface DraftStore {
   draft: DraftState | null;
@@ -26,13 +25,14 @@ interface DraftStore {
   extractDraftIdFromUrl: (url: string) => string | null;
 }
 
-// This transformation function will likely need significant adjustments
-// once the actual API response structure is known.
 const transformRawDraftDataToDraftState = (
-  raw: Aoe2cmRawDraftData 
+  raw: Aoe2cmRawDraftData
 ): DraftState => {
-  const hostName = raw.host?.name || 'Host';
-  const guestName = raw.guest?.name || 'Guest';
+  // Extract player names: aoe2cm.net/api for recent drafts shows nameHost/nameGuest
+  // The /api/draft/:id endpoint might return an object with a 'host' and 'guest' object,
+  // or direct nameHost/nameGuest. We need to be flexible.
+  const hostName = typeof raw.host === 'object' ? raw.host?.name : raw.nameHost || raw.host || 'Host';
+  const guestName = typeof raw.guest === 'object' ? raw.guest?.name : raw.nameGuest || raw.guest || 'Guest';
 
   const hostCivPicks: string[] = [];
   const hostCivBans: string[] = [];
@@ -41,70 +41,57 @@ const transformRawDraftDataToDraftState = (
   const mapPicks: string[] = [];
   const mapBans: string[] = [];
 
-  // Attempt to get picks/bans from player objects if they exist
-  if (raw.host && (raw.host as Aoe2cmRawPlayerData).civs) {
-    ((raw.host as Aoe2cmRawPlayerData).civs || []).forEach(civOrString => {
-      const civName = typeof civOrString === 'string' ? civOrString : civOrString.name;
-      if (civName) hostCivPicks.push(civName);
-    });
-  }
-  if (raw.host && (raw.host as Aoe2cmRawPlayerData).bans) {
-    ((raw.host as Aoe2cmRawPlayerData).bans || []).forEach(civOrString => {
-      const civName = typeof civOrString === 'string' ? civOrString : civOrString.name;
-      if (civName) hostCivBans.push(civName);
-    });
-  }
-  if (raw.guest && (raw.guest as Aoe2cmRawPlayerData).civs) {
-    ((raw.guest as Aoe2cmRawPlayerData).civs || []).forEach(civOrString => {
-      const civName = typeof civOrString === 'string' ? civOrString : civOrString.name;
-      if (civName) guestCivPicks.push(civName);
-    });
-  }
-  if (raw.guest && (raw.guest as Aoe2cmRawPlayerData).bans) {
-    ((raw.guest as Aoe2cmRawPlayerData).bans || []).forEach(civOrString => {
-      const civName = typeof civOrString === 'string' ? civOrString : civOrString.name;
-      if (civName) guestCivBans.push(civName);
-    });
-  }
+  // Process events array to determine picks and bans
+  // The player in event might be 'host', 'guest', or the actual player name.
+  raw.events?.forEach(event => {
+    const action = event.action?.toLowerCase() || '';
+    const playerIdentifier = event.player; // This could be 'host', 'guest', or actual name
 
-  // Fallback or primary: Process events array if it exists
-  if (raw.events && Array.isArray(raw.events)) {
-    raw.events.forEach(event => {
-      const action = event.action?.toLowerCase() || '';
-      const player = event.player?.toLowerCase();
+    let isHostAction = false;
+    let isGuestAction = false;
 
-      const isHostAction = player === 'host' || (raw.host && player === (raw.host as Aoe2cmRawPlayerData).name?.toLowerCase());
-      const isGuestAction = player === 'guest' || (raw.guest && player === (raw.guest as Aoe2cmRawPlayerData).name?.toLowerCase());
+    if (playerIdentifier === 'host' || playerIdentifier === hostName) {
+      isHostAction = true;
+    } else if (playerIdentifier === 'guest' || playerIdentifier === guestName) {
+      isGuestAction = true;
+    }
 
-      if (event.civ) {
-        if (action.includes('pick') && !hostCivPicks.includes(event.civ) && !guestCivPicks.includes(event.civ)) {
-          if (isHostAction) hostCivPicks.push(event.civ);
-          else if (isGuestAction) guestCivPicks.push(event.civ);
-        } else if (action.includes('ban') && !hostCivBans.includes(event.civ) && !guestCivBans.includes(event.civ)) {
-          if (isHostAction) hostCivBans.push(event.civ);
-          else if (isGuestAction) guestCivBans.push(event.civ);
-        }
-      } else if (event.map) {
-        if (action.includes('pick') && !mapPicks.includes(event.map)) {
-          mapPicks.push(event.map);
-        } else if (action.includes('ban') && !mapBans.includes(event.map)) {
-          mapBans.push(event.map);
-        }
+    // Check for civilization actions
+    if (event.civ) {
+      // Actions like "PICK", "BAN", "GPICK", "GBAN", "SNIPE", "STEAL"
+      // For simplicity, we'll consider "pick", "gpick", "steal" as picks
+      // and "ban", "gban", "snipe" as bans.
+      if (action.includes('pick') || action.includes('steal')) {
+        if (isHostAction && !hostCivPicks.includes(event.civ)) hostCivPicks.push(event.civ);
+        else if (isGuestAction && !guestCivPicks.includes(event.civ)) guestCivPicks.push(event.civ);
+      } else if (action.includes('ban') || action.includes('snipe')) {
+        if (isHostAction && !hostCivBans.includes(event.civ)) hostCivBans.push(event.civ);
+        else if (isGuestAction && !guestCivBans.includes(event.civ)) guestCivBans.push(event.civ);
       }
-    });
-  }
+    }
+    // Check for map actions
+    else if (event.map) {
+      if (action.includes('pick') || action.includes('steal')) {
+        if (!mapPicks.includes(event.map)) mapPicks.push(event.map); // Maps are often global or picked by one player for the match
+      } else if (action.includes('ban') || action.includes('snipe')) {
+        if (!mapBans.includes(event.map)) mapBans.push(event.map);
+      }
+    }
+  });
   
   let currentTurnPlayerDisplay: string | undefined = 'none';
   let currentActionDisplay: string | undefined = 'unknown';
 
   if (raw.preset?.turns && typeof raw.currentTurnNo === 'number' && raw.currentTurnNo < raw.preset.turns.length) {
     const currentTurnInfo = raw.preset.turns[raw.currentTurnNo];
-    currentTurnPlayerDisplay = currentTurnInfo.player;
-    currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
+    if (currentTurnInfo) {
+        currentTurnPlayerDisplay = currentTurnInfo.player;
+        currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
+    }
   }
 
   return {
-    id: raw.id || 'unknown-draft',
+    id: raw.id || raw.draftId || 'unknown-draft', // draftId is from recentdrafts example
     hostName,
     guestName,
     hostCivPicks,
@@ -113,7 +100,7 @@ const transformRawDraftDataToDraftState = (
     guestCivBans,
     mapPicks,
     mapBans,
-    status: raw.status?.toLowerCase() || 'unknown',
+    status: raw.status?.toLowerCase() || (raw.ongoing === false ? 'completed' : raw.ongoing === true ? 'inprogress' : 'unknown'),
     currentTurnPlayer: currentTurnPlayerDisplay,
     currentAction: currentActionDisplay,
   };
@@ -132,20 +119,21 @@ const useDraftStore = create<DraftStore>()(
         try {
           if (url.startsWith('http://') || url.startsWith('https://')) {
             const urlObj = new URL(url);
-            // Generic check for a path segment that looks like a draft ID
-            const pathSegments = urlObj.pathname.split('/');
-            const potentialId = pathSegments.pop() || pathSegments.pop(); // Get last or second to last segment
-            if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) { // Basic ID check
-                // Check if hostname is a known draft service, if not, it might be a direct API link
-                if (urlObj.hostname.includes('aoe2cm.net') || urlObj.hostname.includes('cowlandia.net')) {
-                    return potentialId;
-                }
-                // If it's not a known frontend, assume the URL might be the API base itself
-                // or the ID is in a query param.
-                const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
-                if (draftIdParam) return draftIdParam;
-                return potentialId; // Fallback to path segment
+            if (urlObj.hostname.includes('aoe2cm.net')) { // Specific to aoe2cm.net
+              const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
+              if (pathMatch && pathMatch[1]) return pathMatch[1];
+              // Check for observer link structure if applicable
+              const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
+              if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1];
             }
+            // Generic ID extraction for other potential URLs (like shtopr-aoe4)
+            const pathSegments = urlObj.pathname.split('/');
+            const potentialId = pathSegments.pop() || pathSegments.pop(); 
+            if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) {
+                return potentialId;
+            }
+             const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
+             if (draftIdParam) return draftIdParam;
           }
           // If not a URL, or parsing failed, assume it's a raw ID
           if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
@@ -153,7 +141,6 @@ const useDraftStore = create<DraftStore>()(
           }
           return null;
         } catch (error) {
-          // If URL parsing fails, it might be just an ID
           if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
             return url;
           }
@@ -170,41 +157,13 @@ const useDraftStore = create<DraftStore>()(
           return false;
         }
         set({ draftId: extractedId });
-
-        let apiUrl = '';
-        if (DRAFT_DATA_API_BASE_URL) {
-          // Assuming the API endpoint structure is /drafts/{id} or similar. This might need adjustment.
-          apiUrl = `${DRAFT_DATA_API_BASE_URL}/drafts/${extractedId}`; 
-        } else {
-          // If DRAFT_DATA_API_BASE_URL is not set, we must rely on the user providing a full API URL
-          // or we cannot proceed. For now, we'll try to see if draftIdOrUrl itself is a full API URL.
-          if (draftIdOrUrl.startsWith('http://') || draftIdOrUrl.startsWith('https://')) {
-            try {
-                new URL(draftIdOrUrl); // check if it's a valid URL
-                apiUrl = draftIdOrUrl; // Assume the user provided the full API endpoint
-                console.warn(`DRAFT_DATA_API_BASE_URL is not set. Using provided URL as full API endpoint: ${apiUrl}`);
-            } catch (_) {
-                // Not a valid URL, and base is not set.
-            }
-          }
-          
-          if (!apiUrl) {
-            const placeholderApiUrl = `https://api.placeholder.com/drafts/${extractedId}`; // Placeholder
-            console.warn(`DRAFT_DATA_API_BASE_URL is not set. API endpoint discovery needed. Attempting placeholder: ${placeholderApiUrl}`);
-            // Set error and stop if no base URL and not a full URL provided by user
-            set({ 
-                isLoading: false, 
-                connectionStatus: 'error', 
-                connectionError: 'Draft API Base URL is not configured. Cannot fetch data. Please provide a full API URL or configure the base URL.',
-                draft: null 
-            });
-            return false;
-          }
-        }
+        
+        const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
         
         try {
           console.log(`Attempting to fetch draft data from: ${apiUrl}`);
-          const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
+          // We expect a direct JSON response from this API endpoint
+          const response = await axios.get<Aoe2cmRawDraftData>(apiUrl); 
           
           console.log('Raw response from API:', response.data);
 
@@ -222,7 +181,7 @@ const useDraftStore = create<DraftStore>()(
           let errorMessage = `Failed to fetch draft data from API (${apiUrl}).`;
           if (axios.isAxiosError(error)) {
             errorMessage += ` Server responded with ${error.response?.status || 'no status'}: ${error.message}`;
-            console.error('Axios error connecting to API:', error.toJSON());
+            console.error('Axios error connecting to API:', error.response?.data || error.toJSON());
           } else {
             errorMessage += ` Error: ${(error as Error).message}`;
             console.error('Error connecting to API:', error);
@@ -254,15 +213,11 @@ const useDraftStore = create<DraftStore>()(
           set({ connectionError: "No draft ID to reconnect to."});
           return false;
         }
-        // When reconnecting, we might need to re-evaluate the API URL if it was dynamically determined
-        // For now, connectToDraft will use the stored draftId, which is fine if it's just the ID.
-        // If draftId stored the full URL, connectToDraft logic needs to handle that.
-        // The current extractDraftIdFromUrl should give us just the ID.
         return await connectToDraft(draftId); 
       },
     }),
     {
-      name: 'aoe2-draft-overlay-simplified-storage-v3', // Incremented version for fresh state
+      name: 'aoe2-draft-overlay-simplified-storage-v4', // Incremented version for fresh state
     }
   )
 );
