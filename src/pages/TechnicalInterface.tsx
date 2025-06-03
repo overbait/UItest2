@@ -116,7 +116,7 @@ const TechnicalInterface = () => {
     connectionError, 
     connectToDraft,
     disconnectFromDraft,
-    isLoading // Added isLoading from store
+    isLoading 
   } = useDraftStore();
 
   const [draftIdInput, setDraftIdInput] = useState('');
@@ -146,7 +146,15 @@ const TechnicalInterface = () => {
 
   return (
     <div className="technical-interface simplified-interface">
-      <div style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.8em', color: '#aaa', zIndex: 1000 }}>
+      <div style={{ 
+          position: 'absolute', 
+          top: '10px', 
+          left: '10px', 
+          fontSize: '1.2em', 
+          color: '#ddd', 
+          fontWeight: 'bold',
+          zIndex: 1000 
+        }}>
         v0.1.1 - Simplified Fetch Test
       </div>
       <div className="header">
