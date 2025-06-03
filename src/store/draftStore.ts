@@ -8,7 +8,7 @@ import {
   // Types needed for raw data parsing
   Aoe2cmRawDraftData,
   Aoe2cmRawPlayerData,
-  Aoe2cmRawEventData,
+  // Aoe2cmRawEventData, // Not directly used in this simplified version's transform
   // Aoe2cmRawPresetData, // Might not be needed if we only parse events for picks/bans
   // Aoe2cmRawPresetTurn,
 } from '../types/draft';
@@ -45,14 +45,9 @@ const transformRawDraftDataToDraftState = (
   const mapPicks: string[] = [];
   const mapBans: string[] = [];
 
-  // Determine player roles from raw data if possible, otherwise assume based on event.player
-  // This is a simplified assumption; a more robust way would be to map player names from events
-  // to the host/guest objects if raw.host/guest are just strings.
-  // For now, we assume raw.host.name and raw.guest.name are reliable.
-
   raw.events?.forEach(event => {
     const action = event.action?.toLowerCase() || '';
-    const player = event.player?.toLowerCase(); // Could be 'host', 'guest', or actual player names
+    const player = event.player?.toLowerCase(); 
 
     const isHostAction = player === 'host' || (raw.host && player === (raw.host as Aoe2cmRawPlayerData).name?.toLowerCase());
     const isGuestAction = player === 'guest' || (raw.guest && player === (raw.guest as Aoe2cmRawPlayerData).name?.toLowerCase());
@@ -67,9 +62,6 @@ const transformRawDraftDataToDraftState = (
       }
     } else if (event.map) {
       if (action.includes('pick')) {
-        // Map picks might be global or attributed to the current turn player.
-        // For simplicity, let's assume global or assign to host if player is ambiguous.
-        // This needs refinement based on actual aoe2cm.net data structure for map picks.
         mapPicks.push(event.map);
       } else if (action.includes('ban')) {
         mapBans.push(event.map);
@@ -150,14 +142,13 @@ const useDraftStore = create<DraftStore>()(
         let responseText: string | null = null;
 
         try {
-          // Try direct fetch first (might fail due to CORS in browser, but good for Node.js or if server has CORS)
            try {
             const directResponse = await axios.get<string>(draftJsUrl, { transformResponse: (res) => res });
             responseText = directResponse.data;
             console.log("Fetched directly from:", draftJsUrl);
             set({ connectionError: null });
           } catch (directError) {
-            console.warn(`Direct fetch to ${draftJsUrl} failed, trying proxy...`, directError);
+            console.warn(`Direct fetch to ${draftJsUrl} failed, trying proxy... Error:`, directError);
             set({ connectionError: `Direct fetch failed. Retrying via proxy... (${(directError as Error).message})` });
             const proxyResponse = await axios.get<string>(proxyUrl, { transformResponse: (res) => res });
             responseText = proxyResponse.data;
@@ -168,18 +159,55 @@ const useDraftStore = create<DraftStore>()(
           if (!responseText) {
             throw new Error('Received empty response for draft data.');
           }
+          
+          console.log('Fetched responseText:', responseText); // Log the full response text
 
-          const match = responseText.match(/var\s+draftData\s*=\s*(\{[\s\S]*?\});/);
+          let match: RegExpMatchArray | null = null;
+          const regexPatterns = [
+            /draftData\s*=\s*(\{[\s\S]*?\});/,           // Original flexible
+            /window\.draftData\s*=\s*(\{[\s\S]*?\});/,  // window.draftData
+            /let\s+draftData\s*=\s*(\{[\s\S]*?\});/,    // let draftData
+            /const\s+draftData\s*=\s*(\{[\s\S]*?\});/,  // const draftData
+            /draft\s*=\s*(\{[\s\S]*?\});/                // generic 'draft' as last resort
+          ];
+
+          for (const pattern of regexPatterns) {
+            match = responseText.match(pattern);
+            if (match && match[1]) {
+              console.log(`Matched with regex: ${pattern}`);
+              break;
+            }
+          }
+          
           if (!match || !match[1]) {
-            console.error("Raw response text:", responseText);
+            console.error("Could not find draftData variable in the response script using any regex. Full response:", responseText);
             throw new Error('Could not find or parse draftData variable in the response script.');
           }
           
           let rawDraftData: Aoe2cmRawDraftData;
           try {
-            rawDraftData = JSON.parse(match[1]);
-          } catch (jsonError) {
-            console.error("Failed to parse JSON from draftData variable:", match[1], jsonError);
+            console.log('Attempting to parse JSON from this string:', match[1]);
+            // The content of match[1] might not be perfect JSON, e.g. trailing commas or functions
+            // A more robust parser or string cleaning might be needed if this fails often.
+            // For now, trying with a simple eval-like approach if JSON.parse fails, but this is risky.
+            try {
+                 rawDraftData = JSON.parse(match[1]);
+            } catch (initialJsonError) {
+                console.warn('Initial JSON.parse failed, trying to clean and re-parse:', initialJsonError);
+                // Attempt to clean the string: remove trailing commas (common issue)
+                let cleanedString = match[1].replace(/,\s*([}\]])/g, '$1');
+                // More cleaning steps could be added here if needed
+                console.log('Attempting to parse cleaned JSON string:', cleanedString);
+                try {
+                    rawDraftData = JSON.parse(cleanedString);
+                } catch (cleanedJsonError) {
+                    console.error('JSON parsing failed even after cleaning. String was:', match[1], cleanedJsonError);
+                    throw new Error('Failed to parse JSON from draftData variable even after cleaning.');
+                }
+            }
+
+          } catch (jsonError) { // This catch is for the outer try if JSON.parse itself throws (should be caught by inner try now)
+            console.error('JSON parsing failed. String was:', match[1], jsonError);
             throw new Error('Failed to parse JSON from draftData variable.');
           }
 
@@ -219,7 +247,7 @@ const useDraftStore = create<DraftStore>()(
       },
     }),
     {
-      name: 'aoe2-draft-overlay-simplified-storage', // Changed name to avoid conflict with old store
+      name: 'aoe2-draft-overlay-simplified-storage', 
     }
   )
 );
