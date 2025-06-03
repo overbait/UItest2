@@ -22,8 +22,9 @@ const TechnicalInterface = () => {
   const {
     civDraftId, mapDraftId,
     hostName, guestName, scores,
-    civPicksHost, civBansHost, civPicksGuest, civBansGuest,
-    mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest,
+    civPicksHost = [], civBansHost = [], civPicksGuest = [], civBansGuest = [], // Default to empty arrays
+    mapPicksHost = [], mapBansHost = [], mapPicksGuest = [], mapBansGuest = [], // Default to empty arrays
+    mapPicksGlobal = [], mapBansGlobal = [], // Default to empty arrays
     civDraftStatus, civDraftError, isLoadingCivDraft,
     mapDraftStatus, mapDraftError, isLoadingMapDraft,
     connectToDraft,
