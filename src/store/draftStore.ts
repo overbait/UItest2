@@ -142,26 +142,42 @@ const useDraftStore = create<DraftStore>()(
         let responseText: string | null = null;
 
         try {
+           console.log('Attempting direct fetch to:', draftJsUrl);
            try {
             const directResponse = await axios.get<string>(draftJsUrl, { transformResponse: (res) => res });
             responseText = directResponse.data;
             console.log("Fetched directly from:", draftJsUrl);
             set({ connectionError: null });
           } catch (directError) {
+            console.error('Direct fetch failed with error:', directError);
             console.warn(`Direct fetch to ${draftJsUrl} failed, trying proxy... Error:`, directError);
             set({ connectionError: `Direct fetch failed. Retrying via proxy... (${(directError as Error).message})` });
-            const proxyResponse = await axios.get<string>(proxyUrl, { transformResponse: (res) => res });
-            responseText = proxyResponse.data;
-            console.log("Fetched via proxy from:", proxyUrl);
-            set({ connectionError: null }); 
+            
+            console.log('Attempting proxy fetch to:', proxyUrl);
+            try {
+                const proxyResponse = await axios.get<string>(proxyUrl, { transformResponse: (res) => res });
+                responseText = proxyResponse.data;
+                console.log("Fetched via proxy from:", proxyUrl);
+                set({ connectionError: null }); 
+            } catch (proxyError) {
+                console.error('Proxy fetch failed with error:', proxyError);
+                console.error(`Proxy fetch to ${proxyUrl} also failed.`, proxyError);
+                set({ 
+                    isLoading: false, 
+                    connectionStatus: 'error', 
+                    connectionError: `Failed to fetch draft data from both direct and proxy: ${(proxyError as Error).message}` 
+                });
+                return false;
+            }
           }
+          
+          // Log responseText immediately after it's potentially assigned
+          console.log('Fetched responseText (could be from direct or proxy):', responseText);
 
-          if (!responseText) {
+          if (!responseText) { // This check now happens after logging
             throw new Error('Received empty response for draft data.');
           }
           
-          console.log('Fetched responseText:', responseText); // Log the full response text
-
           let match: RegExpMatchArray | null = null;
           const regexPatterns = [
             /draftData\s*=\s*(\{[\s\S]*?\});/,           // Original flexible
@@ -187,16 +203,11 @@ const useDraftStore = create<DraftStore>()(
           let rawDraftData: Aoe2cmRawDraftData;
           try {
             console.log('Attempting to parse JSON from this string:', match[1]);
-            // The content of match[1] might not be perfect JSON, e.g. trailing commas or functions
-            // A more robust parser or string cleaning might be needed if this fails often.
-            // For now, trying with a simple eval-like approach if JSON.parse fails, but this is risky.
             try {
                  rawDraftData = JSON.parse(match[1]);
             } catch (initialJsonError) {
                 console.warn('Initial JSON.parse failed, trying to clean and re-parse:', initialJsonError);
-                // Attempt to clean the string: remove trailing commas (common issue)
                 let cleanedString = match[1].replace(/,\s*([}\]])/g, '$1');
-                // More cleaning steps could be added here if needed
                 console.log('Attempting to parse cleaned JSON string:', cleanedString);
                 try {
                     rawDraftData = JSON.parse(cleanedString);
@@ -206,7 +217,7 @@ const useDraftStore = create<DraftStore>()(
                 }
             }
 
-          } catch (jsonError) { // This catch is for the outer try if JSON.parse itself throws (should be caught by inner try now)
+          } catch (jsonError) { 
             console.error('JSON parsing failed. String was:', match[1], jsonError);
             throw new Error('Failed to parse JSON from draftData variable.');
           }
