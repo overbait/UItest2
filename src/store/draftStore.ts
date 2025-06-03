@@ -9,7 +9,9 @@ import {
   Aoe2cmRawPlayerData,
 } from '../types/draft';
 
-const LOCAL_AOE2CM2_API_BASE_URL = 'http://localhost:5000/api';
+// Configurable base URL for the draft data API.
+// This should be set based on user's findings (e.g., from shtopr-aoe4.cowlandia.net or aoe2cm.net API).
+const DRAFT_DATA_API_BASE_URL = ''; // Intentionally empty - to be configured or discovered
 
 interface DraftStore {
   draft: DraftState | null;
@@ -24,6 +26,8 @@ interface DraftStore {
   extractDraftIdFromUrl: (url: string) => string | null;
 }
 
+// This transformation function will likely need significant adjustments
+// once the actual API response structure is known.
 const transformRawDraftDataToDraftState = (
   raw: Aoe2cmRawDraftData 
 ): DraftState => {
@@ -37,16 +41,10 @@ const transformRawDraftDataToDraftState = (
   const mapPicks: string[] = [];
   const mapBans: string[] = [];
 
-  // Assuming the local aoe2cm2 API response might have a similar events structure
-  // or that picks/bans are directly available on player objects.
-  // This part will likely need adjustment based on the actual API response.
-
-  // Attempt to get picks/bans from player objects if they exist (common in some API designs)
+  // Attempt to get picks/bans from player objects if they exist
   if (raw.host && (raw.host as Aoe2cmRawPlayerData).civs) {
     ((raw.host as Aoe2cmRawPlayerData).civs || []).forEach(civOrString => {
       const civName = typeof civOrString === 'string' ? civOrString : civOrString.name;
-      // Assuming all civs in 'civs' are picks for now, this might need refinement
-      // based on 'action' property if present
       if (civName) hostCivPicks.push(civName);
     });
   }
@@ -69,8 +67,7 @@ const transformRawDraftDataToDraftState = (
     });
   }
 
-
-  // Fallback or primary: Process events array if it exists and is structured as expected
+  // Fallback or primary: Process events array if it exists
   if (raw.events && Array.isArray(raw.events)) {
     raw.events.forEach(event => {
       const action = event.action?.toLowerCase() || '';
@@ -107,7 +104,7 @@ const transformRawDraftDataToDraftState = (
   }
 
   return {
-    id: raw.id,
+    id: raw.id || 'unknown-draft',
     hostName,
     guestName,
     hostCivPicks,
@@ -135,19 +132,29 @@ const useDraftStore = create<DraftStore>()(
         try {
           if (url.startsWith('http://') || url.startsWith('https://')) {
             const urlObj = new URL(url);
-            if (urlObj.hostname === 'aoe2cm.net' || urlObj.hostname === 'www.aoe2cm.net') {
-              const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
-              if (pathMatch && pathMatch[1]) return pathMatch[1];
-              const draftIdParam = urlObj.searchParams.get('draftId');
-              if (draftIdParam) return draftIdParam;
+            // Generic check for a path segment that looks like a draft ID
+            const pathSegments = urlObj.pathname.split('/');
+            const potentialId = pathSegments.pop() || pathSegments.pop(); // Get last or second to last segment
+            if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) { // Basic ID check
+                // Check if hostname is a known draft service, if not, it might be a direct API link
+                if (urlObj.hostname.includes('aoe2cm.net') || urlObj.hostname.includes('cowlandia.net')) {
+                    return potentialId;
+                }
+                // If it's not a known frontend, assume the URL might be the API base itself
+                // or the ID is in a query param.
+                const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
+                if (draftIdParam) return draftIdParam;
+                return potentialId; // Fallback to path segment
             }
           }
-          if (/^[a-zA-Z0-9]+$/.test(url)) {
+          // If not a URL, or parsing failed, assume it's a raw ID
+          if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
             return url;
           }
           return null;
         } catch (error) {
-          if (/^[a-zA-Z0-9]+$/.test(url)) {
+          // If URL parsing fails, it might be just an ID
+          if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
             return url;
           }
           return null;
@@ -164,16 +171,45 @@ const useDraftStore = create<DraftStore>()(
         }
         set({ draftId: extractedId });
 
-        const apiUrl = `${LOCAL_AOE2CM2_API_BASE_URL}/drafts/${extractedId}`;
-
+        let apiUrl = '';
+        if (DRAFT_DATA_API_BASE_URL) {
+          // Assuming the API endpoint structure is /drafts/{id} or similar. This might need adjustment.
+          apiUrl = `${DRAFT_DATA_API_BASE_URL}/drafts/${extractedId}`; 
+        } else {
+          // If DRAFT_DATA_API_BASE_URL is not set, we must rely on the user providing a full API URL
+          // or we cannot proceed. For now, we'll try to see if draftIdOrUrl itself is a full API URL.
+          if (draftIdOrUrl.startsWith('http://') || draftIdOrUrl.startsWith('https://')) {
+            try {
+                new URL(draftIdOrUrl); // check if it's a valid URL
+                apiUrl = draftIdOrUrl; // Assume the user provided the full API endpoint
+                console.warn(`DRAFT_DATA_API_BASE_URL is not set. Using provided URL as full API endpoint: ${apiUrl}`);
+            } catch (_) {
+                // Not a valid URL, and base is not set.
+            }
+          }
+          
+          if (!apiUrl) {
+            const placeholderApiUrl = `https://api.placeholder.com/drafts/${extractedId}`; // Placeholder
+            console.warn(`DRAFT_DATA_API_BASE_URL is not set. API endpoint discovery needed. Attempting placeholder: ${placeholderApiUrl}`);
+            // Set error and stop if no base URL and not a full URL provided by user
+            set({ 
+                isLoading: false, 
+                connectionStatus: 'error', 
+                connectionError: 'Draft API Base URL is not configured. Cannot fetch data. Please provide a full API URL or configure the base URL.',
+                draft: null 
+            });
+            return false;
+          }
+        }
+        
         try {
-          console.log(`Attempting to fetch draft data from local aoe2cm2 API: ${apiUrl}`);
+          console.log(`Attempting to fetch draft data from: ${apiUrl}`);
           const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
           
-          console.log('Raw response from local aoe2cm2 API:', response.data);
+          console.log('Raw response from API:', response.data);
 
           if (!response.data || typeof response.data !== 'object') {
-            throw new Error('Received invalid or empty data structure from local aoe2cm2 API.');
+            throw new Error('Received invalid or empty data structure from the API.');
           }
           
           const rawDraftData = response.data;
@@ -183,13 +219,13 @@ const useDraftStore = create<DraftStore>()(
           return true;
 
         } catch (error) {
-          let errorMessage = `Failed to fetch draft data from local aoe2cm2 server (${apiUrl}).`;
+          let errorMessage = `Failed to fetch draft data from API (${apiUrl}).`;
           if (axios.isAxiosError(error)) {
             errorMessage += ` Server responded with ${error.response?.status || 'no status'}: ${error.message}`;
-            console.error('Axios error connecting to local aoe2cm2 API:', error.toJSON());
+            console.error('Axios error connecting to API:', error.toJSON());
           } else {
             errorMessage += ` Error: ${(error as Error).message}`;
-            console.error('Error connecting to local aoe2cm2 API:', error);
+            console.error('Error connecting to API:', error);
           }
           
           set({
@@ -218,11 +254,15 @@ const useDraftStore = create<DraftStore>()(
           set({ connectionError: "No draft ID to reconnect to."});
           return false;
         }
-        return await connectToDraft(draftId);
+        // When reconnecting, we might need to re-evaluate the API URL if it was dynamically determined
+        // For now, connectToDraft will use the stored draftId, which is fine if it's just the ID.
+        // If draftId stored the full URL, connectToDraft logic needs to handle that.
+        // The current extractDraftIdFromUrl should give us just the ID.
+        return await connectToDraft(draftId); 
       },
     }),
     {
-      name: 'aoe2-draft-overlay-simplified-storage-v2', // Changed name again to ensure fresh state
+      name: 'aoe2-draft-overlay-simplified-storage-v3', // Incremented version for fresh state
     }
   )
 );
