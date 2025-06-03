@@ -1,555 +1,226 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware'; // Persist can be re-added later if needed
 import axios from 'axios';
-import io, { Socket } from 'socket.io-client';
 
 import {
   DraftState,
   ConnectionStatus,
-  DraftUIConfig,
-  DraftAction,
-  WebSocketEvent,
-  DraftUpdateEvent,
-  TurnTimerEvent,
-  ChatMessageEvent,
-  DraftDataForAI,
-  AICustomizationCommand,
-  Civilization,
-  GameMap,
-  DraftActionResult,
-  ApiResponse,
+  // Types needed for raw data parsing
+  Aoe2cmRawDraftData,
+  Aoe2cmRawPlayerData,
+  Aoe2cmRawEventData,
+  // Aoe2cmRawPresetData, // Might not be needed if we only parse events for picks/bans
+  // Aoe2cmRawPresetTurn,
 } from '../types/draft';
 
-// Base URL for API requests
-const API_BASE_URL = 'https://aoe2cm.net/api';
-const SOCKET_URL = 'https://aoe2cm.net';
+// URLs
+const AOE2CM_BASE_URL = 'https://aoe2cm.net';
+const CORS_PROXY_URL = 'https://corsproxy.io/?';
 
-// Default UI configuration
-const DEFAULT_UI_CONFIG: DraftUIConfig = {
-  positions: {
-    hostName: { x: 20, y: 20, width: 200, height: 40, zIndex: 10, visible: true },
-    guestName: { x: 20, y: 70, width: 200, height: 40, zIndex: 10, visible: true },
-    hostScore: { x: 230, y: 20, width: 40, height: 40, zIndex: 10, visible: true },
-    guestScore: { x: 230, y: 70, width: 40, height: 40, zIndex: 10, visible: true },
-    hostCivs: { x: 20, y: 120, width: 250, height: 300, zIndex: 10, visible: true },
-    guestCivs: { x: 20, y: 430, width: 250, height: 300, zIndex: 10, visible: true },
-    maps: { x: 280, y: 120, width: 250, height: 200, zIndex: 10, visible: true },
-    status: { x: 280, y: 330, width: 250, height: 40, zIndex: 10, visible: true },
-    timer: { x: 280, y: 380, width: 250, height: 40, zIndex: 10, visible: true },
-  },
-  fonts: {
-    playerNames: 'font-medieval',
-    civilizations: 'font-game',
-    maps: 'font-game',
-    status: 'font-technical',
-  },
-  colors: {
-    background: 'transparent',
-    text: '#F5F5DC',
-    hostHighlight: '#4CAF50',
-    guestHighlight: '#2196F3',
-    pick: '#4CAF50',
-    ban: '#F44336',
-    snipe: '#FF9800',
-  },
-  images: {
-    background: '',
-    hostLogo: '',
-    guestLogo: '',
-    customImages: {},
-  },
-  animations: {
-    enabled: true,
-    duration: 500,
-    type: 'fade',
-  },
-};
-
-// Interface for the draft store state
+// Simplified Draft Store Interface
 interface DraftStore {
-  // Draft data
   draft: DraftState | null;
-  civilizations: Civilization[];
-  maps: GameMap[];
-  
-  // Connection state
   connectionStatus: ConnectionStatus;
   connectionError: string | null;
-  socket: Socket | null;
   draftId: string | null;
-  
-  // UI configuration
-  uiConfig: DraftUIConfig;
-  
-  // Timer state
-  turnTimer: {
-    remainingTime: number;
-    totalTime: number;
-  };
-  
-  // Chat messages
-  chatMessages: ChatMessageEvent[];
-  
-  // Loading states
-  isLoading: boolean;
-  
-  // Actions
+  isLoading: boolean; // Keep isLoading for user feedback during fetch
+
   connectToDraft: (draftIdOrUrl: string) => Promise<boolean>;
   disconnectFromDraft: () => void;
-  reconnect: () => Promise<boolean>;
-  
-  // Draft actions
-  updateDraftState: (newState: Partial<DraftState>) => void;
-  performAction: (action: DraftAction) => Promise<DraftActionResult>;
-  
-  // UI configuration actions
-  updateUIConfig: (config: Partial<DraftUIConfig>) => void;
-  resetUIConfig: () => void;
-  updateElementPosition: (
-    element: keyof DraftUIConfig['positions'], 
-    position: { x?: number; y?: number; width?: number; height?: number; zIndex?: number; visible?: boolean }
-  ) => void;
-  
-  // Player actions
-  updatePlayerScore: (role: 'host' | 'guest', score: number) => void;
-  updatePlayerName: (role: 'host' | 'guest', name: string) => void;
-  
-  // AI integration
-  getDraftDataForAI: () => DraftDataForAI;
-  executeAICustomization: (command: AICustomizationCommand) => void;
-  
-  // Utility methods
+  reconnect: () => Promise<boolean>; // Might be simplified or removed if no WebSockets
   extractDraftIdFromUrl: (url: string) => string | null;
-  getCivilizationById: (id: string) => Civilization | undefined;
-  getMapById: (id: string) => GameMap | undefined;
 }
 
-// Create the store with Zustand
+// Simplified transformation function
+const transformRawDraftDataToDraftState = (
+  raw: Aoe2cmRawDraftData
+): DraftState => {
+  const hostName = raw.host?.name || 'Host'; // Fallback if name is not in player object
+  const guestName = raw.guest?.name || 'Guest'; // Fallback
+
+  const hostCivPicks: string[] = [];
+  const hostCivBans: string[] = [];
+  const guestCivPicks: string[] = [];
+  const guestCivBans: string[] = [];
+  const mapPicks: string[] = [];
+  const mapBans: string[] = [];
+
+  // Determine player roles from raw data if possible, otherwise assume based on event.player
+  // This is a simplified assumption; a more robust way would be to map player names from events
+  // to the host/guest objects if raw.host/guest are just strings.
+  // For now, we assume raw.host.name and raw.guest.name are reliable.
+
+  raw.events?.forEach(event => {
+    const action = event.action?.toLowerCase() || '';
+    const player = event.player?.toLowerCase(); // Could be 'host', 'guest', or actual player names
+
+    const isHostAction = player === 'host' || (raw.host && player === (raw.host as Aoe2cmRawPlayerData).name?.toLowerCase());
+    const isGuestAction = player === 'guest' || (raw.guest && player === (raw.guest as Aoe2cmRawPlayerData).name?.toLowerCase());
+
+    if (event.civ) {
+      if (action.includes('pick')) {
+        if (isHostAction) hostCivPicks.push(event.civ);
+        else if (isGuestAction) guestCivPicks.push(event.civ);
+      } else if (action.includes('ban')) {
+        if (isHostAction) hostCivBans.push(event.civ);
+        else if (isGuestAction) guestCivBans.push(event.civ);
+      }
+    } else if (event.map) {
+      if (action.includes('pick')) {
+        // Map picks might be global or attributed to the current turn player.
+        // For simplicity, let's assume global or assign to host if player is ambiguous.
+        // This needs refinement based on actual aoe2cm.net data structure for map picks.
+        mapPicks.push(event.map);
+      } else if (action.includes('ban')) {
+        mapBans.push(event.map);
+      }
+    }
+  });
+  
+  let currentTurnPlayerDisplay: string | undefined = 'none';
+  let currentActionDisplay: string | undefined = 'unknown';
+
+  if (raw.preset?.turns && typeof raw.currentTurnNo === 'number' && raw.currentTurnNo < raw.preset.turns.length) {
+    const currentTurnInfo = raw.preset.turns[raw.currentTurnNo];
+    currentTurnPlayerDisplay = currentTurnInfo.player;
+    currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', ''); // e.g. GPICK -> PICK
+  }
+
+
+  return {
+    id: raw.id,
+    hostName,
+    guestName,
+    hostCivPicks,
+    hostCivBans,
+    guestCivPicks,
+    guestCivBans,
+    mapPicks,
+    mapBans,
+    status: raw.status?.toLowerCase() || 'unknown',
+    currentTurnPlayer: currentTurnPlayerDisplay,
+    currentAction: currentActionDisplay,
+  };
+};
+
 const useDraftStore = create<DraftStore>()(
   devtools(
-    persist(
-      (set, get) => ({
-        // Initial state
-        draft: null,
-        civilizations: [],
-        maps: [],
-        connectionStatus: 'disconnected',
-        connectionError: null,
-        socket: null,
-        draftId: null,
-        uiConfig: DEFAULT_UI_CONFIG,
-        turnTimer: {
-          remainingTime: 0,
-          totalTime: 30,
-        },
-        chatMessages: [],
-        isLoading: false,
-        
-        // Connect to a draft using ID or URL
-        connectToDraft: async (draftIdOrUrl: string) => {
-          set({ isLoading: true, connectionStatus: 'connecting' });
-          
-          try {
-            // Extract draft ID if a URL was provided
-            const draftId = get().extractDraftIdFromUrl(draftIdOrUrl) || draftIdOrUrl;
-            
-            // Fetch draft data
-            const response = await axios.get<ApiResponse<DraftState>>(`${API_BASE_URL}/draft/${draftId}`);
-            
-            if (!response.data.success || !response.data.data) {
-              set({ 
-                connectionStatus: 'error', 
-                connectionError: response.data.error?.message || 'Failed to fetch draft data',
-                isLoading: false 
-              });
-              return false;
-            }
-            
-            // Fetch civilizations if not already loaded
-            if (get().civilizations.length === 0) {
-              const civsResponse = await axios.get<ApiResponse<Civilization[]>>(`${API_BASE_URL}/civilizations`);
-              if (civsResponse.data.success && civsResponse.data.data) {
-                set({ civilizations: civsResponse.data.data });
-              }
-            }
-            
-            // Fetch maps if not already loaded
-            if (get().maps.length === 0) {
-              const mapsResponse = await axios.get<ApiResponse<GameMap[]>>(`${API_BASE_URL}/maps`);
-              if (mapsResponse.data.success && mapsResponse.data.data) {
-                set({ maps: mapsResponse.data.data });
-              }
-            }
-            
-            // Setup WebSocket connection
-            const socket = io(`${SOCKET_URL}`, {
-              query: { draftId },
-              transports: ['websocket'],
-            });
-            
-            // Setup socket event handlers
-            socket.on('connect', () => {
-              set({ connectionStatus: 'connected', connectionError: null });
-              socket.emit('joinDraft', { draftId, role: 'spectator' });
-            });
-            
-            socket.on('disconnect', () => {
-              set({ connectionStatus: 'disconnected' });
-            });
-            
-            socket.on('error', (error: any) => {
-              set({ 
-                connectionStatus: 'error', 
-                connectionError: typeof error === 'string' ? error : 'WebSocket connection error' 
-              });
-            });
-            
-            socket.on('draftUpdate', (event: WebSocketEvent<DraftUpdateEvent>) => {
-              if (event.data?.draft) {
-                set({ draft: event.data.draft });
-                
-                // Update turn timer if available
-                if (event.data.draft.turnTimeLimit) {
-                  set({
-                    turnTimer: {
-                      remainingTime: event.data.draft.turnTimeLimit,
-                      totalTime: event.data.draft.turnTimeLimit,
-                    }
-                  });
-                }
-              }
-            });
-            
-            socket.on('turnTimerUpdate', (event: WebSocketEvent<TurnTimerEvent>) => {
-              if (event.data) {
-                set({
-                  turnTimer: {
-                    remainingTime: event.data.remainingTime,
-                    totalTime: event.data.totalTime,
-                  }
-                });
-              }
-            });
-            
-            socket.on('chatMessage', (event: WebSocketEvent<ChatMessageEvent>) => {
-              if (event.data) {
-                set(state => ({
-                  chatMessages: [...state.chatMessages, event.data!],
-                }));
-              }
-            });
-            
-            // Set the draft state and connection info
-            set({
-              draft: response.data.data,
-              draftId,
-              socket,
-              connectionStatus: 'connected',
-              connectionError: null,
-              isLoading: false,
-            });
-            
-            return true;
-          } catch (error) {
-            console.error('Error connecting to draft:', error);
-            set({ 
-              connectionStatus: 'error', 
-              connectionError: error instanceof Error ? error.message : 'Unknown error',
-              isLoading: false 
-            });
-            return false;
-          }
-        },
-        
-        // Disconnect from the current draft
-        disconnectFromDraft: () => {
-          const { socket } = get();
-          if (socket) {
-            socket.disconnect();
-          }
-          
-          set({
-            draft: null,
-            socket: null,
-            draftId: null,
-            connectionStatus: 'disconnected',
-            connectionError: null,
-            chatMessages: [],
-          });
-        },
-        
-        // Reconnect to the current draft
-        reconnect: async () => {
-          const { draftId, disconnectFromDraft, connectToDraft } = get();
-          
-          if (!draftId) {
-            return false;
-          }
-          
-          disconnectFromDraft();
-          return await connectToDraft(draftId);
-        },
-        
-        // Update the draft state
-        updateDraftState: (newState: Partial<DraftState>) => {
-          set(state => ({
-            draft: state.draft ? { ...state.draft, ...newState } : null,
-          }));
-        },
-        
-        // Perform a draft action (e.g., pick, ban)
-        performAction: async (action: DraftAction) => {
-          const { draftId, socket } = get();
-          
-          if (!draftId || !socket) {
-            return {
-              action,
-              success: false,
-              errorCode: 'NO_CONNECTION',
-              errorMessage: 'Not connected to a draft',
-            };
-          }
-          
-          try {
-            return new Promise<DraftActionResult>((resolve) => {
-              socket.emit('draftAction', { draftId, action }, (result: DraftActionResult) => {
-                resolve(result);
-              });
-            });
-          } catch (error) {
-            return {
-              action,
-              success: false,
-              errorCode: 'ACTION_FAILED',
-              errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            };
-          }
-        },
-        
-        // Update UI configuration
-        updateUIConfig: (config: Partial<DraftUIConfig>) => {
-          set(state => ({
-            uiConfig: {
-              ...state.uiConfig,
-              ...config,
-              positions: {
-                ...state.uiConfig.positions,
-                ...(config.positions || {}),
-              },
-              fonts: {
-                ...state.uiConfig.fonts,
-                ...(config.fonts || {}),
-              },
-              colors: {
-                ...state.uiConfig.colors,
-                ...(config.colors || {}),
-              },
-              images: {
-                ...state.uiConfig.images,
-                ...(config.images || {}),
-                customImages: {
-                  ...state.uiConfig.images.customImages,
-                  ...(config.images?.customImages || {}),
-                },
-              },
-              animations: {
-                ...state.uiConfig.animations,
-                ...(config.animations || {}),
-              },
-            },
-          }));
-        },
-        
-        // Reset UI configuration to defaults
-        resetUIConfig: () => {
-          set({ uiConfig: DEFAULT_UI_CONFIG });
-        },
-        
-        // Update the position of a UI element
-        updateElementPosition: (element, position) => {
-          set(state => ({
-            uiConfig: {
-              ...state.uiConfig,
-              positions: {
-                ...state.uiConfig.positions,
-                [element]: {
-                  ...state.uiConfig.positions[element],
-                  ...position,
-                },
-              },
-            },
-          }));
-        },
-        
-        // Update player score
-        updatePlayerScore: (role, score) => {
-          set(state => {
-            if (!state.draft) return state;
-            
-            const updatedDraft = { ...state.draft };
-            if (role === 'host') {
-              updatedDraft.host = { ...updatedDraft.host, score };
-            } else {
-              updatedDraft.guest = { ...updatedDraft.guest, score };
-            }
-            
-            return { draft: updatedDraft };
-          });
-        },
-        
-        // Update player name
-        updatePlayerName: (role, name) => {
-          set(state => {
-            if (!state.draft) return state;
-            
-            const updatedDraft = { ...state.draft };
-            if (role === 'host') {
-              updatedDraft.host = { ...updatedDraft.host, name };
-            } else {
-              updatedDraft.guest = { ...updatedDraft.guest, name };
-            }
-            
-            return { draft: updatedDraft };
-          });
-        },
-        
-        // Get structured draft data for AI integration
-        getDraftDataForAI: () => {
-          const { draft } = get();
-          
-          if (!draft) {
-            return {
-              draftId: '',
-              presetId: '',
-              host: { name: '', score: 0, picks: [], bans: [], snipes: [] },
-              guest: { name: '', score: 0, picks: [], bans: [], snipes: [] },
-              maps: { picks: [], bans: [] },
-              currentTurn: 0,
-              status: 'unknown',
-            };
-          }
-          
-          return {
-            draftId: draft.id,
-            presetId: draft.presetId || '',
-            host: {
-              name: draft.host.name,
-              score: draft.host.score || 0,
-              picks: draft.hostCivs.picks.map(civ => civ.name),
-              bans: draft.hostCivs.bans.map(civ => civ.name),
-              snipes: draft.hostCivs.snipes.map(civ => civ.name),
-            },
-            guest: {
-              name: draft.guest.name,
-              score: draft.guest.score || 0,
-              picks: draft.guestCivs.picks.map(civ => civ.name),
-              bans: draft.guestCivs.bans.map(civ => civ.name),
-              snipes: draft.guestCivs.snipes.map(civ => civ.name),
-            },
-            maps: {
-              picks: draft.maps.picks.map(map => map.name),
-              bans: draft.maps.bans.map(map => map.name),
-            },
-            currentTurn: draft.currentTurn,
-            status: draft.status,
-          };
-        },
-        
-        // Execute AI customization commands
-        executeAICustomization: (command: AICustomizationCommand) => {
-          const { updateUIConfig, updateElementPosition } = get();
-          
-          switch (command.type) {
-            case 'setPosition':
-              if (command.element in get().uiConfig.positions) {
-                updateElementPosition(
-                  command.element as keyof DraftUIConfig['positions'],
-                  command.value
-                );
-              }
-              break;
-              
-            case 'setFont':
-              updateUIConfig({
-                fonts: {
-                  [command.element]: command.value,
-                },
-              });
-              break;
-              
-            case 'setColor':
-              updateUIConfig({
-                colors: {
-                  [command.element]: command.value,
-                },
-              });
-              break;
-              
-            case 'setImage':
-              updateUIConfig({
-                images: {
-                  [command.element]: command.value,
-                },
-              });
-              break;
-              
-            case 'setAnimation':
-              updateUIConfig({
-                animations: command.value,
-              });
-              break;
-          }
-        },
-        
-        // Extract draft ID from a URL
-        extractDraftIdFromUrl: (url: string) => {
-          try {
+    (set, get) => ({
+      draft: null,
+      connectionStatus: 'disconnected',
+      connectionError: null,
+      draftId: null,
+      isLoading: false,
+
+      extractDraftIdFromUrl: (url: string) => {
+        try {
+          if (url.startsWith('http://') || url.startsWith('https://')) {
             const urlObj = new URL(url);
-            
-            // Check if the URL is from aoe2cm.net
-            if (urlObj.hostname === 'aoe2cm.net') {
-              // Extract draft ID from path or query parameter
+            if (urlObj.hostname === 'aoe2cm.net' || urlObj.hostname === 'www.aoe2cm.net') {
               const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
-              if (pathMatch && pathMatch[1]) {
-                return pathMatch[1];
-              }
-              
-              // Check for draftId query parameter
-              const draftId = urlObj.searchParams.get('draftId');
-              if (draftId) {
-                return draftId;
-              }
+              if (pathMatch && pathMatch[1]) return pathMatch[1];
+              const draftIdParam = urlObj.searchParams.get('draftId');
+              if (draftIdParam) return draftIdParam;
             }
-            
-            return null;
-          } catch (error) {
-            // If the input is not a valid URL, check if it might be just a draft ID
-            if (/^[a-zA-Z0-9]+$/.test(url)) {
-              return url;
-            }
-            return null;
           }
-        },
-        
-        // Get civilization by ID
-        getCivilizationById: (id: string) => {
-          return get().civilizations.find(civ => civ.id === id);
-        },
-        
-        // Get map by ID
-        getMapById: (id: string) => {
-          return get().maps.find(map => map.id === id);
-        },
-      }),
-      {
-        name: 'aoe2-draft-overlay-storage',
-        partialize: (state) => ({
-          uiConfig: state.uiConfig,
-          civilizations: state.civilizations,
-          maps: state.maps,
-        }),
-      }
-    )
+          if (/^[a-zA-Z0-9]+$/.test(url)) {
+            return url;
+          }
+          return null;
+        } catch (error) {
+          if (/^[a-zA-Z0-9]+$/.test(url)) {
+            return url;
+          }
+          return null;
+        }
+      },
+
+      connectToDraft: async (draftIdOrUrl: string) => {
+        set({ isLoading: true, connectionStatus: 'connecting', connectionError: null, draft: null });
+
+        const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl);
+        if (!extractedId) {
+          set({ isLoading: false, connectionStatus: 'error', connectionError: 'Invalid Draft ID or URL' });
+          return false;
+        }
+        set({ draftId: extractedId });
+
+        const draftJsUrl = `${AOE2CM_BASE_URL}/draft/${extractedId}.js`;
+        const proxyUrl = `${CORS_PROXY_URL}${encodeURIComponent(draftJsUrl)}`;
+        let responseText: string | null = null;
+
+        try {
+          // Try direct fetch first (might fail due to CORS in browser, but good for Node.js or if server has CORS)
+           try {
+            const directResponse = await axios.get<string>(draftJsUrl, { transformResponse: (res) => res });
+            responseText = directResponse.data;
+            console.log("Fetched directly from:", draftJsUrl);
+            set({ connectionError: null });
+          } catch (directError) {
+            console.warn(`Direct fetch to ${draftJsUrl} failed, trying proxy...`, directError);
+            set({ connectionError: `Direct fetch failed. Retrying via proxy... (${(directError as Error).message})` });
+            const proxyResponse = await axios.get<string>(proxyUrl, { transformResponse: (res) => res });
+            responseText = proxyResponse.data;
+            console.log("Fetched via proxy from:", proxyUrl);
+            set({ connectionError: null }); 
+          }
+
+          if (!responseText) {
+            throw new Error('Received empty response for draft data.');
+          }
+
+          const match = responseText.match(/var\s+draftData\s*=\s*(\{[\s\S]*?\});/);
+          if (!match || !match[1]) {
+            console.error("Raw response text:", responseText);
+            throw new Error('Could not find or parse draftData variable in the response script.');
+          }
+          
+          let rawDraftData: Aoe2cmRawDraftData;
+          try {
+            rawDraftData = JSON.parse(match[1]);
+          } catch (jsonError) {
+            console.error("Failed to parse JSON from draftData variable:", match[1], jsonError);
+            throw new Error('Failed to parse JSON from draftData variable.');
+          }
+
+          const draftState = transformRawDraftDataToDraftState(rawDraftData);
+          set({ draft: draftState, connectionStatus: 'connected', isLoading: false, connectionError: null });
+          return true;
+
+        } catch (error) {
+          console.error('Error connecting to draft:', error);
+          set({
+            isLoading: false,
+            connectionStatus: 'error',
+            connectionError: `Failed to fetch or process draft data: ${(error as Error).message}`,
+            draft: null,
+          });
+          return false;
+        }
+      },
+
+      disconnectFromDraft: () => {
+        set({
+          draft: null,
+          draftId: null,
+          connectionStatus: 'disconnected',
+          connectionError: null,
+          isLoading: false,
+        });
+      },
+
+      reconnect: async () => {
+        const { draftId, connectToDraft } = get();
+        if (!draftId) {
+          set({ connectionError: "No draft ID to reconnect to."});
+          return false;
+        }
+        return await connectToDraft(draftId);
+      },
+    }),
+    {
+      name: 'aoe2-draft-overlay-simplified-storage', // Changed name to avoid conflict with old store
+    }
   )
 );
 

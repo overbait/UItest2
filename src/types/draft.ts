@@ -1,303 +1,123 @@
 /**
- * Types for the Age of Empires II Draft Overlay
- * Based on the aoe2cm.net API and draft system
+ * Simplified Types for Age of Empires II Draft Overlay
+ * Focused on core draft data: player names, civ/map picks and bans.
  */
 
-// ========== Player Information ==========
+// ========== Core Draft Data ==========
+
+/**
+ * Represents a player in the draft.
+ * For now, we'll mostly use hostName and guestName directly in DraftState.
+ */
 export interface Player {
-  id: string;
+  id: string; // 'host' or 'guest'
   name: string;
-  role: 'host' | 'guest';
-  score?: number;
+  // Score and role might be added back later if essential for basic display
 }
 
-// ========== Civilization Types ==========
+/**
+ * Represents a civilization.
+ * Simplified to name, as this is what we'll likely get from the raw .js data.
+ */
 export interface Civilization {
-  id: string;
+  id: string; // Could be the name itself if no specific ID is provided
   name: string;
-  displayName?: string;
-  uniqueUnits?: string[];
-  uniqueTechs?: string[];
-  teamBonus?: string;
-  civilizationBonus?: string[];
-  expansion?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Optional, if available and needed for display
 }
 
-// ========== Map Types ==========
+/**
+ * Represents a map.
+ * Simplified to name.
+ */
 export interface GameMap {
-  id: string;
+  id: string; // Could be the name itself
   name: string;
-  displayName?: string;
-  description?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Optional
 }
 
-// ========== Action Types ==========
-export type ActionType = 'PICK' | 'BAN' | 'SNIPE' | 'REVEAL_PICKS' | 'REVEAL_BANS' | 'REVEAL_SNIPES' | 'REVEAL_ALL';
-export type ActionExclusivity = 'NONEXCLUSIVE' | 'EXCLUSIVE' | 'GLOBAL';
-
-export interface DraftAction {
-  type: ActionType;
-  player: 'host' | 'guest' | 'none'; // 'none' for admin actions like REVEAL
-  civilizationId?: string;
-  mapId?: string;
-  hidden?: boolean;
-  exclusivity?: ActionExclusivity;
-  parallel?: boolean;
-  timestamp?: number;
-}
-
-export interface DraftActionResult {
-  action: DraftAction;
-  success: boolean;
-  errorCode?: string;
-  errorMessage?: string;
-}
-
-// ========== Turn Types ==========
-export interface Turn {
-  id: number;
-  player: 'host' | 'guest' | 'none';
-  action: ActionType;
-  exclusivity: ActionExclusivity;
-  hidden: boolean;
-  parallel: boolean;
-}
-
-// ========== Draft State ==========
+/**
+ * Core state of the current draft being observed.
+ * This is the primary data structure we aim to populate.
+ */
 export interface DraftState {
-  id: string;
-  name?: string;
-  presetId?: string;
-  presetName?: string;
-  status: 'waiting' | 'inProgress' | 'completed' | 'abandoned';
-  host: Player;
-  guest: Player;
-  turns: Turn[];
-  currentTurn: number;
-  hostCivs: {
-    picks: Civilization[];
-    bans: Civilization[];
-    snipes: Civilization[];
-  };
-  guestCivs: {
-    picks: Civilization[];
-    bans: Civilization[];
-    snipes: Civilization[];
-  };
-  maps: {
-    picks: GameMap[];
-    bans: GameMap[];
-  };
-  availableCivilizations: Civilization[];
-  availableMaps: GameMap[];
-  startTime?: number;
-  endTime?: number;
-  turnTimeLimit?: number; // in seconds
-  spectators?: number;
-}
+  id: string; // The draft ID (e.g., "gSQZO")
+  hostName: string;
+  guestName: string;
+  
+  hostCivPicks: string[];  // Array of civilization names
+  hostCivBans: string[];   // Array of civilization names
+  
+  guestCivPicks: string[]; // Array of civilization names
+  guestCivBans: string[];  // Array of civilization names
+  
+  mapPicks: string[];      // Array of map names
+  mapBans: string[];       // Array of map names
 
-// ========== Preset Types ==========
-export interface Preset {
-  id: string;
-  name: string;
-  description?: string;
-  turns: Turn[];
-  civilizationPool: string[]; // IDs of available civilizations
-  mapPool?: string[]; // IDs of available maps
-  turnTimeLimit?: number; // in seconds
-  hidden?: boolean;
-  official?: boolean;
-  author?: string;
-  createdAt?: number;
-  updatedAt?: number;
-}
+  // Optional: if the raw data provides these easily, they can be useful.
+  // availableCivilizations?: string[]; // Full list of civs in the draft pool
+  // availableMaps?: string[];        // Full list of maps in the draft pool
 
-// ========== API Response Types ==========
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-export interface DraftListResponse {
-  drafts: {
-    id: string;
-    name?: string;
-    presetId: string;
-    presetName: string;
-    host: string;
-    guest: string;
-    status: 'waiting' | 'inProgress' | 'completed' | 'abandoned';
-    startTime?: number;
-    spectators?: number;
-  }[];
-  total: number;
-}
-
-export interface PresetListResponse {
-  presets: {
-    id: string;
-    name: string;
-    description?: string;
-    official?: boolean;
-    author?: string;
-    createdAt?: number;
-  }[];
-  total: number;
-}
-
-export interface CivilizationListResponse {
-  civilizations: Civilization[];
-  total: number;
-}
-
-export interface MapListResponse {
-  maps: GameMap[];
-  total: number;
-}
-
-// ========== WebSocket Event Types ==========
-export type WebSocketEventType = 
-  | 'connect'
-  | 'disconnect'
-  | 'error'
-  | 'draftCreated'
-  | 'draftJoined'
-  | 'draftUpdate'
-  | 'draftAction'
-  | 'draftCompleted'
-  | 'draftAbandoned'
-  | 'spectatorJoined'
-  | 'spectatorLeft'
-  | 'turnTimerUpdate'
-  | 'chatMessage';
-
-export interface WebSocketEvent<T = any> {
-  type: WebSocketEventType;
-  draftId?: string;
-  data?: T;
-  timestamp: number;
-}
-
-export interface DraftUpdateEvent {
-  draft: DraftState;
-  lastAction?: DraftAction;
-}
-
-export interface TurnTimerEvent {
-  turnId: number;
-  remainingTime: number; // in seconds
-  totalTime: number; // in seconds
-}
-
-export interface ChatMessageEvent {
-  sender: string;
-  message: string;
-  role: 'host' | 'guest' | 'spectator' | 'system';
-}
-
-// ========== Validation Types ==========
-export interface ValidationError {
-  code: string;
-  message: string;
-  field?: string;
+  status?: 'waiting' | 'inProgress' | 'completed' | 'error' | 'unknown' | string; // Basic status
+  currentTurnPlayer?: 'host' | 'guest' | 'none' | string; // Who is currently picking/banning
+  currentAction?: string; // e.g., "PICK", "BAN"
 }
 
 // ========== Connection Status ==========
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
-export interface ConnectionState {
-  status: ConnectionStatus;
-  draftId?: string;
-  error?: string;
-  lastConnected?: number;
-  reconnectAttempts?: number;
-}
-
-// ========== UI Configuration ==========
-export interface DraftElementPosition {
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  zIndex?: number;
-  visible?: boolean;
-}
-
-export interface DraftUIConfig {
-  positions: {
-    hostName?: DraftElementPosition;
-    guestName?: DraftElementPosition;
-    hostScore?: DraftElementPosition;
-    guestScore?: DraftElementPosition;
-    hostCivs?: DraftElementPosition;
-    guestCivs?: DraftElementPosition;
-    maps?: DraftElementPosition;
-    status?: DraftElementPosition;
-    timer?: DraftElementPosition;
-    customElements?: Record<string, DraftElementPosition>;
-  };
-  fonts: {
-    playerNames?: string;
-    civilizations?: string;
-    maps?: string;
-    status?: string;
-  };
-  colors: {
-    background?: string;
-    text?: string;
-    hostHighlight?: string;
-    guestHighlight?: string;
-    pick?: string;
-    ban?: string;
-    snipe?: string;
-  };
-  images: {
-    background?: string;
-    hostLogo?: string;
-    guestLogo?: string;
-    customImages?: Record<string, string>;
-  };
-  animations: {
-    enabled: boolean;
-    duration?: number;
-    type?: 'fade' | 'slide' | 'bounce' | 'none';
+// Minimal API response structure if we need to wrap direct data fetching
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    message: string;
   };
 }
 
-// ========== AI Integration Types ==========
-export interface DraftDataForAI {
-  draftId: string;
-  presetId: string;
-  host: {
-    name: string;
-    score: number;
-    picks: string[];
-    bans: string[];
-    snipes: string[];
-  };
-  guest: {
-    name: string;
-    score: number;
-    picks: string[];
-    bans: string[];
-    snipes: string[];
-  };
-  maps: {
-    picks: string[];
-    bans: string[];
-  };
-  currentTurn: number;
-  status: string;
+// Raw data structures expected from aoe2cm.net/draft/{id}.js file
+// These are based on observation and might need adjustment.
+
+export interface Aoe2cmRawPlayerData {
+  name: string;
+  civs?: (string | { id?: string; name: string; image?: string; action?: string })[]; // Picks
+  bans?: (string | { id?: string; name: string; image?: string; action?: string })[]; // Bans
+  // Other potential fields: ready, score, etc.
 }
 
-export interface AICustomizationCommand {
-  type: 'setPosition' | 'setFont' | 'setColor' | 'setImage' | 'setAnimation';
-  element: string;
-  value: any;
+export interface Aoe2cmRawEventData {
+  player: 'host' | 'guest' | 'admin' | 'SERVER' | string; // Player names might appear here too
+  action: string; // e.g., "gpick", "gban", "pick", "ban", "reveal"
+  civ?: string;    // Civilization name or ID
+  map?: string;    // Map name or ID
+  id?: number;     // Event ID / Turn ID
+  timestamp?: number;
+  hidden?: boolean;
+  parallel?: boolean;
+  exclusivity?: string; // e.g., "GLOBAL"
+  // other event properties
+}
+
+export interface Aoe2cmRawPresetTurn {
+  action: string; // e.g. "gpick"
+  player: 'host' | 'guest' | 'admin' | 'none';
+  // other preset turn properties
+}
+
+export interface Aoe2cmRawPresetData {
+  name: string;
+  id?: string;
+  turns: Aoe2cmRawPresetTurn[];
+  options?: (Civilization | GameMap)[]; // This might contain the pool of civs/maps
+  // other preset properties
+}
+
+export interface Aoe2cmRawDraftData {
+  id: string;
+  host: Aoe2cmRawPlayerData;  // Or just a name string: string
+  guest: Aoe2cmRawPlayerData; // Or just a name string: string
+  preset: Aoe2cmRawPresetData;
+  events: Aoe2cmRawEventData[];
+  status: string; // e.g., "CREATED", "IN_PROGRESS", "COMPLETED"
+  currentTurnNo?: number; // Current turn number (0-indexed)
+  // other fields
 }
