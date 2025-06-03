@@ -1,123 +1,164 @@
 /**
- * Simplified Types for Age of Empires II Draft Overlay
- * Focused on core draft data: player names, civ/map picks and bans.
+ * Types for AoE Draft Overlay
+ * Focused on data structures for fetching, processing, and displaying draft information.
  */
 
-// ========== Core Draft Data ==========
+// ========== Connection Status ==========
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-/**
- * Represents a player in the draft.
- * For now, we'll mostly use hostName and guestName directly in DraftState.
- */
-export interface Player {
-  id: string; // 'host' or 'guest'
-  name: string;
-  // Score and role might be added back later if essential for basic display
-}
+// ========== Processed Data for a Single Draft (Civ or Map) ==========
 
 /**
- * Represents a civilization.
- * Simplified to name, as this is what we'll likely get from the raw .js data.
+ * Represents the processed and structured data from a single draft ID (either civ or map).
+ * This is the output of transforming raw API data.
  */
-export interface Civilization {
-  id: string; // Could be the name itself if no specific ID is provided
-  name: string;
-  imageUrl?: string; // Optional, if available and needed for display
-}
-
-/**
- * Represents a map.
- * Simplified to name.
- */
-export interface GameMap {
-  id: string; // Could be the name itself
-  name: string;
-  imageUrl?: string; // Optional
-}
-
-/**
- * Core state of the current draft being observed.
- * This is the primary data structure we aim to populate.
- */
-export interface DraftState {
-  id: string; // The draft ID (e.g., "gSQZO")
+export interface SingleDraftData {
+  id: string;
   hostName: string;
   guestName: string;
   
-  hostCivPicks: string[];  // Array of civilization names
-  hostCivBans: string[];   // Array of civilization names
+  // These will be populated based on whether it's a civ or map draft
+  // For a civ draft, civPicks/Bans will be filled.
+  // For a map draft, mapPicks/Bans will be filled.
+  civPicksHost: string[];
+  civBansHost: string[];
+  civPicksGuest: string[];
+  civBansGuest: string[];
   
-  guestCivPicks: string[]; // Array of civilization names
-  guestCivBans: string[];  // Array of civilization names
-  
-  mapPicks: string[];      // Array of map names
-  mapBans: string[];       // Array of map names
+  mapPicksHost: string[]; // Populated if map draft is side-specific
+  mapBansHost: string[];  // Populated if map draft is side-specific
+  mapPicksGuest: string[];// Populated if map draft is side-specific
+  mapBansGuest: string[]; // Populated if map draft is side-specific
 
-  // Optional: if the raw data provides these easily, they can be useful.
-  // availableCivilizations?: string[]; // Full list of civs in the draft pool
-  // availableMaps?: string[];        // Full list of maps in the draft pool
+  // If map picks/bans are treated as global for some draft types
+  mapPicksGlobal: string[];
+  mapBansGlobal: string[];
 
-  status?: 'waiting' | 'inProgress' | 'completed' | 'error' | 'unknown' | string; // Basic status
-  currentTurnPlayer?: 'host' | 'guest' | 'none' | string; // Who is currently picking/banning
+  status?: string; // e.g., "inProgress", "completed"
+  currentTurnPlayer?: string; // Name of the player or role (Host/Guest)
   currentAction?: string; // e.g., "PICK", "BAN"
+  
+  // Raw events can be stored for debugging or more complex logic later
+  // rawEvents?: Aoe2cmRawEventData[]; 
 }
 
-// ========== Connection Status ==========
-export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
+// ========== Combined UI State ==========
 
-// Minimal API response structure if we need to wrap direct data fetching
+/**
+ * Represents the combined state for the UI, holding data from
+ * potentially two separate drafts (civ and map) and UI-specific states.
+ */
+export interface CombinedDraftState {
+  civDraftId: string | null;
+  mapDraftId: string | null;
+  
+  hostName: string;  // Usually derived from civ draft, or first loaded
+  guestName: string; // Usually derived from civ draft, or first loaded
+  
+  scores: {
+    host: number;
+    guest: number;
+  };
+  
+  // Civ picks and bans
+  civPicksHost: string[];
+  civBansHost: string[];
+  civPicksGuest: string[];
+  civBansGuest: string[];
+  
+  // Map picks and bans (per-player, as suggested by UI screenshot)
+  mapPicksHost: string[];
+  mapBansHost: string[];
+  mapPicksGuest: string[];
+  mapBansGuest: string[];
+
+  // Global map picks/bans (if a draft type doesn't specify per-player for maps)
+  // These might be populated if the transform logic determines maps are global for a specific preset.
+  mapPicksGlobal: string[];
+  mapBansGlobal: string[];
+  
+  // Status and error tracking for civ draft
+  civDraftStatus: ConnectionStatus;
+  civDraftError: string | null;
+  isLoadingCivDraft: boolean;
+  
+  // Status and error tracking for map draft
+  mapDraftStatus: ConnectionStatus;
+  mapDraftError: string | null;
+  isLoadingMapDraft: boolean;
+}
+
+
+// ========== Raw Data Structures from aoe2cm.net API ==========
+// These represent the direct JSON response from `https://aoe2cm.net/api/draft/:id`
+
+export interface Aoe2cmRawPlayerInfo { // Can be a simple name or a more complex object
+  name: string;
+  // Other potential fields: civs, bans (if API provides them directly on player objects)
+}
+
+export interface Aoe2cmRawEventData {
+  player: string; // "HOST", "GUEST", or actual player name
+  executingPlayer: string; // "HOST" or "GUEST"
+  actionType: string; // "pick", "ban", "snipe", etc.
+  chosenOptionId: string; // ID of the civ or map
+  isRandomlyChosen?: boolean;
+  offset?: number;
+  // other event properties
+}
+
+export interface Aoe2cmRawDraftOption {
+  id: string;
+  name: string;
+  imageUrls?: { [key: string]: string };
+  i18nPrefix?: string;
+  category?: string; // Useful to distinguish civs from maps if not clear from ID
+}
+
+export interface Aoe2cmRawPresetTurn {
+  player: string; // "HOST", "GUEST", "NONE"
+  action: string; // e.g., "PICK", "BAN"
+  // other preset turn properties
+}
+
+export interface Aoe2cmRawPresetData {
+  name: string;
+  presetId: string;
+  draftOptions: Aoe2cmRawDraftOption[];
+  turns: Aoe2cmRawPresetTurn[];
+  categoryLimits?: any; // Can be more specific if needed
+}
+
+export interface Aoe2cmRawDraftData {
+  id?: string; // For /api/draft/:id, this is the ID from the URL
+  draftId?: string; // For /api/recentdrafts, this field exists
+  
+  nameHost?: string;    // Directly available in the JSON response
+  nameGuest?: string;   // Directly available in the JSON response
+  host?: string | Aoe2cmRawPlayerInfo; // Sometimes just name, sometimes object
+  guest?: string | Aoe2cmRawPlayerInfo; // Sometimes just name, sometimes object
+  
+  events: Aoe2cmRawEventData[];
+  preset: Aoe2cmRawPresetData;
+  
+  nextAction?: number; // Index of the next turn/action
+  status?: string;     // e.g., "COMPLETED", "ONGOING" (might not be present in all responses)
+  ongoing?: boolean;   // From recentdrafts endpoint
+  
+  fixedNames?: boolean;
+  hostConnected?: boolean;
+  guestConnected?: boolean;
+  hostReady?: boolean;
+  guestReady?: boolean;
+  startTimestamp?: number;
+  // ... any other fields observed in the API response
+}
+
+// ========== Generic API Response Wrapper ==========
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: {
     message: string;
   };
-}
-
-// Raw data structures expected from aoe2cm.net/draft/{id}.js file
-// These are based on observation and might need adjustment.
-
-export interface Aoe2cmRawPlayerData {
-  name: string;
-  civs?: (string | { id?: string; name: string; image?: string; action?: string })[]; // Picks
-  bans?: (string | { id?: string; name: string; image?: string; action?: string })[]; // Bans
-  // Other potential fields: ready, score, etc.
-}
-
-export interface Aoe2cmRawEventData {
-  player: 'host' | 'guest' | 'admin' | 'SERVER' | string; // Player names might appear here too
-  action: string; // e.g., "gpick", "gban", "pick", "ban", "reveal"
-  civ?: string;    // Civilization name or ID
-  map?: string;    // Map name or ID
-  id?: number;     // Event ID / Turn ID
-  timestamp?: number;
-  hidden?: boolean;
-  parallel?: boolean;
-  exclusivity?: string; // e.g., "GLOBAL"
-  // other event properties
-}
-
-export interface Aoe2cmRawPresetTurn {
-  action: string; // e.g. "gpick"
-  player: 'host' | 'guest' | 'admin' | 'none';
-  // other preset turn properties
-}
-
-export interface Aoe2cmRawPresetData {
-  name: string;
-  id?: string;
-  turns: Aoe2cmRawPresetTurn[];
-  options?: (Civilization | GameMap)[]; // This might contain the pool of civs/maps
-  // other preset properties
-}
-
-export interface Aoe2cmRawDraftData {
-  id: string;
-  host: Aoe2cmRawPlayerData;  // Or just a name string: string
-  guest: Aoe2cmRawPlayerData; // Or just a name string: string
-  preset: Aoe2cmRawPresetData;
-  events: Aoe2cmRawEventData[];
-  status: string; // e.g., "CREATED", "IN_PROGRESS", "COMPLETED"
-  currentTurnNo?: number; // Current turn number (0-indexed)
-  // other fields
 }

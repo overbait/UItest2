@@ -3,151 +3,179 @@ import { devtools } from 'zustand/middleware';
 import axios from 'axios';
 
 import {
-  DraftState,
+  CombinedDraftState,
   ConnectionStatus,
   Aoe2cmRawDraftData,
-  // Aoe2cmRawPlayerData, // Player data is more directly part of Aoe2cmRawDraftData
-  // Aoe2cmRawEventData, // Event structure is part of Aoe2cmRawDraftData
+  SingleDraftData,
+  // Aoe2cmRawEventData, // Part of Aoe2cmRawDraftData
+  // Aoe2cmRawDraftOption, // Part of Aoe2cmRawDraftData
 } from '../types/draft';
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
 
-interface DraftStore {
-  draft: DraftState | null;
-  connectionStatus: ConnectionStatus;
-  connectionError: string | null;
-  draftId: string | null;
-  isLoading: boolean;
-
-  connectToDraft: (draftIdOrUrl: string) => Promise<boolean>;
-  disconnectFromDraft: () => void;
-  reconnect: () => Promise<boolean>;
+interface DraftStore extends CombinedDraftState {
+  connectToDraft: (draftIdOrUrl: string, draftType: 'civ' | 'map') => Promise<boolean>;
+  disconnectDraft: (draftType: 'civ' | 'map') => void;
+  reconnectDraft: (draftType: 'civ' | 'map') => Promise<boolean>;
   extractDraftIdFromUrl: (url: string) => string | null;
+
+  setHostName: (name: string) => void;
+  setGuestName: (name: string) => void;
+  incrementScore: (player: 'host' | 'guest') => void;
+  decrementScore: (player: 'host' | 'guest') => void;
+  swapScores: () => void;
+  swapCivPlayers: () => void;
+  swapMapPlayers: () => void;
 }
 
-const transformRawDraftDataToDraftState = (
-  raw: Aoe2cmRawDraftData
-): DraftState => {
-  const hostName = raw.nameHost || 'Host';
-  const guestName = raw.nameGuest || 'Guest';
+const initialScores = { host: 0, guest: 0 };
+const initialPlayerNameHost = 'Host';
+const initialPlayerNameGuest = 'Guest';
 
-  const hostCivPicks: string[] = [];
-  const hostCivBans: string[] = [];
-  const guestCivPicks: string[] = [];
-  const guestCivBans: string[] = [];
-  const mapPicks: string[] = [];
-  const mapBans: string[] = [];
+const initialCombinedState: CombinedDraftState = {
+  civDraftId: null,
+  mapDraftId: null,
+  hostName: initialPlayerNameHost,
+  guestName: initialPlayerNameGuest,
+  scores: { ...initialScores },
+  civPicksHost: [],
+  civBansHost: [],
+  civPicksGuest: [],
+  civBansGuest: [],
+  mapPicksHost: [],
+  mapBansHost: [],
+  mapPicksGuest: [],
+  mapBansGuest: [],
+  mapPicksGlobal: [],
+  mapBansGlobal: [],
+  civDraftStatus: 'disconnected',
+  civDraftError: null,
+  isLoadingCivDraft: false,
+  mapDraftStatus: 'disconnected',
+  mapDraftError: null,
+  isLoadingMapDraft: false,
+};
+
+const transformRawDataToSingleDraft = (
+  raw: Aoe2cmRawDraftData,
+  draftType: 'civ' | 'map'
+): Partial<SingleDraftData> => {
+  const output: Partial<SingleDraftData> = {
+    id: raw.id || raw.draftId || 'unknown-id',
+    hostName: raw.nameHost || 'Host',
+    guestName: raw.nameGuest || 'Guest',
+    civPicksHost: [],
+    civBansHost: [],
+    civPicksGuest: [],
+    civBansGuest: [],
+    mapPicksHost: [],
+    mapBansHost: [],
+    mapPicksGuest: [],
+    mapBansGuest: [],
+    mapPicksGlobal: [],
+    mapBansGlobal: [],
+  };
 
   const getOptionNameById = (optionId: string): string => {
     const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId);
     if (option?.name) {
+      // Remove "aoe4." prefix for civ names if present
       return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
     }
-    // Fallback if name not found, use the ID but clean it up if it's a civ
     return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
   };
 
   raw.events?.forEach(event => {
-    const action = event.actionType?.toLowerCase() || ''; // Use actionType
-    const executingPlayer = event.executingPlayer; // HOST or GUEST
+    const action = event.actionType?.toLowerCase() || '';
+    const executingPlayer = event.executingPlayer; // "HOST" or "GUEST"
     const chosenOptionId = event.chosenOptionId;
 
     if (!chosenOptionId) return;
 
     const optionName = getOptionNameById(chosenOptionId);
-    const isCiv = chosenOptionId.startsWith('aoe4.'); // Heuristic for civ
+    // Determine if it's a civ or map based on draftType and optionId structure
+    // This heuristic might need refinement based on more draft examples.
+    const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.');
+    const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.');
+
 
     if (action === 'pick') {
-      if (isCiv) {
-        if (executingPlayer === 'HOST' && !hostCivPicks.includes(optionName)) hostCivPicks.push(optionName);
-        else if (executingPlayer === 'GUEST' && !guestCivPicks.includes(optionName)) guestCivPicks.push(optionName);
-      } else { // It's a map
-        if (!mapPicks.includes(optionName)) mapPicks.push(optionName); // Assuming map picks are global or assigned based on context not directly in event player for maps
+      if (isCivAction && draftType === 'civ') {
+        if (executingPlayer === 'HOST' && !output.civPicksHost!.includes(optionName)) output.civPicksHost!.push(optionName);
+        else if (executingPlayer === 'GUEST' && !output.civPicksGuest!.includes(optionName)) output.civPicksGuest!.push(optionName);
+      } else if (isMapAction && draftType === 'map') {
+        // For maps, let's assume per-player picks if UI requires it, otherwise global.
+        // The UI screenshot suggests per-player map picks/bans.
+        if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName);
+        else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName);
+        // if (!output.mapPicksGlobal!.includes(optionName)) output.mapPicksGlobal!.push(optionName);
       }
     } else if (action === 'ban') {
-      if (isCiv) {
-        if (executingPlayer === 'HOST' && !hostCivBans.includes(optionName)) hostCivBans.push(optionName);
-        else if (executingPlayer === 'GUEST' && !guestCivBans.includes(optionName)) guestCivBans.push(optionName);
-      } else { // It's a map
-        if (!mapBans.includes(optionName)) mapBans.push(optionName);
+      if (isCivAction && draftType === 'civ') {
+        if (executingPlayer === 'HOST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName);
+        else if (executingPlayer === 'GUEST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName);
+      } else if (isMapAction && draftType === 'map') {
+        if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName);
+        else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName);
+        // if (!output.mapBansGlobal!.includes(optionName)) output.mapBansGlobal!.push(optionName);
       }
-    } else if (action === 'snipe') { // Handle snipes as bans for the opponent
-      if (isCiv) {
-        if (executingPlayer === 'HOST' && !guestCivBans.includes(optionName)) guestCivBans.push(optionName); // Host snipes, Guest's civ is banned for Guest
-        else if (executingPlayer === 'GUEST' && !hostCivBans.includes(optionName)) hostCivBans.push(optionName); // Guest snipes, Host's civ is banned for Host
-      } else { // It's a map
-         // If a map is sniped, it's typically removed from the opponent's picks or becomes a general ban.
-         // For simplicity, adding to general mapBans.
-        if (!mapBans.includes(optionName)) mapBans.push(optionName);
-      }
+    } else if (action === 'snipe') {
+         if (isCivAction && draftType === 'civ') {
+            if (executingPlayer === 'HOST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName);
+            else if (executingPlayer === 'GUEST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName);
+        } else if (isMapAction && draftType === 'map') {
+            if (executingPlayer === 'HOST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName);
+            else if (executingPlayer === 'GUEST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName);
+            // if (!output.mapBansGlobal!.includes(optionName)) output.mapBansGlobal!.push(optionName);
+        }
     }
   });
-  
-  let currentTurnPlayerDisplay: string | undefined = 'none';
-  let currentActionDisplay: string | undefined = 'unknown';
-  let draftStatus: DraftState['status'] = 'unknown';
 
   if (raw.preset?.turns && typeof raw.nextAction === 'number') {
     if (raw.nextAction >= raw.preset.turns.length) {
-      draftStatus = 'completed';
+      output.status = 'completed';
     } else {
-      draftStatus = 'inProgress';
+      output.status = 'inProgress';
       const currentTurnInfo = raw.preset.turns[raw.nextAction];
       if (currentTurnInfo) {
-          currentTurnPlayerDisplay = currentTurnInfo.player; // This is 'HOST', 'GUEST', or 'NONE'
-          currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
-          // Map 'HOST'/'GUEST' from turn info to actual player names for display if needed, or keep as role
-          if (currentTurnPlayerDisplay === 'HOST') currentTurnPlayerDisplay = hostName;
-          else if (currentTurnPlayerDisplay === 'GUEST') currentTurnPlayerDisplay = guestName;
+        output.currentTurnPlayer = currentTurnInfo.player === 'HOST' ? output.hostName : currentTurnInfo.player === 'GUEST' ? output.guestName : 'None';
+        output.currentAction = currentTurnInfo.action?.toUpperCase().replace('G', '');
       }
     }
-  } else if (raw.status) { // Fallback to root status if available
-    draftStatus = raw.status.toLowerCase() as DraftState['status'];
+  } else if (raw.status) {
+    output.status = raw.status.toLowerCase();
+  } else if (raw.ongoing === false) {
+    output.status = 'completed';
+  } else if (raw.ongoing === true) {
+    output.status = 'inProgress';
   }
 
-
-  return {
-    id: raw.id || raw.draftId || 'unknown-draft',
-    hostName,
-    guestName,
-    hostCivPicks,
-    hostCivBans,
-    guestCivPicks,
-    guestCivBans,
-    mapPicks,
-    mapBans,
-    status: draftStatus,
-    currentTurnPlayer: currentTurnPlayerDisplay,
-    currentAction: currentActionDisplay,
-  };
+  return output;
 };
+
 
 const useDraftStore = create<DraftStore>()(
   devtools(
     (set, get) => ({
-      draft: null,
-      connectionStatus: 'disconnected',
-      connectionError: null,
-      draftId: null,
-      isLoading: false,
+      ...initialCombinedState,
 
       extractDraftIdFromUrl: (url: string) => {
         try {
           if (url.startsWith('http://') || url.startsWith('https://')) {
             const urlObj = new URL(url);
-            if (urlObj.hostname.includes('aoe2cm.net')) { 
+            if (urlObj.hostname.includes('aoe2cm.net')) {
               const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
               if (pathMatch && pathMatch[1]) return pathMatch[1];
               const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
               if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1];
             }
             const pathSegments = urlObj.pathname.split('/');
-            const potentialId = pathSegments.pop() || pathSegments.pop(); 
+            const potentialId = pathSegments.pop() || pathSegments.pop();
             if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) {
-                return potentialId;
+              return potentialId;
             }
-             const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
-             if (draftIdParam) return draftIdParam;
+            const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
+            if (draftIdParam) return draftIdParam;
           }
           if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
             return url;
@@ -161,81 +189,155 @@ const useDraftStore = create<DraftStore>()(
         }
       },
 
-      connectToDraft: async (draftIdOrUrl: string) => {
-        set({ isLoading: true, connectionStatus: 'connecting', connectionError: null, draft: null });
+      connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
+        if (draftType === 'civ') {
+          set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null });
+        } else {
+          set({ isLoadingMapDraft: true, mapDraftStatus: 'connecting', mapDraftError: null });
+        }
 
         const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl);
         if (!extractedId) {
-          set({ isLoading: false, connectionStatus: 'error', connectionError: 'Invalid Draft ID or URL provided.' });
+          const errorMsg = 'Invalid Draft ID or URL provided.';
+          if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMsg });
+          else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMsg });
           return false;
         }
-        set({ draftId: extractedId });
+
+        if (draftType === 'civ') set({ civDraftId: extractedId });
+        else set({ mapDraftId: extractedId });
         
         const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
         
         try {
-          console.log(`Attempting to fetch draft data from: ${apiUrl}`);
-          const response = await axios.get<Aoe2cmRawDraftData>(apiUrl); 
-          
-          console.log('Raw response from API:', response.data);
+          console.log(`Attempting to fetch ${draftType} draft data from: ${apiUrl}`);
+          const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
+          console.log(`Raw response for ${draftType} draft from API:`, response.data);
 
           if (!response.data || typeof response.data !== 'object') {
             throw new Error('Received invalid or empty data structure from the API.');
           }
           
           const rawDraftData = response.data;
-          // Ensure preset and draftOptions are available before transforming
           if (!rawDraftData.preset || !rawDraftData.preset.draftOptions) {
             console.error('Preset data or draftOptions missing in API response:', rawDraftData);
             throw new Error('Preset data or draftOptions missing in API response.');
           }
 
-          const draftState = transformRawDraftDataToDraftState(rawDraftData);
+          const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
           
-          set({ draft: draftState, connectionStatus: 'connected', isLoading: false, connectionError: null });
+          if (draftType === 'civ') {
+            set({
+              hostName: processedData.hostName || get().hostName, // Prioritize civ draft for names
+              guestName: processedData.guestName || get().guestName,
+              civPicksHost: processedData.civPicksHost || [],
+              civBansHost: processedData.civBansHost || [],
+              civPicksGuest: processedData.civPicksGuest || [],
+              civBansGuest: processedData.civBansGuest || [],
+              civDraftStatus: 'connected',
+              isLoadingCivDraft: false,
+              civDraftError: null,
+            });
+          } else { // map draft
+            set(state => ({
+              // Only update names if they are still default, otherwise keep civ draft names
+              hostName: state.hostName === initialPlayerNameHost ? (processedData.hostName || state.hostName) : state.hostName,
+              guestName: state.guestName === initialPlayerNameGuest ? (processedData.guestName || state.guestName) : state.guestName,
+              mapPicksHost: processedData.mapPicksHost || [],
+              mapBansHost: processedData.mapBansHost || [],
+              mapPicksGuest: processedData.mapPicksGuest || [],
+              mapBansGuest: processedData.mapBansGuest || [],
+              mapPicksGlobal: processedData.mapPicksGlobal || [],
+              mapBansGlobal: processedData.mapBansGlobal || [],
+              mapDraftStatus: 'connected',
+              isLoadingMapDraft: false,
+              mapDraftError: null,
+            }));
+          }
           return true;
 
         } catch (error) {
-          let errorMessage = `Failed to fetch or process draft data from API (${apiUrl}).`;
+          let errorMessage = `Failed to fetch or process ${draftType} draft data from API (${apiUrl}).`;
           if (axios.isAxiosError(error)) {
             errorMessage += ` Server responded with ${error.response?.status || 'no status'}: ${error.message}`;
-            console.error('Axios error connecting to API:', error.response?.data || error.toJSON());
+            console.error(`Axios error connecting to ${draftType} API:`, error.response?.data || error.toJSON());
           } else {
             errorMessage += ` Error: ${(error as Error).message}`;
-            console.error('Error connecting to API:', error);
+            console.error(`Error connecting to ${draftType} API:`, error);
           }
           
+          if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMessage });
+          else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMessage });
+          return false;
+        }
+      },
+
+      disconnectDraft: (draftType: 'civ' | 'map') => {
+        if (draftType === 'civ') {
           set({
-            isLoading: false,
-            connectionStatus: 'error',
-            connectionError: errorMessage,
-            draft: null,
+            civDraftId: null,
+            civDraftStatus: 'disconnected',
+            civDraftError: null,
+            isLoadingCivDraft: false,
+            // Reset relevant data, but keep player names if map draft is still connected
+            civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+            hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost,
+            guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
           });
-          return false;
+        } else {
+          set({
+            mapDraftId: null,
+            mapDraftStatus: 'disconnected',
+            mapDraftError: null,
+            isLoadingMapDraft: false,
+            mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
+            mapPicksGlobal: [], mapBansGlobal: [],
+          });
         }
       },
 
-      disconnectFromDraft: () => {
-        set({
-          draft: null,
-          draftId: null,
-          connectionStatus: 'disconnected',
-          connectionError: null,
-          isLoading: false,
-        });
-      },
-
-      reconnect: async () => {
-        const { draftId, connectToDraft } = get();
-        if (!draftId) {
-          set({ connectionError: "No draft ID to reconnect to."});
+      reconnectDraft: async (draftType: 'civ' | 'map') => {
+        const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId;
+        if (!idToReconnect) {
+          const errorMsg = `No ${draftType} draft ID to reconnect to.`;
+          if (draftType === 'civ') set({ civDraftError: errorMsg });
+          else set({ mapDraftError: errorMsg });
           return false;
         }
-        return await connectToDraft(draftId); 
+        return get().connectToDraft(idToReconnect, draftType);
       },
+
+      setHostName: (name: string) => set({ hostName: name }),
+      setGuestName: (name: string) => set({ guestName: name }),
+      incrementScore: (player: 'host' | 'guest') => set(state => ({
+        scores: { ...state.scores, [player]: state.scores[player] + 1 }
+      })),
+      decrementScore: (player: 'host' | 'guest') => set(state => ({
+        scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }
+      })),
+      swapScores: () => set(state => ({
+        scores: { host: state.scores.guest, guest: state.scores.host }
+      })),
+      swapCivPlayers: () => set(state => ({
+        hostName: state.guestName,
+        guestName: state.hostName,
+        civPicksHost: state.civPicksGuest,
+        civPicksGuest: state.civPicksHost,
+        civBansHost: state.civBansGuest,
+        civBansGuest: state.civBansHost,
+        // Optionally swap scores too, or handle separately
+        // scores: { host: state.scores.guest, guest: state.scores.host },
+      })),
+      swapMapPlayers: () => set(state => ({
+        // Player names are not swapped here as they are primarily tied to civ draft
+        mapPicksHost: state.mapPicksGuest,
+        mapPicksGuest: state.mapPicksHost,
+        mapBansHost: state.mapBansGuest,
+        mapBansGuest: state.mapBansHost,
+      })),
     }),
     {
-      name: 'aoe2-draft-overlay-simplified-storage-v4', 
+      name: 'aoe2-draft-overlay-combined-storage-v1', 
     }
   )
 );

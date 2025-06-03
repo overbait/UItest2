@@ -1,47 +1,12 @@
-import React, { useState } from 'react';
-// import { Link } from 'react-router-dom'; // Link is not used in simplified version
+import React, { useState, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
-import { ConnectionStatus as ConnectionStatusType, DraftState } from '../types/draft';
-import '../styles/TechnicalInterface.css'; 
+import { ConnectionStatus } from '../types/draft';
+import '../styles/TechnicalInterface.css';
 
-// Simplified Connection Status Display
-const ConnectionStatusDisplay: React.FC<{
-  connectionStatus: ConnectionStatusType;
-  connectionError: string | null;
-  draftId: string | null;
-  onReconnect: () => void;
-}> = ({ connectionStatus, connectionError, draftId, onReconnect }) => {
-  return (
-    <div className="connection-status simplified-connection-status">
-      <div className="status-indicator">
-        <div className={`status-dot ${connectionStatus}`}></div>
-        <span>Status: {connectionStatus}</span>
-      </div>
-      {connectionError && <div className="error-message">Error: {connectionError}</div>}
-      {draftId && connectionStatus === 'connected' && (
-        <div className="draft-info">
-          <span>Connected to draft: {draftId}</span>
-        </div>
-      )}
-      {(connectionStatus === 'disconnected' || connectionStatus === 'error') && draftId && (
-         <button 
-            onClick={onReconnect} 
-            className="reconnect-button button-like"
-          >
-            Reconnect
-          </button>
-      )}
-    </div>
-  );
-};
-
-// Simplified Draft Data Display
-const CoreDraftDisplay: React.FC<{ draft: DraftState | null }> = ({ draft }) => {
-  if (!draft) {
-    return null; 
-  }
-
-  const renderList = (items: string[], type: 'pick' | 'ban') => (
+// Helper component to display a list of picks or bans
+const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' | 'ban' }> = ({ title, items, type }) => (
+  <div className="data-section">
+    <h4>{title}:</h4>
     <ul className={`list-disc ml-5 ${type === 'pick' ? 'text-green-400' : 'text-red-400'}`}>
       {items.length > 0 ? (
         items.map((item, index) => <li key={`${type}-${item}-${index}`}>{item}</li>)
@@ -49,164 +14,194 @@ const CoreDraftDisplay: React.FC<{ draft: DraftState | null }> = ({ draft }) => 
         <li>(None)</li>
       )}
     </ul>
-  );
+  </div>
+);
 
-  return (
-    <div className="core-draft-display">
-      <h2 className="section-title">Draft Overview (ID: {draft.id})</h2>
-      <div className="status-info">
-        Status: <span className="font-semibold">{draft.status}</span>
-        {draft.currentTurnPlayer && draft.currentTurnPlayer !== 'none' && (
-          <span> | Current Turn: <span className="font-semibold">{draft.currentTurnPlayer} ({draft.currentAction})</span></span>
-        )}
-      </div>
-
-      <div className="players-data-grid">
-        {/* Host Player Data */}
-        <div className="player-column">
-          <h3 className="player-name-title">{draft.hostName || 'Host'}</h3>
-          <div className="data-section">
-            <h4>Civilization Picks:</h4>
-            {renderList(draft.hostCivPicks, 'pick')}
-          </div>
-          <div className="data-section">
-            <h4>Civilization Bans:</h4>
-            {renderList(draft.hostCivBans, 'ban')}
-          </div>
-        </div>
-
-        {/* Guest Player Data */}
-        <div className="player-column">
-          <h3 className="player-name-title">{draft.guestName || 'Guest'}</h3>
-          <div className="data-section">
-            <h4>Civilization Picks:</h4>
-            {renderList(draft.guestCivPicks, 'pick')}
-          </div>
-          <div className="data-section">
-            <h4>Civilization Bans:</h4>
-            {renderList(draft.guestCivBans, 'ban')}
-          </div>
-        </div>
-      </div>
-
-      <div className="maps-data-section">
-        <h3 className="section-title-small">Map Draft</h3>
-        <div className="maps-columns">
-            <div className="data-section">
-                <h4>Map Picks:</h4>
-                {renderList(draft.mapPicks, 'pick')}
-            </div>
-            <div className="data-section">
-                <h4>Map Bans:</h4>
-                {renderList(draft.mapBans, 'ban')}
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// Main Simplified Technical Interface component
+// Main Technical Interface component
 const TechnicalInterface = () => {
-  const { 
-    draft, 
-    draftId, 
-    connectionStatus, 
-    connectionError, 
+  const {
+    civDraftId, mapDraftId,
+    hostName, guestName, scores,
+    civPicksHost, civBansHost, civPicksGuest, civBansGuest,
+    mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest,
+    civDraftStatus, civDraftError, isLoadingCivDraft,
+    mapDraftStatus, mapDraftError, isLoadingMapDraft,
     connectToDraft,
-    disconnectFromDraft,
-    isLoading 
+    setHostName, setGuestName,
+    incrementScore, decrementScore, swapScores,
+    swapCivPlayers, swapMapPlayers,
   } = useDraftStore();
 
-  const [draftIdInput, setDraftIdInput] = useState('');
+  const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
+  const [mapDraftIdInput, setMapDraftIdInput] = useState(mapDraftId || '');
 
-  const handleConnectToDraft = async () => {
-    if (!draftIdInput.trim()) {
-      alert('Please enter a draft ID or URL');
-      return;
-    }
-    await connectToDraft(draftIdInput.trim());
+  const [editableHostName, setEditableHostName] = useState(hostName);
+  const [editableGuestName, setEditableGuestName] = useState(guestName);
+
+  useEffect(() => {
+    setEditableHostName(hostName);
+  }, [hostName]);
+
+  useEffect(() => {
+    setEditableGuestName(guestName);
+  }, [guestName]);
+
+  const handleHostNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditableHostName(e.target.value);
+  };
+  const handleGuestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditableGuestName(e.target.value);
   };
 
-  const handleDisconnect = () => {
-    disconnectFromDraft();
-    setDraftIdInput(''); 
+  const updateHostNameInStore = () => {
+    setHostName(editableHostName);
+  };
+  const updateGuestNameInStore = () => {
+    setGuestName(editableGuestName);
   };
 
-  const handleReconnect = () => {
-    if (draftId) { 
-      connectToDraft(draftId);
-    } else if (draftIdInput.trim()){ 
-        connectToDraft(draftIdInput.trim());
-    } else {
-        alert("No Draft ID available to reconnect.");
+  const handleCivDraftConnect = async () => {
+    if (civDraftIdInput.trim()) {
+      await connectToDraft(civDraftIdInput.trim(), 'civ');
     }
+  };
+
+  const handleMapDraftConnect = async () => {
+    if (mapDraftIdInput.trim()) {
+      await connectToDraft(mapDraftIdInput.trim(), 'map');
+    }
+  };
+  
+  const renderStatus = (status: ConnectionStatus, error: string | null, isLoading: boolean) => {
+    if (isLoading) return <span className="status-text loading">Connecting...</span>;
+    if (error) return <span className="status-text error">Error: {error}</span>;
+    if (status === 'connected') return <span className="status-text success">Connected</span>;
+    return <span className="status-text">{status}</span>;
   };
 
   return (
-    <div className="technical-interface simplified-interface">
-      <div style={{ 
-          position: 'absolute', 
-          top: '10px', 
-          left: '10px', 
-          fontSize: '1.2em', 
-          color: '#ddd', 
-          fontWeight: 'bold',
-          zIndex: 1000 
-        }}>
-        v0.1.1 - Simplified Fetch Test
-      </div>
-      <div className="header">
-        <h1>AoE2 Draft Data Viewer</h1>
-        <div className="draft-connection">
+    <div className="technical-interface main-dashboard-layout">
+      {/* Top section: Player names and scores */}
+      <div className="player-info-bar">
+        <div className="player-name-input">
+          <label htmlFor="hostNameInput">Left Player (Host):</label>
           <input
+            id="hostNameInput"
             type="text"
-            value={draftIdInput}
-            onChange={(e) => setDraftIdInput(e.target.value)}
-            placeholder="Enter draft ID (e.g., gSQZO)"
-            className="draft-id-input"
+            value={editableHostName}
+            onChange={handleHostNameChange}
+            onBlur={updateHostNameInStore}
+            onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
+            className="name-input"
           />
-          {connectionStatus !== 'connected' ? (
-            <button 
-              onClick={handleConnectToDraft} 
-              disabled={connectionStatus === 'connecting'}
-              className="connect-button button-like"
-            >
-              {connectionStatus === 'connecting' ? 'Connecting...' : 'Load Draft'}
-            </button>
-          ) : (
-            <button onClick={handleDisconnect} className="disconnect-button button-like">
-              Disconnect
-            </button>
-          )}
+        </div>
+        <div className="score-controls">
+          <button onClick={() => decrementScore('host')} className="score-button">-</button>
+          <span className="score-display">{scores.host}</span>
+          <button onClick={() => incrementScore('host')} className="score-button">+</button>
+        </div>
+        <button onClick={swapScores} className="swap-button button-like">Swap Scores</button>
+        <div className="score-controls">
+          <button onClick={() => decrementScore('guest')} className="score-button">-</button>
+          <span className="score-display">{scores.guest}</span>
+          <button onClick={() => incrementScore('guest')} className="score-button">+</button>
+        </div>
+        <div className="player-name-input">
+          <label htmlFor="guestNameInput">Right Player (Guest):</label>
+          <input
+            id="guestNameInput"
+            type="text"
+            value={editableGuestName}
+            onChange={handleGuestNameChange}
+            onBlur={updateGuestNameInStore}
+            onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
+            className="name-input"
+          />
         </div>
       </div>
 
-      <ConnectionStatusDisplay
-        connectionStatus={connectionStatus}
-        connectionError={connectionError}
-        draftId={draftId}
-        onReconnect={handleReconnect}
-      />
+      {/* Middle section: Draft ID inputs */}
+      <div className="draft-input-section">
+        <div className="draft-input-group">
+          <label htmlFor="civDraftIdInput">Civ Draft ID:</label>
+          <input
+            id="civDraftIdInput"
+            type="text"
+            value={civDraftIdInput}
+            onChange={(e) => setCivDraftIdInput(e.target.value)}
+            placeholder="Enter Civ Draft ID"
+            className="draft-id-input"
+          />
+          <button onClick={handleCivDraftConnect} disabled={isLoadingCivDraft} className="button-like import-button">
+            {isLoadingCivDraft ? 'Connecting...' : 'Import/Connect Civ'}
+          </button>
+          <div className="status-message">{renderStatus(civDraftStatus, civDraftError, isLoadingCivDraft)}</div>
+        </div>
+        <div className="draft-input-group">
+          <label htmlFor="mapDraftIdInput">Map Draft ID:</label>
+          <input
+            id="mapDraftIdInput"
+            type="text"
+            value={mapDraftIdInput}
+            onChange={(e) => setMapDraftIdInput(e.target.value)}
+            placeholder="Enter Map Draft ID"
+            className="draft-id-input"
+          />
+          <button onClick={handleMapDraftConnect} disabled={isLoadingMapDraft} className="button-like import-button">
+            {isLoadingMapDraft ? 'Connecting...' : 'Import/Connect Map'}
+          </button>
+          <div className="status-message">{renderStatus(mapDraftStatus, mapDraftError, isLoadingMapDraft)}</div>
+        </div>
+      </div>
 
-      {isLoading && <div className="loading-message">Loading draft data...</div>}
-      
-      {!isLoading && connectionStatus === 'connected' && draft && (
-        <CoreDraftDisplay draft={draft} />
-      )}
-      
-      {!isLoading && connectionStatus === 'connected' && !draft && (
-         <div className="placeholder-message">
-           Draft data loaded but seems empty or incomplete. Check console for details.
-         </div>
-      )}
+      {/* Civ Draft Display */}
+      <div className="draft-display-section">
+        <h2 className="section-title">Civilization Draft</h2>
+        <div className="draft-header">
+          <span>Name: {hostName}</span>
+          <button onClick={swapCivPlayers} className="button-like swap-players-button">Swap Civ Players</button>
+          <span>Name: {guestName}</span>
+        </div>
+        <div className="draft-columns">
+          <div className="player-column">
+            <DraftListDisplay title="Picks" items={civPicksHost} type="pick" />
+            <DraftListDisplay title="Bans" items={civBansHost} type="ban" />
+          </div>
+          <div className="player-column">
+            <DraftListDisplay title="Picks" items={civPicksGuest} type="pick" />
+            <DraftListDisplay title="Bans" items={civBansGuest} type="ban" />
+          </div>
+        </div>
+      </div>
 
-      {!isLoading && connectionStatus !== 'connected' && connectionStatus !== 'connecting' && (
-         <div className="placeholder-message">
-           Please enter a draft ID and click "Load Draft" to view data.
-         </div>
-      )}
+      {/* Map Draft Display */}
+      <div className="draft-display-section">
+        <h2 className="section-title">Map Draft</h2>
+        <div className="draft-header">
+          <span>Name: {hostName}</span>
+          <button onClick={swapMapPlayers} className="button-like swap-players-button">Swap Map Players</button>
+          <span>Name: {guestName}</span>
+        </div>
+        <div className="draft-columns">
+          <div className="player-column">
+            <DraftListDisplay title="Picks" items={mapPicksHost} type="pick" />
+            <DraftListDisplay title="Bans" items={mapBansHost} type="ban" />
+          </div>
+          <div className="player-column">
+            <DraftListDisplay title="Picks" items={mapPicksGuest} type="pick" />
+            <DraftListDisplay title="Bans" items={mapBansGuest} type="ban" />
+          </div>
+        </div>
+         {/* Display Global Map Picks/Bans if they exist and per-player ones are empty */}
+         {(mapPicksGlobal.length > 0 || mapBansGlobal.length > 0) && 
+          !mapPicksHost.length && !mapPicksGuest.length && !mapBansHost.length && !mapBansGuest.length && (
+          <div className="global-maps-section">
+            <h4>Global Map Draft:</h4>
+            <DraftListDisplay title="Picks" items={mapPicksGlobal} type="pick" />
+            <DraftListDisplay title="Bans" items={mapBansGlobal} type="ban" />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
