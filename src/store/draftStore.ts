@@ -28,11 +28,8 @@ interface DraftStore {
 const transformRawDraftDataToDraftState = (
   raw: Aoe2cmRawDraftData
 ): DraftState => {
-  // Extract player names: aoe2cm.net/api for recent drafts shows nameHost/nameGuest
-  // The /api/draft/:id endpoint might return an object with a 'host' and 'guest' object,
-  // or direct nameHost/nameGuest. We need to be flexible.
-  const hostName = typeof raw.host === 'object' ? raw.host?.name : raw.nameHost || raw.host || 'Host';
-  const guestName = typeof raw.guest === 'object' ? raw.guest?.name : raw.nameGuest || raw.guest || 'Guest';
+  const hostName = raw.nameHost || 'Host';
+  const guestName = raw.nameGuest || 'Guest';
 
   const hostCivPicks: string[] = [];
   const hostCivBans: string[] = [];
@@ -41,57 +38,76 @@ const transformRawDraftDataToDraftState = (
   const mapPicks: string[] = [];
   const mapBans: string[] = [];
 
-  // Process events array to determine picks and bans
-  // The player in event might be 'host', 'guest', or the actual player name.
+  const getOptionNameById = (optionId: string): string => {
+    const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId);
+    if (option?.name) {
+      return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
+    }
+    // Fallback if name not found, use the ID but clean it up if it's a civ
+    return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
+  };
+
   raw.events?.forEach(event => {
-    const action = event.action?.toLowerCase() || '';
-    const playerIdentifier = event.player; // This could be 'host', 'guest', or actual name
+    const action = event.actionType?.toLowerCase() || ''; // Use actionType
+    const executingPlayer = event.executingPlayer; // HOST or GUEST
+    const chosenOptionId = event.chosenOptionId;
 
-    let isHostAction = false;
-    let isGuestAction = false;
+    if (!chosenOptionId) return;
 
-    if (playerIdentifier === 'host' || playerIdentifier === hostName) {
-      isHostAction = true;
-    } else if (playerIdentifier === 'guest' || playerIdentifier === guestName) {
-      isGuestAction = true;
-    }
+    const optionName = getOptionNameById(chosenOptionId);
+    const isCiv = chosenOptionId.startsWith('aoe4.'); // Heuristic for civ
 
-    // Check for civilization actions
-    if (event.civ) {
-      // Actions like "PICK", "BAN", "GPICK", "GBAN", "SNIPE", "STEAL"
-      // For simplicity, we'll consider "pick", "gpick", "steal" as picks
-      // and "ban", "gban", "snipe" as bans.
-      if (action.includes('pick') || action.includes('steal')) {
-        if (isHostAction && !hostCivPicks.includes(event.civ)) hostCivPicks.push(event.civ);
-        else if (isGuestAction && !guestCivPicks.includes(event.civ)) guestCivPicks.push(event.civ);
-      } else if (action.includes('ban') || action.includes('snipe')) {
-        if (isHostAction && !hostCivBans.includes(event.civ)) hostCivBans.push(event.civ);
-        else if (isGuestAction && !guestCivBans.includes(event.civ)) guestCivBans.push(event.civ);
+    if (action === 'pick') {
+      if (isCiv) {
+        if (executingPlayer === 'HOST' && !hostCivPicks.includes(optionName)) hostCivPicks.push(optionName);
+        else if (executingPlayer === 'GUEST' && !guestCivPicks.includes(optionName)) guestCivPicks.push(optionName);
+      } else { // It's a map
+        if (!mapPicks.includes(optionName)) mapPicks.push(optionName); // Assuming map picks are global or assigned based on context not directly in event player for maps
       }
-    }
-    // Check for map actions
-    else if (event.map) {
-      if (action.includes('pick') || action.includes('steal')) {
-        if (!mapPicks.includes(event.map)) mapPicks.push(event.map); // Maps are often global or picked by one player for the match
-      } else if (action.includes('ban') || action.includes('snipe')) {
-        if (!mapBans.includes(event.map)) mapBans.push(event.map);
+    } else if (action === 'ban') {
+      if (isCiv) {
+        if (executingPlayer === 'HOST' && !hostCivBans.includes(optionName)) hostCivBans.push(optionName);
+        else if (executingPlayer === 'GUEST' && !guestCivBans.includes(optionName)) guestCivBans.push(optionName);
+      } else { // It's a map
+        if (!mapBans.includes(optionName)) mapBans.push(optionName);
+      }
+    } else if (action === 'snipe') { // Handle snipes as bans for the opponent
+      if (isCiv) {
+        if (executingPlayer === 'HOST' && !guestCivBans.includes(optionName)) guestCivBans.push(optionName); // Host snipes, Guest's civ is banned for Guest
+        else if (executingPlayer === 'GUEST' && !hostCivBans.includes(optionName)) hostCivBans.push(optionName); // Guest snipes, Host's civ is banned for Host
+      } else { // It's a map
+         // If a map is sniped, it's typically removed from the opponent's picks or becomes a general ban.
+         // For simplicity, adding to general mapBans.
+        if (!mapBans.includes(optionName)) mapBans.push(optionName);
       }
     }
   });
   
   let currentTurnPlayerDisplay: string | undefined = 'none';
   let currentActionDisplay: string | undefined = 'unknown';
+  let draftStatus: DraftState['status'] = 'unknown';
 
-  if (raw.preset?.turns && typeof raw.currentTurnNo === 'number' && raw.currentTurnNo < raw.preset.turns.length) {
-    const currentTurnInfo = raw.preset.turns[raw.currentTurnNo];
-    if (currentTurnInfo) {
-        currentTurnPlayerDisplay = currentTurnInfo.player;
-        currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
+  if (raw.preset?.turns && typeof raw.nextAction === 'number') {
+    if (raw.nextAction >= raw.preset.turns.length) {
+      draftStatus = 'completed';
+    } else {
+      draftStatus = 'inProgress';
+      const currentTurnInfo = raw.preset.turns[raw.nextAction];
+      if (currentTurnInfo) {
+          currentTurnPlayerDisplay = currentTurnInfo.player; // This is 'HOST', 'GUEST', or 'NONE'
+          currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
+          // Map 'HOST'/'GUEST' from turn info to actual player names for display if needed, or keep as role
+          if (currentTurnPlayerDisplay === 'HOST') currentTurnPlayerDisplay = hostName;
+          else if (currentTurnPlayerDisplay === 'GUEST') currentTurnPlayerDisplay = guestName;
+      }
     }
+  } else if (raw.status) { // Fallback to root status if available
+    draftStatus = raw.status.toLowerCase() as DraftState['status'];
   }
 
+
   return {
-    id: raw.id || raw.draftId || 'unknown-draft', // draftId is from recentdrafts example
+    id: raw.id || raw.draftId || 'unknown-draft',
     hostName,
     guestName,
     hostCivPicks,
@@ -100,7 +116,7 @@ const transformRawDraftDataToDraftState = (
     guestCivBans,
     mapPicks,
     mapBans,
-    status: raw.status?.toLowerCase() || (raw.ongoing === false ? 'completed' : raw.ongoing === true ? 'inprogress' : 'unknown'),
+    status: draftStatus,
     currentTurnPlayer: currentTurnPlayerDisplay,
     currentAction: currentActionDisplay,
   };
@@ -119,14 +135,12 @@ const useDraftStore = create<DraftStore>()(
         try {
           if (url.startsWith('http://') || url.startsWith('https://')) {
             const urlObj = new URL(url);
-            if (urlObj.hostname.includes('aoe2cm.net')) { // Specific to aoe2cm.net
+            if (urlObj.hostname.includes('aoe2cm.net')) { 
               const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
               if (pathMatch && pathMatch[1]) return pathMatch[1];
-              // Check for observer link structure if applicable
               const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
               if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1];
             }
-            // Generic ID extraction for other potential URLs (like shtopr-aoe4)
             const pathSegments = urlObj.pathname.split('/');
             const potentialId = pathSegments.pop() || pathSegments.pop(); 
             if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) {
@@ -135,7 +149,6 @@ const useDraftStore = create<DraftStore>()(
              const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
              if (draftIdParam) return draftIdParam;
           }
-          // If not a URL, or parsing failed, assume it's a raw ID
           if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
             return url;
           }
@@ -162,7 +175,6 @@ const useDraftStore = create<DraftStore>()(
         
         try {
           console.log(`Attempting to fetch draft data from: ${apiUrl}`);
-          // We expect a direct JSON response from this API endpoint
           const response = await axios.get<Aoe2cmRawDraftData>(apiUrl); 
           
           console.log('Raw response from API:', response.data);
@@ -172,13 +184,19 @@ const useDraftStore = create<DraftStore>()(
           }
           
           const rawDraftData = response.data;
+          // Ensure preset and draftOptions are available before transforming
+          if (!rawDraftData.preset || !rawDraftData.preset.draftOptions) {
+            console.error('Preset data or draftOptions missing in API response:', rawDraftData);
+            throw new Error('Preset data or draftOptions missing in API response.');
+          }
+
           const draftState = transformRawDraftDataToDraftState(rawDraftData);
           
           set({ draft: draftState, connectionStatus: 'connected', isLoading: false, connectionError: null });
           return true;
 
         } catch (error) {
-          let errorMessage = `Failed to fetch draft data from API (${apiUrl}).`;
+          let errorMessage = `Failed to fetch or process draft data from API (${apiUrl}).`;
           if (axios.isAxiosError(error)) {
             errorMessage += ` Server responded with ${error.response?.status || 'no status'}: ${error.message}`;
             console.error('Axios error connecting to API:', error.response?.data || error.toJSON());
@@ -217,7 +235,7 @@ const useDraftStore = create<DraftStore>()(
       },
     }),
     {
-      name: 'aoe2-draft-overlay-simplified-storage-v4', // Incremented version for fresh state
+      name: 'aoe2-draft-overlay-simplified-storage-v4', 
     }
   )
 );
