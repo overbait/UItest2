@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background Shield -->
+  <path d="M50 5 L90 25 L90 60 C90 75 70 95 50 95 C30 95 10 75 10 60 L10 25 Z" fill="#8B4513" stroke="#D4AF37" stroke-width="3"/>
+  
+  <!-- Crown Symbol -->
+  <path d="M30 30 L40 20 L50 30 L60 20 L70 30 L65 35 L35 35 Z" fill="#D4AF37" stroke="#8B4513" stroke-width="1.5"/>
+  
+  <!-- Crossed Swords -->
+  <g transform="translate(50, 55) rotate(45) translate(-20, -20)">
+    <rect x="0" y="15" width="40" height="10" fill="#D4AF37" rx="2" ry="2"/>
+    <rect x="35" y="12" width="10" height="16" fill="#D4AF37" rx="2" ry="2"/>
+    <circle cx="35" cy="20" r="5" fill="#8B4513" stroke="#D4AF37" stroke-width="1"/>
+  </g>
+  
+  <g transform="translate(50, 55) rotate(-45) translate(-20, -20)">
+    <rect x="0" y="15" width="40" height="10" fill="#D4AF37" rx="2" ry="2"/>
+    <rect x="35" y="12" width="10" height="16" fill="#D4AF37" rx="2" ry="2"/>
+    <circle cx="35" cy="20" r="5" fill="#8B4513" stroke="#D4AF37" stroke-width="1"/>
+  </g>
+  
+  <!-- Draft Element -->
+  <rect x="35" y="45" width="30" height="5" fill="#D4AF37" rx="1" ry="1"/>
+  <rect x="35" y="55" width="30" height="5" fill="#D4AF37" rx="1" ry="1"/>
+  <rect x="35" y="65" width="30" height="5" fill="#D4AF37" rx="1" ry="1"/>
+</svg>

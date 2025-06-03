@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* AoE2 theme colors */
+  --color-aoe-gold: #D4AF37;
+  --color-aoe-brown: #8B4513;
+  --color-aoe-tan: #D2B48C;
+  --color-aoe-dark: #2C2C2C;
+  --color-aoe-light: #F5F5DC;
+  
+  /* Functional colors */
+  --color-pick: #4CAF50;
+  --color-pick-light: #81C784;
+  --color-pick-dark: #2E7D32;
+  --color-ban: #F44336;
+  --color-ban-light: #E57373;
+  --color-ban-dark: #C62828;
+  --color-snipe: #FF9800;
+  --color-snipe-light: #FFB74D;
+  --color-snipe-dark: #EF6C00;
+  --color-reveal: #2196F3;
+  --color-reveal-light: #64B5F6;
+  --color-reveal-dark: #1565C0;
+  
+  /* UI colors */
+  --color-ui-primary: #795548;
+  --color-ui-secondary: #5D4037;
+  --color-ui-accent: #D4AF37;
+  --color-ui-background: rgba(30, 30, 30, 0.85);
+  --color-ui-text: #F5F5DC;
+  
+  /* Font families */
+  --font-medieval: 'Cinzel', serif;
+  --font-game: 'Alegreya', serif;
+  --font-broadcast: 'Roboto', sans-serif;
+  --font-technical: 'Inter', sans-serif;
+  --font-display: 'MedievalSharp', cursive;
+  
+  /* Spacing and sizing */
+  --header-height: 60px;
+  --sidebar-width: 240px;
+  --border-radius: 4px;
+  --transition-speed: 0.3s;
+}
+
+@layer base {
+  html, body {
+    @apply h-full overflow-hidden;
+    font-family: var(--font-technical);
+    color: var(--color-ui-text);
+    background-color: var(--color-aoe-dark);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-medieval);
+    color: var(--color-aoe-gold);
+  }
+  
+  a {
+    @apply text-aoe-gold hover:text-aoe-tan transition-colors;
+  }
+  
+  button {
+    @apply transition-all duration-200;
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-aoe-dark;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ui-secondary rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ui-primary;
+  }
+}
+
+@layer components {
+  /* Technical interface components */
+  .technical-container {
+    @apply bg-ui-background rounded-md shadow-lg p-4;
+  }
+  
+  .draggable-element {
+    @apply cursor-move select-none border-2 border-ui-primary rounded-md p-2 transition-shadow;
+  }
+  
+  .draggable-element:hover {
+    @apply shadow-md border-ui-accent;
+  }
+  
+  .draggable-element:active {
+    @apply shadow-lg;
+  }
+  
+  /* Broadcast view components */
+  .broadcast-container {
+    @apply bg-transparent overflow-hidden;
+  }
+  
+  .broadcast-view {
+    background-color: transparent !important;
+  }
+  
+  /* Draft elements */
+  .pick-element {
+    @apply border-l-4 border-pick bg-pick bg-opacity-10;
+  }
+  
+  .ban-element {
+    @apply border-l-4 border-ban bg-ban bg-opacity-10;
+  }
+  
+  .snipe-element {
+    @apply border-l-4 border-snipe bg-snipe bg-opacity-10;
+  }
+  
+  /* Status indicators */
+  .status-connected {
+    @apply text-pick-dark;
+  }
+  
+  .status-disconnected {
+    @apply text-ban-dark;
+  }
+  
+  .status-connecting {
+    @apply text-snipe-dark animate-pulse;
+  }
+  
+  /* Input elements */
+  .input-field {
+    @apply bg-aoe-dark border border-ui-secondary rounded-md px-3 py-2 text-aoe-light focus:outline-none focus:border-aoe-gold transition-colors;
+  }
+  
+  .button-primary {
+    @apply bg-ui-primary text-aoe-light px-4 py-2 rounded-md hover:bg-ui-secondary focus:outline-none focus:ring-2 focus:ring-aoe-gold transition-colors;
+  }
+  
+  .button-secondary {
+    @apply bg-transparent border border-ui-primary text-aoe-light px-4 py-2 rounded-md hover:bg-ui-primary hover:bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-aoe-gold transition-colors;
+  }
+}
+
+/* Utility classes for transparent backgrounds */
+.transparent-bg {
+  background-color: transparent !important;
+}
+
+.semi-transparent-bg {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Animation for draft updates */
+@keyframes highlight {
+  0% {
+    box-shadow: 0 0 0 2px var(--color-aoe-gold);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.highlight-animation {
+  animation: highlight 1.5s ease-out;
+}
+
+/* Media query for broadcast view */
+@media screen and (min-width: 1920px) {
+  .broadcast-element {
+    font-size: 1.2rem;
+  }
+}
