@@ -70,9 +70,9 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-aoe-dark p-4">
-      <h1 className="text-4xl font-medieval text-aoe-gold mb-6">AoE2 Draft Overlay</h1>
+      <h1 className="text-4xl font-medieval text-aoe-gold mb-6">AoE4 Draft Overlay</h1>
       <p className="text-aoe-light text-center max-w-md mb-8">
-        Real-time draft data visualization for Age of Empires II broadcasts and streams.
+        Real-time draft data visualization for Age of Empires IV broadcasts and streams.
         Connect to an aoe2cm.net draft and customize your view.
       </p>
 
@@ -157,7 +157,7 @@ const Navigation = () => {
     <nav className="bg-ui-background shadow-md py-3 px-4">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-medieval text-aoe-gold">
-          AoE2 Draft Overlay
+          AoE4 Draft Overlay
         </Link>
         <div className="flex space-x-4">
           <Link
@@ -216,6 +216,10 @@ const App: React.FC = () => {
                     ? <BroadcastView /> 
                     : <Navigate to="/" replace />
                 } 
+              />
+               <Route 
+                path="/broadcast/:draftId" // Route for direct broadcast view with ID
+                element={ <BroadcastView />} 
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
