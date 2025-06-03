@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+// import { Link } from 'react-router-dom'; // Link is not used in simplified version
 import useDraftStore from '../store/draftStore';
 import { ConnectionStatus as ConnectionStatusType, DraftState } from '../types/draft';
-import '../styles/TechnicalInterface.css'; // Keep for basic layout, can be simplified later
+import '../styles/TechnicalInterface.css'; 
 
 // Simplified Connection Status Display
 const ConnectionStatusDisplay: React.FC<{
@@ -37,7 +38,7 @@ const ConnectionStatusDisplay: React.FC<{
 // Simplified Draft Data Display
 const CoreDraftDisplay: React.FC<{ draft: DraftState | null }> = ({ draft }) => {
   if (!draft) {
-    return null; // Or a "No data" message if preferred when connected but draft is null
+    return null; 
   }
 
   const renderList = (items: string[], type: 'pick' | 'ban') => (
@@ -115,6 +116,7 @@ const TechnicalInterface = () => {
     connectionError, 
     connectToDraft,
     disconnectFromDraft,
+    isLoading // Added isLoading from store
   } = useDraftStore();
 
   const [draftIdInput, setDraftIdInput] = useState('');
@@ -144,6 +146,9 @@ const TechnicalInterface = () => {
 
   return (
     <div className="technical-interface simplified-interface">
+      <div style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.8em', color: '#aaa', zIndex: 1000 }}>
+        v0.1.1 - Simplified Fetch Test
+      </div>
       <div className="header">
         <h1>AoE2 Draft Data Viewer</h1>
         <div className="draft-connection">
@@ -197,11 +202,5 @@ const TechnicalInterface = () => {
     </div>
   );
 };
-
-// Helper for isLoading state, if not directly available from store
-const useIsLoading = () => {
-    const isLoadingFromStore = useDraftStore(state => state.isLoading);
-    return isLoadingFromStore;
-}
 
 export default TechnicalInterface;
