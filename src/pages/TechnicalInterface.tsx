@@ -73,19 +73,35 @@ const TechnicalInterface = () => {
     }
   };
   
-  const renderStatus = (status: ConnectionStatus, error: string | null, isLoading: boolean) => {
-    if (isLoading) return <span className="status-text loading">Connecting...</span>;
-    if (error) return <span className="status-text error">Error: {error}</span>;
-    if (status === 'connected') return <span className="status-text success">Connected</span>;
-    return <span className="status-text">{status}</span>;
+  const renderStatusIndicator = (status: ConnectionStatus, isLoading: boolean, error: string | null) => {
+    let color = 'grey'; // Default for disconnected
+    if (isLoading) color = 'orange'; // Connecting
+    else if (error) color = 'red'; // Error
+    else if (status === 'connected') color = 'green'; // Connected
+    
+    return <div className="status-circle" style={{ backgroundColor: color }} title={error || status}></div>;
   };
 
   return (
     <div className="technical-interface main-dashboard-layout">
-      {/* Top section: Player names and scores */}
-      <div className="player-info-bar">
-        <div className="player-name-input">
-          <label htmlFor="hostNameInput">Left Player (Host):</label>
+      <div style={{ 
+          position: 'absolute', 
+          top: '10px', 
+          left: '10px', 
+          fontSize: '1.2em', 
+          color: '#ddd', 
+          fontWeight: 'bold',
+          zIndex: 1000 
+        }}>
+        v0.1.1 - Simplified Fetch Test
+      </div>
+      
+      <h1 className="main-title">AoE Draft Overlay Control Panel</h1>
+
+      {/* Card 1: Player Info & Scores */}
+      <div className="card player-scores-card">
+        <div className="player-name-input-group">
+          <label htmlFor="hostNameInput">Player 1 (Host)</label>
           <input
             id="hostNameInput"
             type="text"
@@ -96,19 +112,19 @@ const TechnicalInterface = () => {
             className="name-input"
           />
         </div>
-        <div className="score-controls">
-          <button onClick={() => decrementScore('host')} className="score-button">-</button>
+        <div className="score-controls-group">
+          <button onClick={() => decrementScore('host')} className="score-button button-like">-</button>
           <span className="score-display">{scores.host}</span>
-          <button onClick={() => incrementScore('host')} className="score-button">+</button>
+          <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
         </div>
-        <button onClick={swapScores} className="swap-button button-like">Swap Scores</button>
-        <div className="score-controls">
-          <button onClick={() => decrementScore('guest')} className="score-button">-</button>
+        <button onClick={swapScores} className="swap-scores-button button-like">Swap Scores</button>
+        <div className="score-controls-group">
+          <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
           <span className="score-display">{scores.guest}</span>
-          <button onClick={() => incrementScore('guest')} className="score-button">+</button>
+          <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
         </div>
-        <div className="player-name-input">
-          <label htmlFor="guestNameInput">Right Player (Guest):</label>
+        <div className="player-name-input-group">
+          <label htmlFor="guestNameInput">Player 2 (Guest)</label>
           <input
             id="guestNameInput"
             type="text"
@@ -121,8 +137,8 @@ const TechnicalInterface = () => {
         </div>
       </div>
 
-      {/* Middle section: Draft ID inputs */}
-      <div className="draft-input-section">
+      {/* Card 2: Draft ID Inputs */}
+      <div className="card draft-inputs-card">
         <div className="draft-input-group">
           <label htmlFor="civDraftIdInput">Civ Draft ID:</label>
           <input
@@ -134,9 +150,9 @@ const TechnicalInterface = () => {
             className="draft-id-input"
           />
           <button onClick={handleCivDraftConnect} disabled={isLoadingCivDraft} className="button-like import-button">
-            {isLoadingCivDraft ? 'Connecting...' : 'Import/Connect Civ'}
+            {isLoadingCivDraft ? 'Connecting...' : 'Import Civ'}
           </button>
-          <div className="status-message">{renderStatus(civDraftStatus, civDraftError, isLoadingCivDraft)}</div>
+          {renderStatusIndicator(civDraftStatus, isLoadingCivDraft, civDraftError)}
         </div>
         <div className="draft-input-group">
           <label htmlFor="mapDraftIdInput">Map Draft ID:</label>
@@ -149,19 +165,19 @@ const TechnicalInterface = () => {
             className="draft-id-input"
           />
           <button onClick={handleMapDraftConnect} disabled={isLoadingMapDraft} className="button-like import-button">
-            {isLoadingMapDraft ? 'Connecting...' : 'Import/Connect Map'}
+            {isLoadingMapDraft ? 'Connecting...' : 'Import Map'}
           </button>
-          <div className="status-message">{renderStatus(mapDraftStatus, mapDraftError, isLoadingMapDraft)}</div>
+          {renderStatusIndicator(mapDraftStatus, isLoadingMapDraft, mapDraftError)}
         </div>
       </div>
 
-      {/* Civ Draft Display */}
-      <div className="draft-display-section">
+      {/* Card 3: Civilization Draft Display */}
+      <div className="card draft-display-card">
         <h2 className="section-title">Civilization Draft</h2>
         <div className="draft-header">
-          <span>Name: {hostName}</span>
-          <button onClick={swapCivPlayers} className="button-like swap-players-button">Swap Civ Players</button>
-          <span>Name: {guestName}</span>
+          <span>{hostName}</span>
+          <button onClick={swapCivPlayers} className="button-like swap-players-button">Swap Civs</button>
+          <span>{guestName}</span>
         </div>
         <div className="draft-columns">
           <div className="player-column">
@@ -175,13 +191,13 @@ const TechnicalInterface = () => {
         </div>
       </div>
 
-      {/* Map Draft Display */}
-      <div className="draft-display-section">
+      {/* Card 4: Map Draft Display */}
+      <div className="card draft-display-card">
         <h2 className="section-title">Map Draft</h2>
         <div className="draft-header">
-          <span>Name: {hostName}</span>
-          <button onClick={swapMapPlayers} className="button-like swap-players-button">Swap Map Players</button>
-          <span>Name: {guestName}</span>
+          <span>{hostName}</span>
+          <button onClick={swapMapPlayers} className="button-like swap-players-button">Swap Maps</button>
+          <span>{guestName}</span>
         </div>
         <div className="draft-columns">
           <div className="player-column">
@@ -197,7 +213,7 @@ const TechnicalInterface = () => {
          {(mapPicksGlobal.length > 0 || mapBansGlobal.length > 0) && 
           !mapPicksHost.length && !mapPicksGuest.length && !mapBansHost.length && !mapBansGuest.length && (
           <div className="global-maps-section">
-            <h4>Global Map Draft:</h4>
+            <h3 className="section-title-small">Global Map Draft:</h3>
             <DraftListDisplay title="Picks" items={mapPicksGlobal} type="pick" />
             <DraftListDisplay title="Bans" items={mapBansGlobal} type="ban" />
           </div>
