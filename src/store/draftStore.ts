@@ -322,7 +322,9 @@ const useDraftStore = create<DraftStore>()(
             } else { 
               set(state => {
                 const combinedMapPicks = Array.from(new Set([
-                  ...(processedData.mapPicksHost || []),\n                  ...(processedData.mapPicksGuest || []),\n                  ...(processedData.mapPicksGlobal || [])
+                  ...(processedData.mapPicksHost || []),
+                  ...(processedData.mapPicksGuest || []),
+                  ...(processedData.mapPicksGlobal || [])
                 ]));
 
                 return {
