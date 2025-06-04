@@ -22,17 +22,17 @@ interface DraftStore extends CombinedDraftState {
   setGuestName: (name: string) => void;
   incrementScore: (player: 'host' | 'guest') => void;
   decrementScore: (player: 'host' | 'guest') => void;
-  // swapScores, swapCivPlayers, swapMapPlayers removed as UI was removed
-
-  saveCurrentAsPreset: (name?: string) => void;
+  
+  saveCurrentAsPreset: (name?: string) => void; // Now primarily for "Save As" or creating new
   loadPreset: (presetId: string) => Promise<void>;
   deletePreset: (presetId: string) => void;
-  updatePresetName: (presetId: string, newName: string) => void;
+  updatePresetName: (presetId: string, newName: string) => void; // For renaming a saved preset
 
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
   setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void;
   _resetCurrentSessionState: () => void;
+  _updateActivePresetIfNeeded: () => void; // Helper to update active preset
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -175,9 +175,31 @@ const useDraftStore = create<DraftStore>()(
 
         _resetCurrentSessionState: () => {
           set({
-            ...initialCombinedState, // Reset to all initial values
-            savedPresets: get().savedPresets, // Keep saved presets
+            ...initialCombinedState, 
+            savedPresets: get().savedPresets, 
           });
+        },
+        
+        _updateActivePresetIfNeeded: () => {
+          const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames } = get();
+          if (activePresetId) {
+            const presetIndex = savedPresets.findIndex(p => p.id === activePresetId);
+            if (presetIndex !== -1) {
+              const updatedPreset: SavedPreset = {
+                ...savedPresets[presetIndex],
+                hostName,
+                guestName,
+                scores: { ...scores },
+                civDraftId,
+                mapDraftId,
+                boxSeriesFormat,
+                boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)),
+              };
+              const newSavedPresets = [...savedPresets];
+              newSavedPresets[presetIndex] = updatedPreset;
+              set({ savedPresets: newSavedPresets });
+            }
+          }
         },
 
         extractDraftIdFromUrl: (url: string) => {
@@ -229,16 +251,16 @@ const useDraftStore = create<DraftStore>()(
           const savedPresetsArray = get().savedPresets;
           const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
 
-          let shouldClearActivePreset = true;
+          // If loading a new ID that doesn't match the active preset's corresponding ID,
+          // then this is no longer the "active preset" in its pure form.
           if (activePreset) {
-            if ((draftType === 'civ' && activePreset.civDraftId === extractedId) ||
-                (draftType === 'map' && activePreset.mapDraftId === extractedId)) {
-              // Loading an ID that matches the active preset, so don't clear activePresetId yet
-              shouldClearActivePreset = false;
+            if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
+                (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
+              set({ activePresetId: null }); 
             }
-          }
-          if(shouldClearActivePreset) {
-            set({ activePresetId: null });
+          } else {
+            // If no preset was active, any new load makes the current state a "new/dirty" session
+             set({ activePresetId: null });
           }
           
           if (draftType === 'civ') set({ civDraftId: extractedId });
@@ -265,7 +287,8 @@ const useDraftStore = create<DraftStore>()(
             
             const presetName = rawDraftData.preset.name?.toLowerCase() || '';
             let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; 
-            if (!detectedFormat) { 
+            // Only auto-detect format if not already set by user or another draft from the same session
+            if (get().activePresetId === null && !get().boxSeriesFormat) { 
                 if (presetName.includes('bo1')) detectedFormat = 'bo1';
                 else if (presetName.includes('bo3')) detectedFormat = 'bo3';
                 else if (presetName.includes('bo5')) detectedFormat = 'bo5';
@@ -299,9 +322,7 @@ const useDraftStore = create<DraftStore>()(
             } else { 
               set(state => {
                 const combinedMapPicks = Array.from(new Set([
-                  ...(processedData.mapPicksHost || []),
-                  ...(processedData.mapPicksGuest || []),
-                  ...(processedData.mapPicksGlobal || [])
+                  ...(processedData.mapPicksHost || []),\n                  ...(processedData.mapPicksGuest || []),\n                  ...(processedData.mapPicksGlobal || [])
                 ]));
 
                 return {
@@ -325,6 +346,7 @@ const useDraftStore = create<DraftStore>()(
                 };
               });
             }
+            get()._updateActivePresetIfNeeded(); // Update active preset if one is loaded
             return true;
 
           } catch (error) {
@@ -368,7 +390,7 @@ const useDraftStore = create<DraftStore>()(
               activePresetId: null, 
             });
           }
-           if (!get().civDraftId && !get().mapDraftId) { // If both are disconnected, fully reset BoX
+           if (!get().civDraftId && !get().mapDraftId) { 
             set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null });
           }
         },
@@ -384,17 +406,16 @@ const useDraftStore = create<DraftStore>()(
           return get().connectToDraft(idToReconnect, draftType);
         },
 
-        setHostName: (name: string) => set({ hostName: name, activePresetId: null }),
-        setGuestName: (name: string) => set({ guestName: name, activePresetId: null }),
-        incrementScore: (player: 'host' | 'guest') => set(state => ({
-          scores: { ...state.scores, [player]: state.scores[player] + 1 },
-          activePresetId: null,
-        })),
-        decrementScore: (player: 'host' | 'guest') => set(state => ({
-          scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) },
-          activePresetId: null,
-        })),
-        // swapScores, swapCivPlayers, swapMapPlayers removed
+        setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
+        setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
+        incrementScore: (player: 'host' | 'guest') => {
+          set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }}));
+          get()._updateActivePresetIfNeeded();
+        },
+        decrementScore: (player: 'host' | 'guest') => {
+          set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }}));
+          get()._updateActivePresetIfNeeded();
+        },
         
         saveCurrentAsPreset: (name?: string) => {
           const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames } = get();
@@ -426,7 +447,7 @@ const useDraftStore = create<DraftStore>()(
         loadPreset: async (presetId: string) => {
           const preset = get().savedPresets.find(p => p.id === presetId);
           if (preset) {
-            set({ // Set activePresetId first, so connectToDraft knows this is a preset load
+            set({ 
               activePresetId: preset.id, 
               civDraftId: preset.civDraftId,
               mapDraftId: preset.mapDraftId,
@@ -451,12 +472,9 @@ const useDraftStore = create<DraftStore>()(
             if (preset.mapDraftId) {
               mapConnected = await get().connectToDraft(preset.mapDraftId, 'map');
             }
-            // If any connection failed, or no IDs to connect, it's no longer pristine active preset
-            if ((preset.civDraftId && !civConnected) || (preset.mapDraftId && !mapConnected) || (!preset.civDraftId && !preset.mapDraftId)) {
-                 set({ activePresetId: preset.id }); // Still mark as active for UI, but it might be "dirty" if fetches change things
-            } else {
-                 set({ activePresetId: preset.id }); // Confirm active ID
-            }
+            // After connections, ensure activePresetId is still the one we loaded.
+            // connectToDraft might clear it if IDs didn't match, but here they should.
+            set({ activePresetId: preset.id });
           }
         },
         deletePreset: (presetId: string) => {
@@ -475,6 +493,7 @@ const useDraftStore = create<DraftStore>()(
             ),
             activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId,
           }));
+          get()._updateActivePresetIfNeeded(); // Also update the active preset if its name changed
         },
 
         setBoxSeriesFormat: (format) => {
@@ -507,7 +526,8 @@ const useDraftStore = create<DraftStore>()(
             }));
           }
         
-          set({ boxSeriesFormat: format, boxSeriesGames: newGames, activePresetId: null });
+          set({ boxSeriesFormat: format, boxSeriesGames: newGames });
+          get()._updateActivePresetIfNeeded();
         },
         updateBoxSeriesGame: (gameIndex, field, value) => {
           set(state => {
@@ -518,10 +538,11 @@ const useDraftStore = create<DraftStore>()(
                 [field]: value,
                 winner: null, 
               };
-              return { boxSeriesGames: newGames, activePresetId: null };
+              return { boxSeriesGames: newGames };
             }
             return state;
           });
+          get()._updateActivePresetIfNeeded();
         },
         setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => {
           set(state => {
@@ -544,9 +565,9 @@ const useDraftStore = create<DraftStore>()(
             return { 
               boxSeriesGames: newGames,
               scores: { host: hostScore, guest: guestScore },
-              activePresetId: null,
             };
           });
+          get()._updateActivePresetIfNeeded();
         },
       }),
       {
