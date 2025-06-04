@@ -33,7 +33,8 @@ interface DraftStore extends CombinedDraftState {
 
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
-  setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void; // Added
+  setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void;
+  _resetCurrentSessionState: () => void; // Internal helper
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -64,17 +65,21 @@ const initialCombinedState: CombinedDraftState = {
   isLoadingMapDraft: false,
   savedPresets: [],
   boxSeriesFormat: null,
-  boxSeriesGames: [], // Initialized as empty, setBoxSeriesFormat will populate with winner: null
+  boxSeriesGames: [],
+  activePresetId: null, // Added
 };
 
 const transformRawDataToSingleDraft = (
   raw: Aoe2cmRawDraftData,
   draftType: 'civ' | 'map'
 ): Partial<SingleDraftData> => {
+  const hostName = raw.nameHost || 'Host';
+  const guestName = raw.nameGuest || 'Guest';
+
   const output: Partial<SingleDraftData> = {
     id: raw.id || raw.draftId || 'unknown-id',
-    hostName: raw.nameHost || 'Host',
-    guestName: raw.nameGuest || 'Guest',
+    hostName,
+    guestName,
     civPicksHost: [],
     civBansHost: [],
     civPicksGuest: [],
@@ -162,6 +167,35 @@ const useDraftStore = create<DraftStore>()(
       (set, get) => ({
         ...initialCombinedState,
 
+        _resetCurrentSessionState: () => {
+          set({
+            civDraftId: null,
+            mapDraftId: null,
+            hostName: initialPlayerNameHost,
+            guestName: initialPlayerNameGuest,
+            scores: { ...initialScores },
+            civPicksHost: [],
+            civBansHost: [],
+            civPicksGuest: [],
+            civBansGuest: [],
+            mapPicksHost: [],
+            mapBansHost: [],
+            mapPicksGuest: [],
+            mapBansGuest: [],
+            mapPicksGlobal: [],
+            mapBansGlobal: [],
+            civDraftStatus: 'disconnected',
+            civDraftError: null,
+            isLoadingCivDraft: false,
+            mapDraftStatus: 'disconnected',
+            mapDraftError: null,
+            isLoadingMapDraft: false,
+            boxSeriesFormat: null,
+            boxSeriesGames: [],
+            activePresetId: null,
+          });
+        },
+
         extractDraftIdFromUrl: (url: string) => {
           try {
             if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -206,7 +240,15 @@ const useDraftStore = create<DraftStore>()(
             else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMsg });
             return false;
           }
-
+          
+          // If this connection is not part of loading an active preset, mark state as dirty
+          const activePreset = get().savedPresets.find(p => p.id === get().activePresetId);
+          if (!activePreset || 
+              (draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
+              (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
+            set({ activePresetId: null });
+          }
+          
           if (draftType === 'civ') set({ civDraftId: extractedId });
           else set({ mapDraftId: extractedId });
           
@@ -320,6 +362,7 @@ const useDraftStore = create<DraftStore>()(
               hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, 
               guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
+              activePresetId: null, // Mark as dirty if a draft is disconnected
             });
           } else { 
             set({
@@ -330,10 +373,11 @@ const useDraftStore = create<DraftStore>()(
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
+              activePresetId: null, // Mark as dirty
             });
           }
            if (!get().civDraftId && !get().mapDraftId) {
-            set({ boxSeriesFormat: null, boxSeriesGames: [] });
+            set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null });
           }
         },
 
@@ -348,16 +392,19 @@ const useDraftStore = create<DraftStore>()(
           return get().connectToDraft(idToReconnect, draftType);
         },
 
-        setHostName: (name: string) => set({ hostName: name }),
-        setGuestName: (name: string) => set({ guestName: name }),
+        setHostName: (name: string) => set({ hostName: name, activePresetId: null }),
+        setGuestName: (name: string) => set({ guestName: name, activePresetId: null }),
         incrementScore: (player: 'host' | 'guest') => set(state => ({
-          scores: { ...state.scores, [player]: state.scores[player] + 1 }
+          scores: { ...state.scores, [player]: state.scores[player] + 1 },
+          activePresetId: null,
         })),
         decrementScore: (player: 'host' | 'guest') => set(state => ({
-          scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }
+          scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) },
+          activePresetId: null,
         })),
         swapScores: () => set(state => ({
-          scores: { host: state.scores.guest, guest: state.scores.host }
+          scores: { host: state.scores.guest, guest: state.scores.host },
+          activePresetId: null,
         })),
         swapCivPlayers: () => set(state => ({
           hostName: state.guestName,
@@ -371,44 +418,63 @@ const useDraftStore = create<DraftStore>()(
             hostCiv: game.guestCiv,
             guestCiv: game.hostCiv,
           })),
+          activePresetId: null,
         })),
         swapMapPlayers: () => set(state => ({
           mapPicksHost: state.mapPicksGuest,
           mapPicksGuest: state.mapPicksHost,
           mapBansHost: state.mapBansGuest,
           mapBansGuest: state.mapBansHost,
+          activePresetId: null,
         })),
 
         saveCurrentAsPreset: (name?: string) => {
-          const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets } = get();
+          const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames } = get();
           const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
-          const newPreset: SavedPreset = {
-            id: Date.now().toString(),
+          
+          const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName);
+          let newPresetId = Date.now().toString();
+          
+          const presetData: SavedPreset = {
+            id: existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : newPresetId,
             name: presetName,
             civDraftId,
             mapDraftId,
             hostName,
             guestName,
             scores: { ...scores },
+            boxSeriesFormat,
+            boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), // Deep copy
           };
-          set({ savedPresets: [...savedPresets, newPreset] });
+
+          if (existingPresetIndex !== -1) {
+            const updatedPresets = [...savedPresets];
+            updatedPresets[existingPresetIndex] = presetData;
+            set({ savedPresets: updatedPresets, activePresetId: presetData.id });
+          } else {
+            set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id });
+          }
         },
         loadPreset: async (presetId: string) => {
           const preset = get().savedPresets.find(p => p.id === presetId);
           if (preset) {
             set({
+              // Set IDs first, so connectToDraft knows not to clear activePresetId
               civDraftId: preset.civDraftId,
               mapDraftId: preset.mapDraftId,
+              activePresetId: preset.id, // Set active preset ID BEFORE connecting
+              
               hostName: preset.hostName,
               guestName: preset.guestName,
               scores: { ...preset.scores },
+              boxSeriesFormat: preset.boxSeriesFormat,
+              boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), // Deep copy
+
               civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
               mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
-              boxSeriesFormat: null, 
-              boxSeriesGames: [],
             });
             if (preset.civDraftId) {
               await get().connectToDraft(preset.civDraftId, 'civ');
@@ -416,12 +482,18 @@ const useDraftStore = create<DraftStore>()(
             if (preset.mapDraftId) {
               await get().connectToDraft(preset.mapDraftId, 'map');
             }
+            // Ensure activePresetId is correctly set after connections
+            set({ activePresetId: preset.id });
           }
         },
         deletePreset: (presetId: string) => {
+          const currentActiveId = get().activePresetId;
           set(state => ({
             savedPresets: state.savedPresets.filter(p => p.id !== presetId),
           }));
+          if (currentActiveId === presetId) {
+            get()._resetCurrentSessionState();
+          }
         },
         updatePresetName: (presetId: string, newName: string) => {
           set(state => ({
@@ -442,7 +514,7 @@ const useDraftStore = create<DraftStore>()(
             map: null,
             hostCiv: null,
             guestCiv: null,
-            winner: null, // Initialize winner
+            winner: null,
           }));
 
           const state = get();
@@ -453,15 +525,15 @@ const useDraftStore = create<DraftStore>()(
               ...state.mapPicksGlobal,
             ])).filter(Boolean);
 
-            newGames = newGames.map((game, index) => ({
+            newGames = newGames.map((_game, index) => ({
               map: combinedMapPicks[index] || null,
               hostCiv: state.civPicksHost[index] || null,
               guestCiv: state.civPicksGuest[index] || null,
-              winner: null, // Ensure winner is reset/initialized
+              winner: null, 
             }));
           }
         
-          set({ boxSeriesFormat: format, boxSeriesGames: newGames });
+          set({ boxSeriesFormat: format, boxSeriesGames: newGames, activePresetId: null });
         },
         updateBoxSeriesGame: (gameIndex, field, value) => {
           set(state => {
@@ -470,9 +542,9 @@ const useDraftStore = create<DraftStore>()(
               newGames[gameIndex] = { 
                 ...newGames[gameIndex], 
                 [field]: value,
-                winner: null, // Reset winner if map or civ changes for this game
+                winner: null, 
               };
-              return { boxSeriesGames: newGames };
+              return { boxSeriesGames: newGames, activePresetId: null };
             }
             return state;
           });
@@ -481,10 +553,14 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const newGames = [...state.boxSeriesGames];
             if (newGames[gameIndex]) {
-              newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer };
+              // If clicking the same winner again, deselect
+              if (newGames[gameIndex].winner === winningPlayer) {
+                newGames[gameIndex] = { ...newGames[gameIndex], winner: null };
+              } else {
+                newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer };
+              }
             }
 
-            // Recalculate scores
             let hostScore = 0;
             let guestScore = 0;
             newGames.forEach(game => {
@@ -495,6 +571,7 @@ const useDraftStore = create<DraftStore>()(
             return { 
               boxSeriesGames: newGames,
               scores: { host: hostScore, guest: guestScore },
+              activePresetId: null,
             };
           });
         },
@@ -510,6 +587,7 @@ const useDraftStore = create<DraftStore>()(
             mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat,
             boxSeriesGames: state.boxSeriesGames,
+            activePresetId: state.activePresetId, // Persist activePresetId
         }),
       }
     )

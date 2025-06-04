@@ -30,13 +30,15 @@ const TechnicalInterface = () => {
     mapDraftStatus, mapDraftError, isLoadingMapDraft,
     savedPresets,
     boxSeriesFormat, boxSeriesGames,
+    activePresetId, // Destructure activePresetId
     connectToDraft,
     setHostName, setGuestName,
     incrementScore, decrementScore, swapScores,
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
-    disconnectDraft,
+    // disconnectDraft, // disconnectDraft is part of _resetCurrentSessionState now
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
+    _resetCurrentSessionState, // Destructure the reset action
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -95,49 +97,35 @@ const TechnicalInterface = () => {
   };
 
   const handleAddNewPreset = () => {
-    const currentCivId = useDraftStore.getState().civDraftId;
-    const currentMapId = useDraftStore.getState().mapDraftId;
-    const currentHostName = useDraftStore.getState().hostName;
-    const currentGuestName = useDraftStore.getState().guestName;
+    const { 
+      civDraftId: currentCivId, 
+      mapDraftId: currentMapId,
+      hostName: currentHostName,
+      guestName: currentGuestName,
+      activePresetId: currentActivePresetId
+    } = useDraftStore.getState();
 
-    if (currentCivId || currentMapId) {
+    // Save if there's data and it's not an unmodified active preset
+    if ((currentCivId || currentMapId) && currentActivePresetId === null) {
       const defaultName = `${currentHostName || 'P1'} vs ${currentGuestName || 'P2'} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
       const presetName = prompt("Enter a name for the current session before starting a new one:", defaultName);
       if (presetName) {
-        saveCurrentAsPreset(presetName);
+        saveCurrentAsPreset(presetName); // This will also set the new preset as active
       } else {
-        return;
+        return; // User cancelled saving, so don't reset
       }
     }
-    disconnectDraft('civ'); 
-    disconnectDraft('map'); 
-    setHostName('Player 1'); 
-    setGuestName('Player 2'); 
-    useDraftStore.setState({ scores: { host: 0, guest: 0 }, boxSeriesFormat: null, boxSeriesGames: [] }); 
+    
+    _resetCurrentSessionState(); // Call the store action to reset everything
 
-    setCivDraftIdInput(''); 
-    setMapDraftIdInput('');
+    // Input fields are already updated by useEffect watching store's civDraftId/mapDraftId
   };
 
   const handleDeletePresetAndReset = (presetIdToDelete: string) => {
-    const { civDraftId: currentCivId, mapDraftId: currentMapId } = useDraftStore.getState();
-    const presetToDel = savedPresets.find(p => p.id === presetIdToDelete);
-
+    // The store's deletePreset action now handles resetting if the active preset is deleted.
     deletePreset(presetIdToDelete);
-
-    if (presetToDel && 
-        ( (presetToDel.civDraftId === currentCivId && currentCivId !== null) || 
-          (presetToDel.mapDraftId === currentMapId && currentMapId !== null) )
-       ) {
-        disconnectDraft('civ');
-        disconnectDraft('map');
-        setHostName('Player 1'); 
-        setGuestName('Player 2');
-        useDraftStore.setState({ scores: { host: 0, guest: 0 }, boxSeriesFormat: null, boxSeriesGames: [] });
-        setCivDraftIdInput('');
-        setMapDraftIdInput('');
-    }
   };
+
 
   const availableMapsForBoX = useMemo(() => {
     const allPickedMaps = new Set([
@@ -206,12 +194,15 @@ const TechnicalInterface = () => {
             + New Preset Session
           </button>
           <div className="saved-presets-list">
-            {savedPresets.length === 0 && (!civDraftId && !mapDraftId) && 
-              <p className="no-presets-message">No presets. Import a draft to save it or start a new session.</p>
+            {savedPresets.length === 0 && 
+              <p className="no-presets-message">No presets. Import drafts then click "+ New Preset Session" to save.</p>
             }
             {savedPresets.map((preset: SavedPreset) => (
               <div key={preset.id} className="preset-item">
-                <button onClick={() => loadPreset(preset.id)} className="button-like preset-load-button">
+                <button 
+                  onClick={() => loadPreset(preset.id)} 
+                  className={`button-like preset-load-button ${preset.id === activePresetId ? 'active-preset' : ''}`}
+                >
                   {preset.name}
                 </button>
                 <button onClick={() => handleDeletePresetAndReset(preset.id)} className="preset-delete-button" title="Delete preset">
