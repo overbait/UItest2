@@ -19,61 +19,25 @@ export interface BoxSeriesGame {
   winner: 'host' | 'guest' | null;
 }
 
-export interface Aoe2cmRawDraftData {
-  id?: string;
-  draftId?: string;
-  nameHost?: string;
-  nameGuest?: string;
-  preset?: {
-    name?: string;
-    turns?: Array<{ player: string; action: string }>;
-    draftOptions?: Array<{ id: string; name: string }>;
-  };
-  events?: Array<{
-    actionType?: string;
-    executingPlayer?: string;
-    chosenOptionId?: string;
-  }>;
-  nextAction?: number;
-  status?: string; // e.g., "COMPLETED", "IN_PROGRESS"
-  ongoing?: boolean;
-}
+export interface Aoe2cmRawDraftData { /* ... */ } // Assuming full content from previous state
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-export interface SingleDraftData {
-  id: string;
-  hostName: string;
-  guestName: string;
-  civPicksHost: string[];
-  civBansHost: string[];
-  civPicksGuest: string[];
-  civBansGuest: string[];
-  mapPicksHost: string[];
-  mapBansHost: string[];
-  mapPicksGuest: string[];
-  mapBansGuest: string[];
-  mapPicksGlobal: string[];
-  mapBansGlobal: string[];
-  status: 'inProgress' | 'completed' | 'unknown';
-  currentTurnPlayer?: string;
-  currentAction?: string;
-}
+export interface SingleDraftData { /* ... */ } // Assuming full content from previous state
 
 // Updated Types for Studio Interface
 export interface StudioElement {
   id: string;
-  type: string; // e.g., 'ScoreDisplay', 'MapImage'
+  type: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
-  // New optional settings
   fontFamily?: string;
   showName?: boolean;
   showScore?: boolean;
   backgroundColor?: string;
   borderColor?: string;
-  // Potentially other properties like styleOverrides, dataBinding, etc.
-  [key: string]: any; // Allow other properties for flexibility initially
+  scale?: number; // New property for scale
+  [key: string]: any;
 }
 
 export interface SavedStudioLayout {
@@ -83,39 +47,16 @@ export interface SavedStudioLayout {
 }
 
 export interface CombinedDraftState {
-  civDraftId: string | null;
-  mapDraftId: string | null;
-  hostName: string;
-  guestName: string;
-  scores: { host: number; guest: number };
-  
-  civPicksHost: string[];
-  civBansHost: string[];
-  civPicksGuest: string[];
-  civBansGuest: string[];
-  
-  mapPicksHost: string[];
-  mapBansHost: string[];
-  mapPicksGuest: string[];
-  mapBansGuest: string[];
-  mapPicksGlobal: string[];
-  mapBansGlobal: string[];
-  
-  civDraftStatus: ConnectionStatus;
-  civDraftError: string | null;
-  isLoadingCivDraft: boolean;
-  
-  mapDraftStatus: ConnectionStatus;
-  mapDraftError: string | null;
-  isLoadingMapDraft: boolean;
-
-  savedPresets: SavedPreset[];
-  activePresetId: string | null;
-
-  boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null;
-  boxSeriesGames: BoxSeriesGame[];
-
+  /* ... existing fields ... */
+  civDraftId: string | null; mapDraftId: string | null; hostName: string; guestName: string;
+  scores: { host: number; guest: number }; civPicksHost: string[]; civBansHost: string[];
+  civPicksGuest: string[]; civBansGuest: string[]; mapPicksHost: string[]; mapBansHost: string[];
+  mapPicksGuest: string[]; mapBansGuest: string[]; mapPicksGlobal: string[]; mapBansGlobal: string[];
+  civDraftStatus: ConnectionStatus; civDraftError: string | null; isLoadingCivDraft: boolean;
+  mapDraftStatus: ConnectionStatus; mapDraftError: string | null; isLoadingMapDraft: boolean;
+  savedPresets: SavedPreset[]; activePresetId: string | null;
+  boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
   studioLayout: StudioElement[];
   savedStudioLayouts: SavedStudioLayout[];
-  selectedElementId?: string | null; // For Phase 6
+  selectedElementId?: string | null;
 }

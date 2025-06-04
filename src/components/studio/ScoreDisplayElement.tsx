@@ -1,13 +1,12 @@
 import React from 'react';
-import useDraftStore from '../../store/draftStore'; // Ensure this is not commented out
-import { StudioElement } from '../../types/draft'; // Import StudioElement type
+import useDraftStore from '../../store/draftStore';
+import { StudioElement } from '../../types/draft';
 
 interface ScoreDisplayElementProps {
-  element: StudioElement; // Expect the full element object as a prop
+  element: StudioElement;
 }
 
 const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) => {
-  // Destructure styling and visibility settings from the element prop
   const {
     fontFamily,
     showName,
@@ -16,17 +15,21 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     borderColor
   } = element;
 
-  // Fallback to defaults if properties are undefined
   const currentFontFamily = fontFamily || 'Arial';
   const currentShowName = typeof showName === 'boolean' ? showName : true;
   const currentShowScore = typeof showScore === 'boolean' ? showScore : true;
   const currentBackgroundColor = backgroundColor || 'transparent';
   const currentBorderColor = borderColor || 'transparent';
 
-  // Retrieve live data from the store
   const liveHostName = useDraftStore((state) => state.hostName);
   const liveGuestName = useDraftStore((state) => state.guestName);
   const liveScores = useDraftStore((state) => state.scores);
+
+  const hostScoreDisplay = <span style={{ fontWeight: 'bold' }}>{liveScores.host}</span>;
+  const guestScoreDisplay = <span style={{ fontWeight: 'bold' }}>{liveScores.guest}</span>;
+  const hostNameDisplay = <span>{liveHostName}</span>;
+  const guestNameDisplay = <span>{liveGuestName}</span>;
+  const scoreSeparator = <span style={{ margin: '0 8px' }}> </span>; // Using space for score separation
 
   return (
     <div style={{
@@ -42,18 +45,21 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
       boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-around', // Use space-around for better distribution
       overflow: 'hidden',
+      textAlign: 'center', // Ensure text within spans is centered if spans are blocky
     }}>
-      {currentShowName && <span>{liveHostName}</span>}
-      {currentShowName && currentShowScore && <span style={{ margin: '0 5px' }}> </span>}
+      {currentShowName && hostNameDisplay}
 
-      {currentShowScore && <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({liveScores.host})</span>}
-      {currentShowScore && <span style={{ margin: '0 5px' }}>-</span>}
-      {currentShowScore && <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({liveScores.guest})</span>}
+      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>} {/* Minimal spacer */}
 
-      {currentShowName && currentShowScore && <span style={{ margin: '0 5px' }}> </span>}
-      {currentShowName && <span>{liveGuestName}</span>}
+      {currentShowScore && hostScoreDisplay}
+      {currentShowScore && scoreSeparator}
+      {currentShowScore && guestScoreDisplay}
+
+      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>} {/* Minimal spacer */}
+
+      {currentShowName && guestNameDisplay}
 
       {!currentShowName && !currentShowScore && <span style={{fontSize: '0.8em', opacity: 0.7}}>(Content Hidden)</span>}
     </div>

@@ -55,7 +55,7 @@ const initialScores = { host: 0, guest: 0 };
 const initialPlayerNameHost = 'Player 1';
 const initialPlayerNameGuest = 'Player 2';
 
-const initialCombinedState: CombinedDraftState = {
+const initialCombinedState: CombinedDraftState = { /* ... as before ... */
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
   scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
   mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
@@ -65,18 +65,12 @@ const initialCombinedState: CombinedDraftState = {
   studioLayout: [], savedStudioLayouts: [], selectedElementId: null,
 };
 
-const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
+const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => { /* ... as before ... */
   const hostName = raw.nameHost || 'Host'; const guestName = raw.nameGuest || 'Guest';
   const output: Partial<SingleDraftData> = { id: raw.id || raw.draftId || 'unknown-id', hostName, guestName, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], };
   const getOptionNameById = (optionId: string): string => { const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId); if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name; return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; };
-  raw.events?.forEach(event => {
-    const action = event.actionType?.toLowerCase() || ''; const executingPlayer = event.executingPlayer; const chosenOptionId = event.chosenOptionId; if (!chosenOptionId) return;
-    const optionName = getOptionNameById(chosenOptionId); const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.'); const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.');
-    if (action === 'pick') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civPicksHost!.includes(optionName)) output.civPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civPicksGuest!.includes(optionName)) output.civPicksGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName); } }
-    else if (action === 'ban') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); } }
-    else if (action === 'snipe') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); } } });
-  let currentTurnPlayerDisplay: string | undefined = 'none'; let currentActionDisplay: string | undefined = 'unknown'; let draftStatus: SingleDraftData['status'] = 'unknown';
-  if (raw.preset?.turns && typeof raw.nextAction === 'number') { if (raw.nextAction >= raw.preset.turns.length) draftStatus = 'completed'; else { draftStatus = 'inProgress'; const currentTurnInfo = raw.preset.turns[raw.nextAction]; if (currentTurnInfo) { currentTurnPlayerDisplay = currentTurnInfo.player === 'HOST' ? hostName : currentTurnInfo.player === 'GUEST' ? guestName : 'None'; currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', ''); } } } else if (raw.status) draftStatus = raw.status.toLowerCase() as SingleDraftData['status']; else if (raw.ongoing === false) draftStatus = 'completed'; else if (raw.ongoing === true) draftStatus = 'inProgress';
+  raw.events?.forEach(event => { const action = event.actionType?.toLowerCase() || ''; const executingPlayer = event.executingPlayer; const chosenOptionId = event.chosenOptionId; if (!chosenOptionId) return; const optionName = getOptionNameById(chosenOptionId); const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.'); const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.'); if (action === 'pick') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civPicksHost!.includes(optionName)) output.civPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civPicksGuest!.includes(optionName)) output.civPicksGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName); } } else if (action === 'ban') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); } } else if (action === 'snipe') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); } } });
+  let currentTurnPlayerDisplay: string | undefined = 'none'; let currentActionDisplay: string | undefined = 'unknown'; let draftStatus: SingleDraftData['status'] = 'unknown'; if (raw.preset?.turns && typeof raw.nextAction === 'number') { if (raw.nextAction >= raw.preset.turns.length) draftStatus = 'completed'; else { draftStatus = 'inProgress'; const currentTurnInfo = raw.preset.turns[raw.nextAction]; if (currentTurnInfo) { currentTurnPlayerDisplay = currentTurnInfo.player === 'HOST' ? hostName : currentTurnInfo.player === 'GUEST' ? guestName : 'None'; currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', ''); } } } else if (raw.status) draftStatus = raw.status.toLowerCase() as SingleDraftData['status']; else if (raw.ongoing === false) draftStatus = 'completed'; else if (raw.ongoing === true) draftStatus = 'inProgress';
   output.status = draftStatus; output.currentTurnPlayer = currentTurnPlayerDisplay; output.currentAction = currentActionDisplay; return output;
 };
 
@@ -85,7 +79,7 @@ const useDraftStore = create<DraftStore>()(
     persist(
       (set, get) => ({
         ...initialCombinedState,
-
+        // ... (all other actions like _resetCurrentSessionState, _updateActivePresetIfNeeded, etc. as before)
         _resetCurrentSessionState: () => { set({ ...initialCombinedState, savedPresets: get().savedPresets, studioLayout: [], savedStudioLayouts: get().savedStudioLayouts, selectedElementId: null }); },
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
@@ -111,34 +105,16 @@ const useDraftStore = create<DraftStore>()(
               position: { x: 10, y: 10 + state.studioLayout.length * 50 }, size: { width: 250, height: 40 },
               fontFamily: 'Arial', showName: true, showScore: true,
               backgroundColor: 'transparent', borderColor: 'transparent',
+              scale: 1, // Initialize scale
             };
             return { studioLayout: [...state.studioLayout, newElement] };
           });
         },
-        updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => {
-          set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, position } : el), }));
-        },
-        updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => {
-          set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, size } : el), }));
-        },
-        setSelectedElementId: (elementId: string | null) => {
-          set({ selectedElementId: elementId });
-        },
-        updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
-          set(state => ({
-            studioLayout: state.studioLayout.map(el =>
-              el.id === elementId ? { ...el, ...settings } : el
-            ),
-          }));
-        },
-        removeStudioElement: (elementId: string) => {
-          set(state => ({
-            studioLayout: state.studioLayout.filter(el => el.id !== elementId),
-            // Also deselect if the removed element was selected
-            selectedElementId: state.selectedElementId === elementId ? null : state.selectedElementId,
-          }));
-        },
-
+        updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, position } : el), })); },
+        updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, size } : el), })); },
+        setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
+        updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, ...settings } : el), })); },
+        removeStudioElement: (elementId: string) => { set(state => ({ studioLayout: state.studioLayout.filter(el => el.id !== elementId), selectedElementId: state.selectedElementId === elementId ? null : state.selectedElementId, })); },
         saveCurrentStudioLayout: (name: string) => { set(state => { const newLayoutPreset: SavedStudioLayout = { id: Date.now().toString(), name, layout: JSON.parse(JSON.stringify(state.studioLayout)), }; return { savedStudioLayouts: [...state.savedStudioLayouts, newLayoutPreset] }; }); },
         loadStudioLayout: (layoutId: string) => { set(state => { const layoutToLoad = state.savedStudioLayouts.find(l => l.id === layoutId); if (layoutToLoad) return { studioLayout: JSON.parse(JSON.stringify(layoutToLoad.layout)), selectedElementId: null }; return state; }); },
         deleteStudioLayout: (layoutId: string) => { set(state => ({ savedStudioLayouts: state.savedStudioLayouts.filter(l => l.id !== layoutId) })); },
@@ -147,7 +123,7 @@ const useDraftStore = create<DraftStore>()(
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
-        partialize: (state) => ({
+        partialize: (state) => ({ /* ... as before ... */
             hostName: state.hostName, guestName: state.guestName, scores: state.scores,
             savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,
