@@ -24,8 +24,9 @@
   color: var(--aoe-text-light);
   font-family: var(--font-sans);
   padding: 20px;
-  min-height: 100vh;
+  min-height: 100vh; /* Ensured */
   box-sizing: border-box;
+  overflow-y: auto; /* Ensured for page scroll if content overflows */
 }
 
 .main-title {
@@ -54,7 +55,7 @@
   grid-template-columns: 0.8fr 0.8fr 1.4fr; /* Draft Inputs | Saved Presets | Match Control */
   gap: 15px;
   margin-bottom: 20px;
-  align-items: flex-start;
+  align-items: flex-start; 
 }
 
 .drafts-section-grid {
@@ -62,7 +63,7 @@
   /* Civ Draft | Map Draft | BoX Series Overview */
   grid-template-columns: 0.7fr 0.7fr 1.6fr; 
   gap: 15px;
-  align-items: flex-start; /* Align cards to the top if they have different heights */
+  align-items: flex-start; 
 }
 
 
@@ -85,7 +86,7 @@
 .player-scores-horizontal-layout {
   display: flex;
   align-items: center;
-  justify-content: space-around; /* Distributes space, can be space-between */
+  justify-content: space-around; 
   width: 100%;
   flex-wrap: wrap; 
   gap: 8px; 
@@ -213,6 +214,21 @@
   position: relative; 
   right: -15px; 
 }
+/* Adjust if label, input, button, status are all in one visual row */
+.draft-input-group.single-row-layout label { grid-column: auto; margin-bottom: 0; }
+.draft-input-group.single-row-layout .draft-id-input { grid-column: auto; }
+.draft-input-group.single-row-layout .import-button { grid-column: auto; }
+.draft-input-group.single-row-layout .status-circle { grid-column: auto; margin-top: 0; margin-left: 5px;}
+
+
+.status-message {
+  font-size: 0.85em;
+  color: #aaa;
+  text-align: center;
+  min-height: 1.2em;
+  grid-column: 1 / -1;
+  margin-top: 3px;
+}
 
 /* --- Saved Presets Card --- */
 .saved-presets-card { gap: 10px; }
@@ -310,8 +326,7 @@
 
 /* --- BoX Series Card --- */
 .box-series-card {
-  /* Uses .card base styles */
-  gap: 10px; /* Space between title, format selector, and games list */
+  gap: 10px; 
 }
 .box-format-selector {
   display: flex;
@@ -324,8 +339,8 @@
   font-weight: 500;
   white-space: nowrap;
 }
-.box-format-selector select.button-like { /* Style select like a button */
-  padding: 6px 8px; /* Match other buttons */
+.box-format-selector select.button-like { 
+  padding: 6px 8px; 
   font-size: 0.85em;
   flex-grow: 1;
 }
@@ -333,9 +348,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 300px; /* Or adjust as needed */
-  overflow-y: auto;
-  padding-right: 5px; /* For scrollbar */
+  /* max-height: 300px; -- REMOVED */
+  /* overflow-y: auto; -- REMOVED */
+  padding-right: 5px; 
 }
 .box-game-slot {
   background-color: var(--aoe-dark-bg);
@@ -351,7 +366,7 @@
 }
 .game-slot-selectors {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive columns for selectors */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
   gap: 8px;
 }
 .selector-group {
@@ -385,25 +400,25 @@
 }
 
 /* --- Responsive Design --- */
-@media (max-width: 1300px) { /* Adjust breakpoint for top section to go 2-column */
+@media (max-width: 1200px) { 
   .top-section-grid {
-    grid-template-columns: 1fr 1fr; /* Draft Inputs + Presets | Match Control */
+    grid-template-columns: 1fr 1fr; 
   }
-  .player-scores-card { 
-    grid-column: 1 / -1; /* Match control spans full width if it wraps */
+   .player-scores-card { 
+    grid-column: 1 / -1; 
     margin-top: 15px; 
   }
   .drafts-section-grid {
-    grid-template-columns: 1fr 1.5fr; /* Civ/Map Drafts | BoX Series (BoX takes more space) */
+    grid-template-columns: 1fr 1.5fr; 
   }
 }
 
 @media (max-width: 900px) { 
     .top-section-grid {
-        grid-template-columns: 1fr; /* Stack all top cards */
+        grid-template-columns: 1fr; 
     }
     .drafts-section-grid {
-      grid-template-columns: 1fr; /* Stack draft displays */
+      grid-template-columns: 1fr; 
     }
     .player-scores-card { margin-top: 15px; }
     .player-scores-horizontal-layout { flex-direction: column; gap: 8px; }
@@ -423,5 +438,5 @@
   .draft-header span { text-align: center !important; }
   .card { padding: 10px; }
   .technical-interface { padding: 10px; }
-  .game-slot-selectors { grid-template-columns: 1fr; } /* Stack selectors in BoX game slot */
+  .game-slot-selectors { grid-template-columns: 1fr; } 
 }
