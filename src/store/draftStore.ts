@@ -26,13 +26,11 @@ interface DraftStore extends CombinedDraftState {
   swapCivPlayers: () => void;
   swapMapPlayers: () => void;
 
-  // Actions for saved presets
   saveCurrentAsPreset: (name?: string) => void;
   loadPreset: (presetId: string) => Promise<void>;
   deletePreset: (presetId: string) => void;
   updatePresetName: (presetId: string, newName: string) => void;
 
-  // Actions for BoX series
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
 }
@@ -114,6 +112,10 @@ const transformRawDataToSingleDraft = (
       } else if (isMapAction && draftType === 'map') {
         if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName);
         else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName);
+        // For global map picks, if the preset indicates it or no player is specified for map pick
+        // This part might need more specific logic based on how aoe2cm handles global map picks in events
+        // For now, assuming per-player picks as per UI.
+        // else if (!output.mapPicksGlobal!.includes(optionName)) output.mapPicksGlobal!.push(optionName);
       }
     } else if (action === 'ban') {
       if (isCivAction && draftType === 'civ') {
@@ -122,6 +124,7 @@ const transformRawDataToSingleDraft = (
       } else if (isMapAction && draftType === 'map') {
         if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName);
         else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName);
+        // else if (!output.mapBansGlobal!.includes(optionName)) output.mapBansGlobal!.push(optionName);
       }
     } else if (action === 'snipe') {
          if (isCivAction && draftType === 'civ') {
@@ -227,26 +230,29 @@ const useDraftStore = create<DraftStore>()(
               console.error('Preset data or draftOptions missing in API response:', rawDraftData);
               throw new Error('Preset data or draftOptions missing in API response.');
             }
-
-            // Auto-detect BoX format from preset name
-            const presetName = rawDraftData.preset.name?.toLowerCase() || '';
-            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = null;
-            if (presetName.includes('bo1')) detectedFormat = 'bo1';
-            else if (presetName.includes('bo3')) detectedFormat = 'bo3';
-            else if (presetName.includes('bo5')) detectedFormat = 'bo5';
-            else if (presetName.includes('bo7')) detectedFormat = 'bo7';
-
-            if (detectedFormat && get().boxSeriesFormat !== detectedFormat) { // Only set if different or not set
-              get().setBoxSeriesFormat(detectedFormat);
-              console.log(`Auto-detected and set BoX format: ${detectedFormat} from preset name: "${rawDraftData.preset.name}"`);
-            }
-
+            
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
             
+            // Auto-detect BoX format from preset name (do this before setting specific draft data)
+            const presetName = rawDraftData.preset.name?.toLowerCase() || '';
+            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; // Keep existing if already set
+            if (!detectedFormat) { // Only detect if not already set by user or other draft
+                if (presetName.includes('bo1')) detectedFormat = 'bo1';
+                else if (presetName.includes('bo3')) detectedFormat = 'bo3';
+                else if (presetName.includes('bo5')) detectedFormat = 'bo5';
+                else if (presetName.includes('bo7')) detectedFormat = 'bo7';
+            }
+
+            if (detectedFormat && get().boxSeriesFormat !== detectedFormat) {
+              get().setBoxSeriesFormat(detectedFormat); // This will initialize/reset boxSeriesGames
+              console.log(`Auto-detected and set BoX format: ${detectedFormat} from preset name: "${rawDraftData.preset.name}"`);
+            }
+            
+            // Update state based on draft type
             if (draftType === 'civ') {
-              set({
-                hostName: processedData.hostName || get().hostName,
-                guestName: processedData.guestName || get().guestName,
+              set(state => ({
+                hostName: processedData.hostName || state.hostName,
+                guestName: processedData.guestName || state.guestName,
                 civPicksHost: processedData.civPicksHost || [],
                 civBansHost: processedData.civBansHost || [],
                 civPicksGuest: processedData.civPicksGuest || [],
@@ -254,21 +260,44 @@ const useDraftStore = create<DraftStore>()(
                 civDraftStatus: 'connected',
                 isLoadingCivDraft: false,
                 civDraftError: null,
-              });
-            } else { // map draft
-              set(state => ({
-                hostName: state.hostName === initialPlayerNameHost ? (processedData.hostName || state.hostName) : state.hostName,
-                guestName: state.guestName === initialPlayerNameGuest ? (processedData.guestName || state.guestName) : state.guestName,
-                mapPicksHost: processedData.mapPicksHost || [],
-                mapBansHost: processedData.mapBansHost || [],
-                mapPicksGuest: processedData.mapPicksGuest || [],
-                mapBansGuest: processedData.mapBansGuest || [],
-                mapPicksGlobal: processedData.mapPicksGlobal || [],
-                mapBansGlobal: processedData.mapBansGlobal || [],
-                mapDraftStatus: 'connected',
-                isLoadingMapDraft: false,
-                mapDraftError: null,
+                // Re-populate BoX games with new civ data
+                boxSeriesGames: state.boxSeriesFormat ? 
+                  state.boxSeriesGames.map((game, index) => ({
+                    ...game,
+                    hostCiv: processedData.civPicksHost?.[index] || game.hostCiv || null, // Keep existing map if already set
+                    guestCiv: processedData.civPicksGuest?.[index] || game.guestCiv || null,
+                  })) 
+                  : [],
               }));
+            } else { // map draft
+              set(state => {
+                const combinedMapPicks = Array.from(new Set([
+                  ...(processedData.mapPicksHost || []),
+                  ...(processedData.mapPicksGuest || []),
+                  ...(processedData.mapPicksGlobal || [])
+                ]));
+
+                return {
+                  hostName: state.hostName === initialPlayerNameHost ? (processedData.hostName || state.hostName) : state.hostName,
+                  guestName: state.guestName === initialPlayerNameGuest ? (processedData.guestName || state.guestName) : state.guestName,
+                  mapPicksHost: processedData.mapPicksHost || [],
+                  mapBansHost: processedData.mapBansHost || [],
+                  mapPicksGuest: processedData.mapPicksGuest || [],
+                  mapBansGuest: processedData.mapBansGuest || [],
+                  mapPicksGlobal: processedData.mapPicksGlobal || [],
+                  mapBansGlobal: processedData.mapBansGlobal || [],
+                  mapDraftStatus: 'connected',
+                  isLoadingMapDraft: false,
+                  mapDraftError: null,
+                  // Re-populate BoX games with new map data
+                  boxSeriesGames: state.boxSeriesFormat ?
+                    state.boxSeriesGames.map((game, index) => ({
+                      ...game, // Keep existing civs
+                      map: combinedMapPicks[index] || game.map || null,
+                    }))
+                    : [],
+                };
+              });
             }
             return true;
 
@@ -296,11 +325,12 @@ const useDraftStore = create<DraftStore>()(
               civDraftError: null,
               isLoadingCivDraft: false,
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
-              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost,
+              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, // Keep names if map draft still active
               guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
-              // Do not reset boxSeriesFormat here, as it might be set by map draft or manually
+              // If civ draft is disconnected, clear civs from BoX games
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
             });
-          } else {
+          } else { // map draft
             set({
               mapDraftId: null,
               mapDraftStatus: 'disconnected',
@@ -308,8 +338,13 @@ const useDraftStore = create<DraftStore>()(
               isLoadingMapDraft: false,
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
-               // Do not reset boxSeriesFormat here, as it might be set by civ draft or manually
+              // If map draft is disconnected, clear maps from BoX games
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
             });
+          }
+           // If both drafts are disconnected, reset BoX format
+           if (!get().civDraftId && !get().mapDraftId) {
+            set({ boxSeriesFormat: null, boxSeriesGames: [] });
           }
         },
 
@@ -336,18 +371,27 @@ const useDraftStore = create<DraftStore>()(
           scores: { host: state.scores.guest, guest: state.scores.host }
         })),
         swapCivPlayers: () => set(state => ({
-          hostName: state.guestName, 
+          hostName: state.guestName,
           guestName: state.hostName,
           civPicksHost: state.civPicksGuest,
           civPicksGuest: state.civPicksHost,
           civBansHost: state.civBansGuest,
           civBansGuest: state.civBansHost,
+          // Also swap civs in BoX games
+          boxSeriesGames: state.boxSeriesGames.map(game => ({
+            ...game,
+            hostCiv: game.guestCiv,
+            guestCiv: game.hostCiv,
+          })),
         })),
         swapMapPlayers: () => set(state => ({
           mapPicksHost: state.mapPicksGuest,
           mapPicksGuest: state.mapPicksHost,
           mapBansHost: state.mapBansGuest,
           mapBansGuest: state.mapBansHost,
+          // If maps are swapped, this might affect BoX games if they were per-player
+          // but current BoX map logic uses a combined list.
+          // If BoX maps were strictly tied to host/guest map picks, they'd need swapping too.
         })),
 
         saveCurrentAsPreset: (name?: string) => {
@@ -361,9 +405,7 @@ const useDraftStore = create<DraftStore>()(
             hostName,
             guestName,
             scores: { ...scores },
-            // boxSeriesFormat and boxSeriesGames are not part of SavedPreset type yet,
-            // but could be added if we want to save BoX selections with presets.
-            // For now, they are not saved with the preset.
+            // Consider saving boxSeriesFormat and boxSeriesGames with the preset if desired
           };
           set({ savedPresets: [...savedPresets, newPreset] });
         },
@@ -381,18 +423,15 @@ const useDraftStore = create<DraftStore>()(
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
-              boxSeriesFormat: null, 
+              boxSeriesFormat: null, // Reset BoX, it will be re-evaluated by connectToDraft
               boxSeriesGames: [],
             });
-            // After setting IDs from preset, attempt to connect
             if (preset.civDraftId) {
-              await get().connectToDraft(preset.civDraftId, 'civ'); // This will auto-detect BoX if in preset name
+              await get().connectToDraft(preset.civDraftId, 'civ');
             }
             if (preset.mapDraftId) {
-              await get().connectToDraft(preset.mapDraftId, 'map'); // This might also trigger BoX detection
+              await get().connectToDraft(preset.mapDraftId, 'map');
             }
-            // If the preset itself had a BoX format saved, we might want to restore it here
-            // This requires SavedPreset type to include boxSeriesFormat and boxSeriesGames.
           }
         },
         deletePreset: (presetId: string) => {
@@ -408,7 +447,6 @@ const useDraftStore = create<DraftStore>()(
           }));
         },
 
-        // BoX Series Actions
         setBoxSeriesFormat: (format) => {
           let numGames = 0;
           if (format === 'bo1') numGames = 1;
@@ -416,11 +454,27 @@ const useDraftStore = create<DraftStore>()(
           else if (format === 'bo5') numGames = 5;
           else if (format === 'bo7') numGames = 7;
         
-          const newGames = Array(numGames).fill(null).map(() => ({
+          let newGames = Array(numGames).fill(null).map(() => ({
             map: null,
             hostCiv: null,
             guestCiv: null,
           }));
+
+          // Attempt to re-populate with existing data
+          const state = get();
+          if (numGames > 0) {
+            const combinedMapPicks = Array.from(new Set([
+              ...state.mapPicksHost,
+              ...state.mapPicksGuest,
+              ...state.mapPicksGlobal,
+            ])).filter(Boolean);
+
+            newGames = newGames.map((game, index) => ({
+              map: combinedMapPicks[index] || null,
+              hostCiv: state.civPicksHost[index] || null,
+              guestCiv: state.civPicksGuest[index] || null,
+            }));
+          }
         
           set({ boxSeriesFormat: format, boxSeriesGames: newGames });
         },
@@ -431,21 +485,21 @@ const useDraftStore = create<DraftStore>()(
               newGames[gameIndex] = { ...newGames[gameIndex], [field]: value };
               return { boxSeriesGames: newGames };
             }
-            return state; 
+            return state;
           });
         },
       }),
       {
-        name: 'aoe2-draft-overlay-combined-storage-v1', // Updated to v1 for this structure
-        partialize: (state) => ({ 
+        name: 'aoe2-draft-overlay-combined-storage-v1',
+        partialize: (state) => ({
             hostName: state.hostName,
             guestName: state.guestName,
             scores: state.scores,
             savedPresets: state.savedPresets,
-            civDraftId: state.civDraftId, 
+            civDraftId: state.civDraftId,
             mapDraftId: state.mapDraftId,
-            boxSeriesFormat: state.boxSeriesFormat, 
-            boxSeriesGames: state.boxSeriesGames,   
+            boxSeriesFormat: state.boxSeriesFormat,
+            boxSeriesGames: state.boxSeriesGames,
         }),
       }
     )
