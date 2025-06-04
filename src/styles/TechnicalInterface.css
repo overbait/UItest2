@@ -32,7 +32,7 @@
 .main-title {
   font-size: 2.2em;
   text-align: center;
-  margin-bottom: 20px; /* Reduced margin */
+  margin-bottom: 20px; 
   padding-bottom: 15px;
   border-bottom: 2px solid var(--aoe-gold-accent);
   color: var(--aoe-gold-accent);
@@ -42,31 +42,35 @@
 .technical-interface h2.section-title {
   font-family: var(--font-medieval);
   color: var(--aoe-gold-accent);
-  font-size: 1.4em; /* Slightly reduced */
+  font-size: 1.4em; 
   border-bottom: 1px solid var(--aoe-border-color);
-  padding-bottom: 6px; /* Reduced padding */
+  padding-bottom: 6px; 
   margin-top: 0;
-  margin-bottom: 12px; /* Reduced margin */
+  margin-bottom: 12px; 
 }
 .technical-interface h3.section-title-small {
   font-family: var(--font-medieval);
   color: var(--aoe-text-light);
-  font-size: 1.1em; /* Slightly reduced */
-  margin-top: 12px; /* Reduced margin */
-  margin-bottom: 6px; /* Reduced margin */
+  font-size: 1.1em; 
+  margin-top: 12px; 
+  margin-bottom: 6px; 
 }
 
 /* --- Main Layout Grids --- */
+.player-scores-card { /* This is now a full-width card above the top-section-grid */
+  margin-bottom: 20px; /* Space before the next grid */
+}
+
 .top-section-grid {
   display: grid;
-  grid-template-columns: 1fr 1.5fr; /* Draft inputs take less space than scores/names */
+  grid-template-columns: 1fr 1fr; /* Even 50/50 split for Draft Inputs and Saved Presets */
   gap: 20px;
   margin-bottom: 20px;
 }
 
 .drafts-section-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 50/50 split */
+  grid-template-columns: 1fr 1fr; /* 50/50 split for Civ and Map drafts */
   gap: 20px;
 }
 
@@ -74,20 +78,19 @@
 /* --- Card Styles --- */
 .card {
   background-color: var(--aoe-panel-bg);
-  padding: 15px; /* Reduced padding */
-  border-radius: 6px; /* Slightly smaller radius */
+  padding: 15px; 
+  border-radius: 6px; 
   border: 1px solid var(--aoe-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Softer shadow */
-  /* margin-bottom removed, handled by grid gap */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); 
 }
 
-/* --- Player Scores Card --- */
+/* --- Player Scores Card (Full Width) --- */
 .player-scores-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  flex-wrap: wrap; /* Allow wrapping if space is tight */
+  flex-wrap: wrap; 
 }
 
 .player-name-input-group {
@@ -95,11 +98,11 @@
   flex-direction: column;
   align-items: flex-start;
   flex-grow: 1;
-  min-width: 120px; /* Adjusted min-width */
+  min-width: 120px; 
 }
 
 .player-name-input-group label {
-  font-size: 0.85em; /* Smaller label */
+  font-size: 0.85em; 
   color: var(--aoe-text-light);
   margin-bottom: 3px;
   font-family: var(--font-sans);
@@ -109,10 +112,10 @@
   background-color: var(--aoe-input-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-input-border);
-  padding: 6px 8px; /* Reduced padding */
+  padding: 6px 8px; 
   border-radius: 3px;
   font-family: var(--font-sans);
-  font-size: 0.9em; /* Slightly smaller font */
+  font-size: 0.9em; 
   width: 100%;
   box-sizing: border-box;
 }
@@ -120,38 +123,38 @@
 .score-controls-group {
   display: flex;
   align-items: center;
-  gap: 6px; /* Reduced gap */
+  gap: 6px; 
   flex-shrink: 0;
 }
 
 .score-display {
-  font-size: 1.5em; /* Slightly reduced */
+  font-size: 1.5em; 
   font-weight: bold;
   color: var(--aoe-gold-accent);
-  min-width: 30px; 
+  min-width: 30px;
   text-align: center;
   font-family: var(--font-sans);
 }
 
-.score-button, .swap-scores-button, .import-button, .swap-players-button {
+.score-button, .swap-scores-button, .import-button, .swap-players-button, .save-preset-button, .preset-load-button {
   background-color: var(--aoe-button-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-gold-accent);
-  padding: 6px 10px; /* Reduced padding */
+  padding: 6px 10px; 
   border-radius: 3px;
   cursor: pointer;
   font-family: var(--font-medieval);
-  font-size: 0.85em; /* Slightly smaller font */
+  font-size: 0.85em; 
   transition: background-color 0.2s ease, border-color 0.2s ease;
   white-space: nowrap;
 }
 
-.score-button:hover, .swap-scores-button:hover, .import-button:hover, .swap-players-button:hover {
+.score-button:hover, .swap-scores-button:hover, .import-button:hover, .swap-players-button:hover, .save-preset-button:hover, .preset-load-button:hover {
   background-color: var(--aoe-button-hover-bg);
   border-color: var(--aoe-text-light);
 }
 
-.score-button:disabled, .swap-scores-button:disabled, .import-button:disabled, .swap-players-button:disabled {
+.score-button:disabled, .swap-scores-button:disabled, .import-button:disabled, .swap-players-button:disabled, .save-preset-button:disabled, .preset-load-button:disabled {
   background-color: #555;
   border-color: #777;
   color: #aaa;
@@ -159,70 +162,68 @@
 }
 
 .score-button {
-  padding: 5px 8px; /* Further reduced for +/- */
+  padding: 5px 8px; 
   font-size: 0.9em;
   line-height: 1;
 }
 .swap-scores-button {
-  margin: 0 5px; /* Add some horizontal margin */
+  margin: 0 5px; 
 }
 
 
 /* --- Draft Inputs Card --- */
 .draft-inputs-card {
-  display: flex; /* Changed to flex for better control of groups */
+  display: flex; 
   flex-direction: column;
-  gap: 10px; /* Reduced gap */
+  gap: 10px; 
 }
 
 .draft-input-group {
-  display: grid; /* Use grid for label, input, button, status alignment */
-  grid-template-columns: auto 1fr auto; /* Label, Input (stretches), Button+Status */
-  grid-template-rows: auto auto; /* Row for label, row for input/button/status */
+  display: grid; 
+  grid-template-columns: auto 1fr auto; 
+  grid-template-rows: auto auto; 
   align-items: center;
-  gap: 5px 8px; /* Row gap, Column gap */
+  gap: 5px 8px; 
   background-color: var(--aoe-dark-bg);
-  padding: 10px; /* Reduced padding */
-  border-radius: 4px; /* Slightly smaller radius */
+  padding: 10px; 
+  border-radius: 4px; 
   border: 1px solid var(--aoe-border-color);
 }
 
 .draft-input-group label {
-  grid-column: 1 / -1; /* Label spans all columns in the first row */
-  font-size: 0.9em; /* Smaller label */
+  grid-column: 1 / -1; 
+  font-size: 0.9em; 
   color: var(--aoe-text-light);
   font-family: var(--font-sans);
   font-weight: 500;
-  margin-bottom: 0; /* Handled by grid gap */
+  margin-bottom: 0; 
 }
 
 .draft-id-input {
   background-color: var(--aoe-input-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-input-border);
-  padding: 6px 10px; /* Reduced padding */
+  padding: 6px 10px; 
   border-radius: 3px;
   font-family: var(--font-sans);
   font-size: 0.9em;
-  /* width: 100%; Removed, grid handles width */
   box-sizing: border-box;
-  grid-column: 1 / 2; /* Input in the first column of the second row */
+  grid-column: 1 / 2; 
 }
 
 .draft-input-group .import-button {
-  /* width: auto; Removed, grid handles width */
   padding: 6px 10px;
-  grid-column: 2 / 3; /* Button in the second column of the second row */
-  align-self: stretch; /* Make button same height as input */
+  grid-column: 2 / 3; 
+  align-self: stretch; 
 }
 
 .status-circle {
-  width: 10px; /* Slightly smaller */
+  width: 10px; 
   height: 10px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.1);
-  grid-column: 3 / 4; /* Status circle in the third column of the second row */
-  justify-self: center; /* Center the circle in its grid cell */
+  grid-column: 3 / 4; 
+  justify-self: center; 
   align-self: center;
 }
 
@@ -231,9 +232,74 @@
   color: #aaa;
   text-align: center;
   min-height: 1.2em;
-  grid-column: 1 / -1; /* Span all columns if text status is used */
+  grid-column: 1 / -1; 
   margin-top: 3px;
 }
+
+/* --- Saved Presets Card --- */
+.saved-presets-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-preset-button {
+  width: 100%;
+  padding: 10px; /* Make it a bit more prominent */
+  font-size: 0.9em;
+}
+
+.saved-presets-list {
+  max-height: 150px; /* Adjust as needed */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 5px; /* For scrollbar */
+}
+
+.preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background-color: var(--aoe-dark-bg);
+  border-radius: 3px;
+  border: 1px solid var(--aoe-input-border);
+}
+
+.preset-load-button {
+  flex-grow: 1;
+  text-align: left;
+  margin-right: 8px;
+  background-color: var(--aoe-button-bg); /* Consistent with other buttons */
+  border-color: var(--aoe-gold-accent);
+}
+.preset-load-button:hover {
+  background-color: var(--aoe-button-hover-bg);
+}
+
+.preset-delete-button {
+  background-color: var(--aoe-red-error);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  font-size: 0.9em;
+  line-height: 1;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.preset-delete-button:hover {
+  background-color: #c9302c; /* Darker red on hover */
+}
+
+.no-presets-message {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 10px;
+}
+
 
 /* --- Draft Display Card --- */
 .draft-display-card {
@@ -244,70 +310,70 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px; /* Reduced margin */
-  padding-bottom: 8px; /* Reduced padding */
+  margin-bottom: 10px; 
+  padding-bottom: 8px; 
   border-bottom: 1px solid var(--aoe-border-color);
   font-family: var(--font-medieval);
-  font-size: 1em; /* Slightly reduced */
+  font-size: 1em; 
   color: var(--aoe-gold-accent);
 }
 
 .draft-header span {
-  flex-basis: 38%; /* Adjusted basis */
-  font-size: 1em; /* Slightly reduced */
+  flex-basis: 38%; 
+  font-size: 1em; 
   font-weight: bold;
 }
 .draft-header span:first-child { text-align: left; }
 .draft-header span:last-child { text-align: right; }
 
 .swap-players-button {
-  padding: 5px 8px; /* Reduced padding */
-  font-size: 0.8em; /* Slightly smaller */
+  padding: 5px 8px; 
+  font-size: 0.8em; 
   flex-shrink: 0;
 }
 
 .draft-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px; /* Reduced gap */
+  gap: 15px; 
 }
 
 .player-column {
   background-color: var(--aoe-dark-bg);
-  padding: 10px; /* Reduced padding */
+  padding: 10px; 
   border-radius: 4px;
   border: 1px solid var(--aoe-border-color);
 }
 
 .data-section {
-  margin-bottom: 10px; /* Reduced margin */
+  margin-bottom: 10px; 
 }
 
 .data-section h4 {
-  font-size: 0.95em; /* Slightly reduced */
+  font-size: 0.95em; 
   color: var(--aoe-text-light);
-  margin-bottom: 6px; /* Reduced margin */
+  margin-bottom: 6px; 
   font-family: var(--font-sans);
   font-weight: 600;
   border-bottom: 1px solid var(--aoe-input-border);
-  padding-bottom: 3px; /* Reduced padding */
+  padding-bottom: 3px; 
 }
 
 .data-section ul {
   list-style: none;
   padding-left: 0;
-  font-size: 0.9em; /* Slightly reduced */
+  font-size: 0.9em; 
   font-family: var(--font-sans);
 }
 .data-section ul li {
-  padding: 3px 0; /* Reduced padding */
+  padding: 3px 0; 
   display: flex;
   align-items: center;
 }
 .data-section ul li::before {
   content: '•';
-  margin-right: 6px; /* Reduced margin */
-  font-size: 1.1em; /* Slightly reduced */
+  margin-right: 6px; 
+  font-size: 1.1em; 
 }
 
 .list-disc.text-green-400 li::before { color: var(--aoe-green-success); }
@@ -316,8 +382,8 @@
 .list-disc.text-red-400 li { color: var(--aoe-text-light); }
 
 .global-maps-section {
-  margin-top: 15px; /* Reduced margin */
-  padding-top: 10px; /* Reduced padding */
+  margin-top: 15px; 
+  padding-top: 10px; 
   border-top: 1px solid var(--aoe-border-color);
 }
 .global-maps-section .data-section {
@@ -329,7 +395,6 @@
 
 
 /* --- Connection Status (general, used by simplified display) --- */
-/* These status dot styles are now part of .status-circle directly or via parent .connection-status */
 .status-dot.connected, .status-circle[style*="background-color: green"] { background-color: var(--aoe-green-success); }
 .status-dot.disconnected, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); } /* For error state */
 .status-dot.connecting, .status-circle[style*="background-color: orange"] { background-color: var(--aoe-yellow-warning); animation: pulse 1.5s infinite; }
@@ -343,7 +408,7 @@
   100% { opacity: 1; }
 }
 
-.connection-status .error-message { /* This is for the text next to the circle if used */
+.connection-status .error-message { 
   color: var(--aoe-red-error);
   margin-left: 10px;
   font-size: 0.9em;
@@ -358,22 +423,22 @@
 .loading-message,
 .placeholder-message {
   text-align: center;
-  padding: 20px; /* Reduced padding */
-  font-size: 1em; /* Slightly reduced */
+  padding: 20px; 
+  font-size: 1em; 
   color: var(--aoe-text-light);
   background-color: var(--aoe-panel-bg);
   border: 1px dashed var(--aoe-border-color);
   border-radius: 6px;
-  margin-top: 15px; /* Reduced margin */
+  margin-top: 15px; 
 }
 
 /* --- Responsive Design --- */
-@media (max-width: 1024px) { /* Adjusted breakpoint for stacking */
+@media (max-width: 1024px) { 
   .top-section-grid,
   .drafts-section-grid {
-    grid-template-columns: 1fr; /* Stack columns */
+    grid-template-columns: 1fr; 
   }
-  .player-scores-card { /* Ensure scores card also stacks its internal elements better */
+  .player-scores-card { 
     flex-direction: column;
     align-items: stretch;
   }
@@ -387,8 +452,6 @@
 }
 
 @media (max-width: 768px) {
-  /* Draft Inputs Card already stacks by default due to flex-direction: column on .draft-inputs-card */
-  /* Draft Display Card columns already stack due to .drafts-section-grid becoming 1fr */
   .main-title {
     font-size: 1.8em;
   }
@@ -399,18 +462,18 @@
 
 @media (max-width: 600px) { 
   .draft-input-group {
-    grid-template-columns: 1fr; /* Stack label, input, button, status */
+    grid-template-columns: 1fr; 
     gap: 8px;
   }
   .draft-input-group label,
   .draft-id-input, 
   .import-button,
   .status-circle {
-    grid-column: 1 / -1; /* Each takes full width */
-    justify-self: stretch; /* Make input/button full width */
+    grid-column: 1 / -1; 
+    justify-self: stretch; 
   }
    .status-circle {
-    justify-self: center; /* Center the circle */
+    justify-self: center; 
     margin-top: 5px;
   }
 
@@ -419,7 +482,7 @@
   }
   .draft-header {
     flex-direction: column;
-    gap: 8px; /* Reduced gap */
+    gap: 8px; 
     align-items: stretch;
   }
   .draft-header span {
@@ -430,7 +493,7 @@
     grid-template-columns: 1fr;
   }
   .card {
-    padding: 10px; /* Further reduce padding on small screens */
+    padding: 10px; 
   }
   .technical-interface {
     padding: 10px;

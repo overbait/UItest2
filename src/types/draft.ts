@@ -42,6 +42,17 @@ export interface SingleDraftData {
   // rawEvents?: Aoe2cmRawEventData[]; 
 }
 
+// ========== Saved Preset Type ==========
+export interface SavedPreset {
+  id: string; // Unique ID for the preset (e.g., timestamp or UUID)
+  name: string; // User-defined or auto-generated name (e.g., "PlayerA vs PlayerB Bo5")
+  civDraftId: string | null;
+  mapDraftId: string | null;
+  hostName: string;
+  guestName: string;
+  scores: { host: number; guest: number };
+}
+
 // ========== Combined UI State ==========
 
 /**
@@ -86,6 +97,8 @@ export interface CombinedDraftState {
   mapDraftStatus: ConnectionStatus;
   mapDraftError: string | null;
   isLoadingMapDraft: boolean;
+
+  savedPresets: SavedPreset[]; // Added for storing user-saved presets
 }
 
 
