@@ -80,21 +80,55 @@ const TechnicalInterface = () => {
   const handleDeletePresetAndReset = (presetIdToDelete: string) => deletePreset(presetIdToDelete);
 
   const isCurrentStateDirtyForPreset = (preset: SavedPreset): boolean => {
-    if (!activePresetId || activePresetId !== preset.id) return false; 
+    if (!activePresetId || activePresetId !== preset.id) {
+      // console.log(`isCurrentStateDirtyForPreset: Preset ${preset.name} is not active or ID mismatch. ActiveID: ${activePresetId}`);
+      return false; 
+    }
     const currentState = useDraftStore.getState();
-    return (
-      currentState.hostName !== preset.hostName ||
-      currentState.guestName !== preset.guestName ||
-      currentState.scores.host !== preset.scores.host ||
-      currentState.scores.guest !== preset.scores.guest ||
-      currentState.civDraftId !== preset.civDraftId ||
-      currentState.mapDraftId !== preset.mapDraftId ||
-      currentState.boxSeriesFormat !== preset.boxSeriesFormat ||
-      JSON.stringify(currentState.boxSeriesGames) !== JSON.stringify(preset.boxSeriesGames)
-    );
+    let dirty = false;
+
+    console.log(`Dirty check for preset: ${preset.name} (ID: ${preset.id}) | Active Preset ID: ${activePresetId}`);
+
+    if (currentState.hostName !== preset.hostName) {
+      console.log('Dirty check - hostName: Current:', currentState.hostName, 'Preset:', preset.hostName, true);
+      dirty = true;
+    }
+    if (currentState.guestName !== preset.guestName) {
+      console.log('Dirty check - guestName: Current:', currentState.guestName, 'Preset:', preset.guestName, true);
+      dirty = true;
+    }
+    if (currentState.scores.host !== preset.scores.host || currentState.scores.guest !== preset.scores.guest) {
+      console.log('Dirty check - scores: Current:', currentState.scores, 'Preset:', preset.scores, true);
+      dirty = true;
+    }
+    if (currentState.civDraftId !== preset.civDraftId) {
+      console.log('Dirty check - civDraftId: Current:', currentState.civDraftId, 'Preset:', preset.civDraftId, true);
+      dirty = true;
+    }
+    if (currentState.mapDraftId !== preset.mapDraftId) {
+      console.log('Dirty check - mapDraftId: Current:', currentState.mapDraftId, 'Preset:', preset.mapDraftId, true);
+      dirty = true;
+    }
+    if (currentState.boxSeriesFormat !== preset.boxSeriesFormat) {
+      console.log('Dirty check - boxSeriesFormat: Current:', currentState.boxSeriesFormat, 'Preset:', preset.boxSeriesFormat, true);
+      dirty = true;
+    }
+    
+    const currentGamesString = JSON.stringify(currentState.boxSeriesGames);
+    const presetGamesString = JSON.stringify(preset.boxSeriesGames);
+    if (currentGamesString !== presetGamesString) {
+      console.log('Dirty check - boxSeriesGames (stringified): Current:', currentGamesString, 'Preset:', presetGamesString, true);
+      dirty = true;
+    }
+    
+    if (!dirty) {
+      console.log(`Dirty check for preset ${preset.name}: No changes detected.`);
+    }
+    return dirty;
   };
   
   const handleUpdatePreset = (presetName: string) => {
+    console.log(`Update button clicked for: ${presetName}, attempting to save...`);
     saveCurrentAsPreset(presetName); 
   };
 
@@ -136,13 +170,13 @@ const TechnicalInterface = () => {
           <div className="saved-presets-list">
             {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save.</p>}
             {savedPresets.map((preset: SavedPreset) => {
-              const isDirty = preset.id === activePresetId && isCurrentStateDirtyForPreset(preset);
+              const isDirty = isCurrentStateDirtyForPreset(preset); // Check if this specific preset is active AND dirty
               return (
                 <div key={preset.id} className="preset-item">
                   <button onClick={() => loadPreset(preset.id)} className={`button-like preset-load-button ${preset.id === activePresetId && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
                     {preset.name}
                   </button>
-                  {isDirty && (
+                  {isDirty && ( // Show update button only if this preset is active and dirty
                     <button onClick={() => handleUpdatePreset(preset.name)} className="button-like preset-update-button">
                       Update
                     </button>
