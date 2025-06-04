@@ -34,6 +34,10 @@ const TechnicalInterface = () => {
     incrementScore, decrementScore, swapScores,
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
+    // A new action will be needed for the "+ New Preset" logic, let's call it archiveAndResetSession
+    // For now, we'll use saveCurrentAsPreset and then manually clear inputs as a placeholder.
+    // This should be ideally a single atomic action in the store.
+    disconnectDraft, // To reset parts of the state
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -50,7 +54,7 @@ const TechnicalInterface = () => {
     setEditableGuestName(guestName);
   }, [guestName]);
   
-  useEffect(() => { // Update input fields if preset is loaded
+  useEffect(() => { 
     setCivDraftIdInput(civDraftId || '');
     setMapDraftIdInput(mapDraftId || '');
   }, [civDraftId, mapDraftId]);
@@ -91,12 +95,27 @@ const TechnicalInterface = () => {
     return <div className="status-circle" style={{ backgroundColor: color }} title={error || status}></div>;
   };
 
-  const handleSavePreset = () => {
-    const defaultName = `${hostName || 'P1'} vs ${guestName || 'P2'}`;
-    const presetName = prompt("Enter a name for this preset:", defaultName);
-    if (presetName) { // Only save if user provides a name or confirms default
-      saveCurrentAsPreset(presetName);
+  const handleAddNewPreset = () => {
+    // If there's an active draft (IDs are present), save it first
+    if (civDraftId || mapDraftId) {
+      const defaultName = `${hostName || 'P1'} vs ${guestName || 'P2'} (${new Date().toLocaleTimeString()})`;
+      const presetName = prompt("Enter a name for the current session before starting a new one:", defaultName);
+      if (presetName) {
+        saveCurrentAsPreset(presetName);
+      } else {
+        // User cancelled, so don't proceed to reset
+        return;
+      }
     }
+    // Reset current session in store (this needs a dedicated action ideally)
+    disconnectDraft('civ'); // Resets civ part and potentially names if map part is also empty
+    disconnectDraft('map'); // Resets map part
+    setHostName('Player 1'); // Reset names in UI store
+    setGuestName('Player 2'); // Reset names in UI store
+    useDraftStore.setState({ scores: { host: 0, guest: 0 } }); // Reset scores
+
+    setCivDraftIdInput(''); // Clear input fields
+    setMapDraftIdInput('');
   };
 
   return (
@@ -104,47 +123,9 @@ const TechnicalInterface = () => {
       
       <h1 className="main-title">AoE4 Draft Overlay Control Panel</h1>
 
-      {/* Player Info & Scores Card - Full Width */}
-      <div className="card player-scores-card">
-        <div className="player-name-input-group">
-          <label htmlFor="hostNameInput">Player 1 (Host)</label>
-          <input
-            id="hostNameInput"
-            type="text"
-            value={editableHostName}
-            onChange={handleHostNameChange}
-            onBlur={updateHostNameInStore}
-            onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
-            className="name-input"
-          />
-        </div>
-        <div className="score-controls-group">
-          <button onClick={() => decrementScore('host')} className="score-button button-like">-</button>
-          <span className="score-display">{scores.host}</span>
-          <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
-        </div>
-        <button onClick={swapScores} className="swap-scores-button button-like">Swap Scores</button>
-        <div className="score-controls-group">
-          <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
-          <span className="score-display">{scores.guest}</span>
-          <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
-        </div>
-        <div className="player-name-input-group">
-          <label htmlFor="guestNameInput">Player 2 (Guest)</label>
-          <input
-            id="guestNameInput"
-            type="text"
-            value={editableGuestName}
-            onChange={handleGuestNameChange}
-            onBlur={updateGuestNameInStore}
-            onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
-            className="name-input"
-          />
-        </div>
-      </div>
-
-      {/* Top Section Grid: Draft Inputs and Saved Presets */}
+      {/* Top Section Grid: Draft Inputs, Saved Presets, Player Info & Scores */}
       <div className="top-section-grid">
+        {/* Column 1: Draft Inputs */}
         <div className="card draft-inputs-card">
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Draft Inputs</h2>
           <div className="draft-input-group">
@@ -154,7 +135,7 @@ const TechnicalInterface = () => {
               type="text"
               value={civDraftIdInput}
               onChange={(e) => setCivDraftIdInput(e.target.value)}
-              placeholder="Enter Civ Draft ID"
+              placeholder="Civ Draft ID"
               className="draft-id-input"
             />
             <button onClick={handleCivDraftConnect} disabled={isLoadingCivDraft} className="button-like import-button">
@@ -169,7 +150,7 @@ const TechnicalInterface = () => {
               type="text"
               value={mapDraftIdInput}
               onChange={(e) => setMapDraftIdInput(e.target.value)}
-              placeholder="Enter Map Draft ID"
+              placeholder="Map Draft ID"
               className="draft-id-input"
             />
             <button onClick={handleMapDraftConnect} disabled={isLoadingMapDraft} className="button-like import-button">
@@ -179,23 +160,66 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
+        {/* Column 2: Saved Presets */}
         <div className="card saved-presets-card">
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Saved Presets</h2>
-          <button onClick={handleSavePreset} className="button-like save-preset-button">
-            Save Current as Preset
+          <button onClick={handleAddNewPreset} className="button-like save-preset-button add-new-preset-button">
+            + New Preset Session
           </button>
           <div className="saved-presets-list">
-            {savedPresets.length === 0 && <p className="no-presets-message">No presets saved yet.</p>}
-            {savedPresets.map((preset) => (
+            {savedPresets.length === 0 && (!civDraftId && !mapDraftId) && 
+              <p className="no-presets-message">No presets. Import a draft to save it or start a new session.</p>
+            }
+            {savedPresets.map((preset: SavedPreset) => (
               <div key={preset.id} className="preset-item">
                 <button onClick={() => loadPreset(preset.id)} className="button-like preset-load-button">
                   {preset.name}
                 </button>
-                <button onClick={() => deletePreset(preset.id)} className="preset-delete-button">
+                <button onClick={() => deletePreset(preset.id)} className="preset-delete-button" title="Delete preset">
                   &times;
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+        
+        {/* Column 3: Player Info & Scores */}
+        <div className="card player-scores-card">
+           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
+          <div className="player-name-input-group">
+            <label htmlFor="hostNameInput">Player 1 (Host)</label>
+            <input
+              id="hostNameInput"
+              type="text"
+              value={editableHostName}
+              onChange={handleHostNameChange}
+              onBlur={updateHostNameInStore}
+              onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
+              className="name-input"
+            />
+          </div>
+          <div className="score-controls-group">
+            <button onClick={() => decrementScore('host')} className="score-button button-like">-</button>
+            <span className="score-display">{scores.host}</span>
+            <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
+          </div>
+          <button onClick={swapScores} className="swap-scores-button button-like">Swap Scores</button>
+          <div className="score-controls-group">
+            <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
+            <span className="score-display">{scores.guest}</span>
+            <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
+          </div>
+          <div className="player-name-input-group">
+            <label htmlFor="guestNameInput">Player 2 (Guest)</label>
+            <input
+              id="guestNameInput"
+              type="text"
+              value={editableGuestName}
+              onChange={handleGuestNameChange}
+              onBlur={updateGuestNameInStore}
+              onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
+              className="name-input"
+            />
           </div>
         </div>
       </div>
