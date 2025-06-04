@@ -29,7 +29,6 @@
   padding: 20px;
   min-height: 100vh;
   box-sizing: border-box;
-  /* overflow-y: auto; -- This is handled by html,body in index.css */
 }
 
 .main-title {
@@ -193,8 +192,8 @@
   font-size: 1.1em;   
   line-height: 1;
   min-width: 30px; 
-  width: 30px; /* Fixed width */
-  height: 30px; /* Fixed height */
+  width: auto; /* Allow button to size to content for "Reset Session" */
+  height: 30px; 
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -204,12 +203,15 @@
   background-color: var(--aoe-blue-action); 
   border-color: var(--aoe-blue-action);
   color: white;
+  width: 30px; /* Keep + button square */
 }
 .add-new-preset-button-plus:hover { background-color: #2980b9; }
 .reset-session-button {
   background-color: var(--aoe-red-error);
   color: white;
-  border-color: #c4413c;
+  border-color: #c4413c; /* Slightly darker red border */
+  padding-left: 10px; /* More padding for longer text */
+  padding-right: 10px;
 }
 .reset-session-button:hover { background-color: #c9302c; border-color: #a72824; }
 .saved-presets-list {
