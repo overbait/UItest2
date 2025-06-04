@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// import { Link } from 'react-router-dom'; // Link is not used
 import useDraftStore from '../store/draftStore';
 import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft';
 import '../styles/TechnicalInterface.css';
 
+// Helper component to display a list of picks or bans
 const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' | 'ban' }> = ({ title, items, type }) => (
   <div className="data-section">
     <h4>{title}:</h4>
@@ -16,6 +18,7 @@ const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' 
   </div>
 );
 
+// Main Technical Interface component
 const TechnicalInterface = () => {
   const {
     civDraftId, mapDraftId,
@@ -77,7 +80,7 @@ const TechnicalInterface = () => {
   const handleDeletePresetAndReset = (presetIdToDelete: string) => deletePreset(presetIdToDelete);
 
   const isCurrentStateDirtyForPreset = (preset: SavedPreset): boolean => {
-    if (!activePresetId || activePresetId !== preset.id) return false; // Not active or not this preset
+    if (!activePresetId || activePresetId !== preset.id) return false; 
     const currentState = useDraftStore.getState();
     return (
       currentState.hostName !== preset.hostName ||
@@ -92,7 +95,7 @@ const TechnicalInterface = () => {
   };
   
   const handleUpdatePreset = (presetName: string) => {
-    saveCurrentAsPreset(presetName); // This will update the existing preset
+    saveCurrentAsPreset(presetName); 
   };
 
   const availableMapsForBoX = useMemo(() => Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean), [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
@@ -104,7 +107,6 @@ const TechnicalInterface = () => {
       <h1 className="main-title">AoE4 Draft Overlay Control Panel</h1>
       <div className="top-section-grid">
         <div className="card draft-inputs-card">
-          {/* Draft Inputs UI */}
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Draft Inputs</h2>
           <div className="draft-input-group">
             <label htmlFor="civDraftIdInput">Civ Draft ID:</label>
@@ -125,13 +127,14 @@ const TechnicalInterface = () => {
         </div>
 
         <div className="card saved-presets-card">
-          {/* Saved Presets UI */}
-          <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Saved Presets</h2>
-          <button onClick={handleAddNewPreset} className="button-like add-new-preset-button">
-            + New Preset Session
-          </button>
+          <div className="presets-header">
+            <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'0'}}>Saved Presets</h2>
+            <button onClick={handleAddNewPreset} className="button-like add-new-preset-button-plus" title="Start New Preset Session">
+              +
+            </button>
+          </div>
           <div className="saved-presets-list">
-            {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+ New Preset Session" to save.</p>}
+            {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save.</p>}
             {savedPresets.map((preset: SavedPreset) => {
               const isDirty = preset.id === activePresetId && isCurrentStateDirtyForPreset(preset);
               return (
@@ -152,7 +155,6 @@ const TechnicalInterface = () => {
         </div>
         
         <div className="card player-scores-card">
-          {/* Player Scores UI */}
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
            <div className="player-scores-horizontal-layout">
               <div className="player-name-input-group">
@@ -179,7 +181,6 @@ const TechnicalInterface = () => {
       </div>
 
       <div className="drafts-section-grid">
-        {/* Civ Draft Display */}
         <div className="card draft-display-card civ-draft-card">
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
@@ -199,7 +200,6 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
-        {/* Map Draft Display */}
         <div className="card draft-display-card map-draft-card">
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
@@ -227,7 +227,6 @@ const TechnicalInterface = () => {
           )}
         </div>
         
-        {/* BoX Series Overview Card */}
         <div className="card box-series-card">
           <h2 className="section-title">BoX Series Overview</h2>
           <div className="box-format-selector">
