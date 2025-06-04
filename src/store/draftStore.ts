@@ -7,7 +7,7 @@ import {
   ConnectionStatus,
   Aoe2cmRawDraftData,
   SingleDraftData,
-  SavedPreset, // Added for preset functionality
+  SavedPreset,
   // Aoe2cmRawEventData, // Part of Aoe2cmRawDraftData
   // Aoe2cmRawDraftOption, // Part of Aoe2cmRawDraftData
 } from '../types/draft';
@@ -33,11 +33,15 @@ interface DraftStore extends CombinedDraftState {
   loadPreset: (presetId: string) => Promise<void>;
   deletePreset: (presetId: string) => void;
   updatePresetName: (presetId: string, newName: string) => void;
+
+  // Actions for BoX series
+  setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
+  updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
 }
 
 const initialScores = { host: 0, guest: 0 };
-const initialPlayerNameHost = 'Host';
-const initialPlayerNameGuest = 'Guest';
+const initialPlayerNameHost = 'Player 1'; // Default to Player 1 / Player 2
+const initialPlayerNameGuest = 'Player 2';
 
 const initialCombinedState: CombinedDraftState = {
   civDraftId: null,
@@ -61,7 +65,9 @@ const initialCombinedState: CombinedDraftState = {
   mapDraftStatus: 'disconnected',
   mapDraftError: null,
   isLoadingMapDraft: false,
-  savedPresets: [], // Initialize savedPresets
+  savedPresets: [],
+  boxSeriesFormat: null,
+  boxSeriesGames: [],
 };
 
 const transformRawDataToSingleDraft = (
@@ -155,7 +161,7 @@ const transformRawDataToSingleDraft = (
 
 const useDraftStore = create<DraftStore>()(
   devtools(
-    persist( // Added persist middleware wrapper
+    persist(
       (set, get) => ({
         ...initialCombinedState,
 
@@ -317,7 +323,7 @@ const useDraftStore = create<DraftStore>()(
           scores: { host: state.scores.guest, guest: state.scores.host }
         })),
         swapCivPlayers: () => set(state => ({
-          hostName: state.guestName,
+          hostName: state.guestName, // Also swap names when swapping civs
           guestName: state.hostName,
           civPicksHost: state.civPicksGuest,
           civPicksGuest: state.civPicksHost,
@@ -331,12 +337,11 @@ const useDraftStore = create<DraftStore>()(
           mapBansGuest: state.mapBansHost,
         })),
 
-        // Saved Presets Actions
         saveCurrentAsPreset: (name?: string) => {
           const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets } = get();
           const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
           const newPreset: SavedPreset = {
-            id: Date.now().toString(), // Simple unique ID
+            id: Date.now().toString(),
             name: presetName,
             civDraftId,
             mapDraftId,
@@ -355,12 +360,13 @@ const useDraftStore = create<DraftStore>()(
               hostName: preset.hostName,
               guestName: preset.guestName,
               scores: { ...preset.scores },
-              // Reset status before connecting
               civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
               mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
+              boxSeriesFormat: null, // Reset BoX state when loading a general preset
+              boxSeriesGames: [],
             });
             if (preset.civDraftId) {
               await get().connectToDraft(preset.civDraftId, 'civ');
@@ -382,19 +388,45 @@ const useDraftStore = create<DraftStore>()(
             ),
           }));
         },
+
+        // BoX Series Actions
+        setBoxSeriesFormat: (format) => {
+          let numGames = 0;
+          if (format === 'bo1') numGames = 1;
+          else if (format === 'bo3') numGames = 3;
+          else if (format === 'bo5') numGames = 5;
+          else if (format === 'bo7') numGames = 7;
+        
+          const newGames = Array(numGames).fill(null).map(() => ({
+            map: null,
+            hostCiv: null,
+            guestCiv: null,
+          }));
+        
+          set({ boxSeriesFormat: format, boxSeriesGames: newGames });
+        },
+        updateBoxSeriesGame: (gameIndex, field, value) => {
+          set(state => {
+            const newGames = [...state.boxSeriesGames];
+            if (newGames[gameIndex]) {
+              newGames[gameIndex] = { ...newGames[gameIndex], [field]: value };
+              return { boxSeriesGames: newGames };
+            }
+            return state; // Should not happen if gameIndex is always valid
+          });
+        },
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1', 
-        partialize: (state) => ({ // Ensure savedPresets is persisted
+        partialize: (state) => ({ 
             hostName: state.hostName,
             guestName: state.guestName,
             scores: state.scores,
             savedPresets: state.savedPresets,
-            // We don't persist active draft data or connection statuses,
-            // as they should be re-fetched or re-established on load.
-            // civDraftId and mapDraftId could be persisted if we want to auto-load last session.
             civDraftId: state.civDraftId, 
             mapDraftId: state.mapDraftId,
+            boxSeriesFormat: state.boxSeriesFormat, // Persist BoX format
+            boxSeriesGames: state.boxSeriesGames,   // Persist BoX game selections
         }),
       }
     )

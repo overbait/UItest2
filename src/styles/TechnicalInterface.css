@@ -2,18 +2,19 @@
 
 /* --- Variables --- */
 :root {
-  --aoe-dark-bg: #1e1e1e;
-  --aoe-panel-bg: #2c2c2c;
-  --aoe-border-color: #4a3b2a;
-  --aoe-gold-accent: #c19a49;
-  --aoe-text-light: #f0e6d2;
-  --aoe-red-error: #d9534f;
-  --aoe-green-success: #5cb85c;
-  --aoe-yellow-warning: #f0ad4e;
+  --aoe-dark-bg: #1e1e1e; /* Dark background */
+  --aoe-panel-bg: #2c2c2c; /* Slightly lighter panel background */
+  --aoe-border-color: #4a3b2a; /* Dark brown border */
+  --aoe-gold-accent: #c19a49; /* Golden accent for text and highlights */
+  --aoe-text-light: #f0e6d2; /* Light parchment-like text color */
+  --aoe-red-error: #d9534f; /* Red for errors/disconnected */
+  --aoe-green-success: #5cb85c; /* Green for success/connected */
+  --aoe-yellow-warning: #f0ad4e; /* Yellow for connecting/warnings */
   --aoe-button-bg: #4a3b2a;
   --aoe-button-hover-bg: #6b553c;
   --aoe-input-bg: #3c3c3c;
   --aoe-input-border: #5c5c5c;
+
   --font-medieval: 'Cinzel', serif;
   --font-sans: 'Roboto', sans-serif;
 }
@@ -29,9 +30,9 @@
 }
 
 .main-title {
-  font-size: 2em; /* Adjusted from 2.2em */
+  font-size: 2.2em;
   text-align: center;
-  margin-bottom: 25px; /* Adjusted from 20px */
+  margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 2px solid var(--aoe-gold-accent);
   color: var(--aoe-gold-accent);
@@ -41,106 +42,109 @@
 .technical-interface h2.section-title {
   font-family: var(--font-medieval);
   color: var(--aoe-gold-accent);
-  font-size: 1.3em; /* Adjusted from 1.4em */
+  font-size: 1.4em;
   border-bottom: 1px solid var(--aoe-border-color);
-  padding-bottom: 5px; /* Adjusted from 6px */
+  padding-bottom: 6px;
   margin-top: 0;
-  margin-bottom: 10px; /* Adjusted from 12px */
+  margin-bottom: 12px;
+}
+.technical-interface h3.section-title-small {
+  font-family: var(--font-medieval);
+  color: var(--aoe-text-light);
+  font-size: 1.1em;
+  margin-top: 12px;
+  margin-bottom: 6px;
 }
 
 /* --- Main Layout Grids --- */
 .top-section-grid {
   display: grid;
-  grid-template-columns: 0.8fr 0.8fr 1.4fr; /* Draft Inputs | Saved Presets | Match Control */
-  gap: 15px; /* Reduced from 20px */
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 20px;
   margin-bottom: 20px;
-  align-items: flex-start; /* Important for cards of different heights */
 }
 
 .drafts-section-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px; /* Reduced from 20px */
+  grid-template-columns: 1fr 1fr; /* 50/50 split for Civ and Map drafts */
+  gap: 20px;
 }
+
 
 /* --- Card Styles --- */
 .card {
   background-color: var(--aoe-panel-bg);
-  padding: 12px; /* Reduced from 15px */
+  padding: 15px;
   border-radius: 6px;
   border: 1px solid var(--aoe-border-color);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); /* Adjusted shadow */
-  display: flex;
-  flex-direction: column;
-  min-height: 150px; /* Minimum height for cards in top row to align better if empty */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex; /* Added for internal flex control */
+  flex-direction: column; /* Default stack for card content */
 }
 
-/* --- Player Scores Card (Match Control) --- */
+/* --- Player Scores Card (now part of top-section-grid) --- */
 .player-scores-card {
- justify-content: flex-start; /* Title at top */
+  /* display: flex; -- already a flex container from .card */
+  /* align-items: center; -- already default for flex-direction: column */
+  justify-content: center; /* Center content vertically if card is taller */
+  gap: 10px;
+  /* flex-wrap: wrap; -- not needed if flex-direction is column */
 }
 
-.player-scores-horizontal-layout {
+.player-scores-card .player-name-input-group { /* For horizontal layout of name+score */
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
   width: 100%;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 8px; /* Reduced gap */
-  margin-top: 10px; /* Space below title */
+  gap: 10px;
+  margin-bottom: 5px; /* Space between P1 and P2 sections */
+}
+.player-scores-card .player-name-input-group:last-child {
+  margin-bottom: 0;
 }
 
-.player-scores-card .player-name-input-group {
-  display: flex;
-  flex-direction: column; /* Label above input */
-  align-items: flex-start;
-  gap: 3px; /* Reduced gap */
-  flex-grow: 1;
-  min-width: 130px; /* Adjusted */
-}
 
 .player-scores-card .player-name-input-group label {
-  font-size: 0.8em; /* Smaller label */
+  font-size: 0.85em;
   color: var(--aoe-text-light);
+  margin-right: 8px; /* Space between label and input */
   font-family: var(--font-sans);
-  margin-bottom: 0;
+  white-space: nowrap;
 }
 
 .player-scores-card .name-input {
   background-color: var(--aoe-input-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-input-border);
-  padding: 5px 7px; /* Reduced padding */
+  padding: 6px 8px;
   border-radius: 3px;
   font-family: var(--font-sans);
-  font-size: 0.85em; /* Slightly smaller */
-  width: 100%;
+  font-size: 0.9em;
+  flex-grow: 1; /* Input takes available space */
+  min-width: 100px; /* Prevent being too small */
   box-sizing: border-box;
 }
-
 .player-scores-card .score-controls-group {
   display: flex;
   align-items: center;
-  gap: 5px; /* Reduced gap */
+  gap: 6px;
+  flex-shrink: 0;
 }
-
 .player-scores-card .score-display {
-  font-size: 1.4em; /* Adjusted */
+  font-size: 1.5em;
   font-weight: bold;
   color: var(--aoe-gold-accent);
-  min-width: 25px; /* Adjusted */
+  min-width: 30px;
   text-align: center;
   font-family: var(--font-sans);
-  padding: 0 5px; /* Add some padding */
 }
-
 .player-scores-card .swap-scores-button {
-  margin: 0 8px; /* Adjusted margin */
-  align-self: center; /* Center button if layout wraps */
+  margin: 5px 0; /* Vertical margin when stacked */
+  align-self: center;
 }
 
-/* --- Base Button Styles (Applied to most buttons) --- */
-.button-like {
+
+.score-button, .swap-scores-button, .import-button, .swap-players-button, .save-preset-button, .preset-load-button, .add-new-preset-button {
   background-color: var(--aoe-button-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-gold-accent);
@@ -151,125 +155,155 @@
   font-size: 0.85em;
   transition: background-color 0.2s ease, border-color 0.2s ease;
   white-space: nowrap;
-  text-align: center;
 }
-.button-like:hover {
+
+.score-button:hover, .swap-scores-button:hover, .import-button:hover, .swap-players-button:hover, .save-preset-button:hover, .preset-load-button:hover, .add-new-preset-button:hover {
   background-color: var(--aoe-button-hover-bg);
   border-color: var(--aoe-text-light);
 }
-.button-like:disabled {
+
+.score-button:disabled, .swap-scores-button:disabled, .import-button:disabled, .swap-players-button:disabled, .save-preset-button:disabled, .preset-load-button:disabled, .add-new-preset-button:disabled {
   background-color: #555;
   border-color: #777;
   color: #aaa;
   cursor: not-allowed;
 }
-.score-button { /* Specific for +/- */
-  padding: 4px 7px; /* Smaller padding */
+
+.score-button {
+  padding: 5px 8px;
   font-size: 0.9em;
   line-height: 1;
 }
 
+
 /* --- Draft Inputs Card --- */
 .draft-inputs-card {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
+
 .draft-input-group {
   display: grid;
-  grid-template-columns: 1fr auto; /* Input | Button */
-  grid-template-rows: auto auto;    /* Label | Input/Button+Status */
+  grid-template-columns: auto 1fr auto; /* Label, Input, Button+Status */
+  /* grid-template-rows: auto auto; -- Implicitly handles rows */
   align-items: center;
-  gap: 4px 8px; /* Reduced gap */
+  gap: 5px 8px;
   background-color: var(--aoe-dark-bg);
-  padding: 8px; /* Reduced padding */
+  padding: 10px;
   border-radius: 4px;
   border: 1px solid var(--aoe-border-color);
 }
+
 .draft-input-group label {
-  grid-column: 1 / -1;
-  font-size: 0.85em; /* Smaller label */
+  grid-column: 1 / -1; /* Label spans all columns */
+  font-size: 0.9em;
   color: var(--aoe-text-light);
   font-family: var(--font-sans);
   font-weight: 500;
+  margin-bottom: 3px; /* Space below label */
 }
+
 .draft-id-input {
   background-color: var(--aoe-input-bg);
   color: var(--aoe-text-light);
   border: 1px solid var(--aoe-input-border);
-  padding: 5px 8px; /* Reduced padding */
+  padding: 6px 10px;
   border-radius: 3px;
   font-family: var(--font-sans);
-  font-size: 0.85em;
+  font-size: 0.9em;
   box-sizing: border-box;
-  grid-column: 1 / 2;
-  width: 100%; /* Ensure it takes full width of its grid area */
+  grid-column: 1 / span 2; /* Input spans 2 columns */
 }
+
 .draft-input-group .import-button {
-  padding: 5px 8px; /* Reduced padding */
-  grid-column: 2 / 3;
-  align-self: stretch; /* Make button same height as input */
-  margin-left: 5px; /* Space between input and button */
+  padding: 6px 10px;
+  grid-column: 3 / 4; /* Button in the third column */
+  align-self: stretch;
 }
+
 .status-circle {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.1);
-  grid-column: 2 / 3; /* Align with button */
-  justify-self: end; /* Push to the right of the button's space */
+  grid-column: 3 / 4; /* Status circle also in the third column, below button if label takes a row */
+  justify-self: center;
   align-self: center;
-  position: relative; /* For potential absolute positioning of text if needed */
-  right: -15px; /* Adjust to place it next to the button */
+  margin-top: 5px; /* If label is on its own row, this pushes status below button */
+}
+/* Adjust if label, input, button, status are all in one visual row */
+.draft-input-group.single-row-layout label { grid-column: auto; margin-bottom: 0; }
+.draft-input-group.single-row-layout .draft-id-input { grid-column: auto; }
+.draft-input-group.single-row-layout .import-button { grid-column: auto; }
+.draft-input-group.single-row-layout .status-circle { grid-column: auto; margin-top: 0; margin-left: 5px;}
+
+
+.status-message {
+  font-size: 0.85em;
+  color: #aaa;
+  text-align: center;
+  min-height: 1.2em;
+  grid-column: 1 / -1;
+  margin-top: 3px;
 }
 
 /* --- Saved Presets Card --- */
 .saved-presets-card {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
-.add-new-preset-button {
+
+.add-new-preset-button { /* Renamed from save-preset-button for clarity */
   width: 100%;
-  padding: 8px; /* Adjusted */
+  padding: 10px;
   font-size: 0.9em;
-  background-color: var(--aoe-gold-accent);
+  background-color: var(--aoe-gold-accent); /* Make it stand out */
   color: var(--aoe-dark-bg);
   border-color: var(--aoe-gold-accent);
 }
 .add-new-preset-button:hover {
-  background-color: #dab65b;
+  background-color: #dab65b; /* Lighter gold on hover */
 }
+
 .saved-presets-list {
-  min-height: 80px; /* Adjusted */
-  max-height: 120px; /* Limit height */
+  /* max-height: 150px; -- Set dynamically or based on content */
+  min-height: 50px; /* Ensure it has some height even when empty */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Reduced gap */
-  background-color: var(--aoe-dark-bg);
+  gap: 8px;
+  padding-right: 5px;
+  background-color: var(--aoe-dark-bg); /* Inner background */
   border: 1px solid var(--aoe-input-border);
   border-radius: 4px;
-  padding: 6px; /* Reduced padding */
+  padding: 8px;
 }
+
 .preset-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 6px; /* Reduced padding */
-  background-color: var(--aoe-panel-bg);
+  padding: 5px 8px;
+  background-color: var(--aoe-panel-bg); /* Slightly lighter than list bg */
   border-radius: 3px;
   border: 1px solid var(--aoe-border-color);
 }
+
 .preset-load-button {
   flex-grow: 1;
   text-align: left;
-  margin-right: 6px; /* Reduced margin */
-  font-size: 0.8em; /* Smaller font for preset buttons */
-  padding: 4px 6px; /* Smaller padding */
+  margin-right: 8px;
+  /* Uses .button-like base */
 }
+
 .preset-delete-button {
   background-color: var(--aoe-red-error);
   color: white;
   border: none;
-  padding: 3px 6px; /* Smaller padding */
-  font-size: 0.8em;
+  padding: 4px 8px;
+  font-size: 0.9em;
   line-height: 1;
   border-radius: 3px;
   cursor: pointer;
@@ -277,18 +311,20 @@
 .preset-delete-button:hover {
   background-color: #c9302c;
 }
+
 .no-presets-message {
   text-align: center;
   color: #888;
   font-style: italic;
-  padding: 8px; /* Reduced padding */
-  font-size: 0.85em;
+  padding: 10px;
 }
 
-/* --- Draft Display Card (Civ & Map) --- */
+
+/* --- Draft Display Card --- */
 .draft-display-card {
   /* Uses .card base styles */
 }
+
 .draft-header {
   display: flex;
   justify-content: space-between;
@@ -300,6 +336,7 @@
   font-size: 1em;
   color: var(--aoe-gold-accent);
 }
+
 .draft-header span {
   flex-basis: 38%;
   font-size: 1em;
@@ -313,74 +350,100 @@
   font-size: 0.8em;
   flex-shrink: 0;
 }
+
 .draft-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px; /* Reduced gap */
+  gap: 15px;
 }
+
 .player-column {
   background-color: var(--aoe-dark-bg);
-  padding: 8px; /* Reduced padding */
+  padding: 10px;
   border-radius: 4px;
   border: 1px solid var(--aoe-border-color);
 }
+
 .data-section {
-  margin-bottom: 8px; /* Reduced margin */
+  margin-bottom: 10px;
 }
+
 .data-section h4 {
-  font-size: 0.9em; /* Reduced */
+  font-size: 0.95em;
   color: var(--aoe-text-light);
-  margin-bottom: 5px; /* Reduced */
+  margin-bottom: 6px;
   font-family: var(--font-sans);
   font-weight: 600;
   border-bottom: 1px solid var(--aoe-input-border);
   padding-bottom: 3px;
 }
+
 .data-section ul {
   list-style: none;
   padding-left: 0;
-  font-size: 0.85em; /* Reduced */
+  font-size: 0.9em;
   font-family: var(--font-sans);
 }
 .data-section ul li {
-  padding: 2px 0; /* Reduced */
+  padding: 3px 0;
   display: flex;
   align-items: center;
 }
 .data-section ul li::before {
   content: '•';
-  margin-right: 5px; /* Reduced */
-  font-size: 1em; /* Adjusted */
+  margin-right: 6px;
+  font-size: 1.1em;
 }
+
 .list-disc.text-green-400 li::before { color: var(--aoe-green-success); }
 .list-disc.text-red-400 li::before { color: var(--aoe-red-error); }
 .list-disc.text-green-400 li { color: var(--aoe-text-light); }
 .list-disc.text-red-400 li { color: var(--aoe-text-light); }
 
 .global-maps-section {
-  margin-top: 12px; /* Reduced */
-  padding-top: 8px; /* Reduced */
+  margin-top: 15px;
+  padding-top: 10px;
   border-top: 1px solid var(--aoe-border-color);
 }
-.global-maps-section .data-section { padding-left: 0; }
-.global-maps-section .draft-columns { grid-template-columns: 1fr; }
+.global-maps-section .data-section {
+  padding-left: 0;
+}
+.global-maps-section .draft-columns {
+    grid-template-columns: 1fr;
+}
 
-/* --- Status Indicators & Messages --- */
+
+/* --- Connection Status (general, used by simplified display) --- */
 .status-dot.connected, .status-circle[style*="background-color: green"] { background-color: var(--aoe-green-success); }
-.status-dot.disconnected, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); }
+.status-dot.disconnected, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); } /* For error state */
 .status-dot.connecting, .status-circle[style*="background-color: orange"] { background-color: var(--aoe-yellow-warning); animation: pulse 1.5s infinite; }
 .status-dot.error, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); }
 .status-circle[style*="background-color: grey"] { background-color: grey; }
+
 
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
-.loading-message, .placeholder-message {
+
+.connection-status .error-message {
+  color: var(--aoe-red-error);
+  margin-left: 10px;
+  font-size: 0.9em;
+}
+
+.connection-status .draft-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.loading-message,
+.placeholder-message {
   text-align: center;
-  padding: 15px; /* Reduced */
-  font-size: 0.95em; /* Reduced */
+  padding: 20px;
+  font-size: 1em;
   color: var(--aoe-text-light);
   background-color: var(--aoe-panel-bg);
   border: 1px dashed var(--aoe-border-color);
@@ -389,41 +452,83 @@
 }
 
 /* --- Responsive Design --- */
-@media (max-width: 1200px) {
+@media (max-width: 1200px) { /* Breakpoint for top section to go 2-column */
   .top-section-grid {
-    grid-template-columns: 1fr 1fr; /* Stack to 2 columns */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Allow wrapping to 2 then 1 */
+    /* Or explicitly: grid-template-columns: 1fr 1fr; */
   }
-  .player-scores-card { /* Ensure it spans full width if it wraps */
-    grid-column: 1 / -1;
-    margin-top: 15px; /* Add margin if it wraps */
+   .player-scores-card { /* Ensure it can span full width if it's the 3rd item on a new row */
+    grid-column: 1 / -1; /* If it wraps to its own line */
   }
 }
 
-@media (max-width: 900px) { /* Further stacking for top section */
-    .top-section-grid {
-        grid-template-columns: 1fr; /* Stack all top cards */
-    }
-    .player-scores-card {
-        margin-top: 15px;
-    }
+
+@media (max-width: 1024px) {
+  /* .top-section-grid remains as above or becomes 1fr if needed */
+  .drafts-section-grid {
+    grid-template-columns: 1fr;
+  }
+  .player-scores-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .player-name-input-group, .score-controls-group, .swap-scores-button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+   .score-controls-group {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
-  .drafts-section-grid {
-    grid-template-columns: 1fr; /* Stack draft displays */
+  .top-section-grid { /* Ensure it stacks to 1 column here */
+      grid-template-columns: 1fr;
   }
-  .main-title { font-size: 1.6em; }
-  .technical-interface h2.section-title { font-size: 1.2em; }
-  .player-scores-horizontal-layout { flex-direction: column; gap: 8px; }
+  .main-title {
+    font-size: 1.8em;
+  }
+  .technical-interface h2.section-title {
+    font-size: 1.3em;
+  }
 }
 
 @media (max-width: 600px) {
-  .draft-input-group { grid-template-columns: 1fr; } /* Stack elements within input group */
-  .draft-input-group .import-button, .status-circle { grid-column: 1 / -1; justify-self: stretch; margin-left: 0; }
-  .status-circle { justify-self: center; margin-top: 5px; }
-  .draft-columns { grid-template-columns: 1fr; }
-  .draft-header { flex-direction: column; gap: 6px; align-items: stretch; }
-  .draft-header span { text-align: center !important; }
-  .card { padding: 10px; }
-  .technical-interface { padding: 10px; }
+  .draft-input-group {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .draft-input-group label,
+  .draft-id-input,
+  .import-button,
+  .status-circle {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+   .status-circle {
+    justify-self: center;
+    margin-top: 5px;
+  }
+
+  .draft-columns {
+    grid-template-columns: 1fr;
+  }
+  .draft-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .draft-header span {
+    text-align: center !important;
+    width: 100%;
+  }
+  .maps-columns {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 10px;
+  }
+  .technical-interface {
+    padding: 10px;
+  }
 }

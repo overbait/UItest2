@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // import { Link } from 'react-router-dom'; // Link is not used
 import useDraftStore from '../store/draftStore';
-import { ConnectionStatus, SavedPreset } from '../types/draft';
+import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft'; // Ensure CombinedDraftState is imported if needed for types
 import '../styles/TechnicalInterface.css';
 
 // Helper component to display a list of picks or bans
@@ -29,12 +29,14 @@ const TechnicalInterface = () => {
     civDraftStatus, civDraftError, isLoadingCivDraft,
     mapDraftStatus, mapDraftError, isLoadingMapDraft,
     savedPresets,
+    boxSeriesFormat, boxSeriesGames, // Destructure BoX series state
     connectToDraft,
     setHostName, setGuestName,
     incrementScore, decrementScore, swapScores,
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
     disconnectDraft,
+    setBoxSeriesFormat, updateBoxSeriesGame, // Destructure BoX series actions
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -111,7 +113,7 @@ const TechnicalInterface = () => {
     disconnectDraft('map'); 
     setHostName('Player 1'); 
     setGuestName('Player 2'); 
-    useDraftStore.setState({ scores: { host: 0, guest: 0 } }); 
+    useDraftStore.setState({ scores: { host: 0, guest: 0 }, boxSeriesFormat: null, boxSeriesGames: [] }); 
 
     setCivDraftIdInput(''); 
     setMapDraftIdInput('');
@@ -123,16 +125,36 @@ const TechnicalInterface = () => {
 
     deletePreset(presetIdToDelete);
 
-    if (presetToDel && (presetToDel.civDraftId === currentCivId && currentCivId !== null || presetToDel.mapDraftId === currentMapId && currentMapId !== null)) {
+    if (presetToDel && 
+        ( (presetToDel.civDraftId === currentCivId && currentCivId !== null) || 
+          (presetToDel.mapDraftId === currentMapId && currentMapId !== null) )
+       ) {
         disconnectDraft('civ');
         disconnectDraft('map');
         setHostName('Player 1'); 
         setGuestName('Player 2');
-        useDraftStore.setState({ scores: { host: 0, guest: 0 } });
+        useDraftStore.setState({ scores: { host: 0, guest: 0 }, boxSeriesFormat: null, boxSeriesGames: [] });
         setCivDraftIdInput('');
         setMapDraftIdInput('');
     }
   };
+
+  const availableMapsForBoX = useMemo(() => {
+    const allPickedMaps = new Set([
+      ...mapPicksHost,
+      ...mapPicksGuest,
+      ...mapPicksGlobal,
+    ]);
+    return Array.from(allPickedMaps).filter(Boolean); // Filter out null/empty strings
+  }, [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
+
+  const availableHostCivsForBoX = useMemo(() => {
+    return [...new Set(civPicksHost)].filter(Boolean);
+  }, [civPicksHost]);
+
+  const availableGuestCivsForBoX = useMemo(() => {
+    return [...new Set(civPicksGuest)].filter(Boolean);
+  }, [civPicksGuest]);
 
 
   return (
@@ -203,7 +225,6 @@ const TechnicalInterface = () => {
         {/* Column 3: Player Info & Scores */}
         <div className="card player-scores-card">
            <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
-           {/* This div will be styled as a flex row by CSS for the horizontal layout */}
            <div className="player-scores-horizontal-layout">
               <div className="player-name-input-group">
                 <label htmlFor="hostNameInput">Player 1 (Host)</label>
@@ -245,7 +266,7 @@ const TechnicalInterface = () => {
       </div>
 
       <div className="drafts-section-grid">
-        <div className="card draft-display-card">
+        <div className="card draft-display-card civ-draft-card"> {/* Added specific class */}
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
@@ -264,7 +285,7 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
-        <div className="card draft-display-card">
+        <div className="card draft-display-card map-draft-card"> {/* Added specific class */}
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
@@ -287,6 +308,77 @@ const TechnicalInterface = () => {
               <h3 className="section-title-small">Global Map Draft:</h3>
               <DraftListDisplay title="Picks" items={mapPicksGlobal} type="pick" />
               <DraftListDisplay title="Bans" items={mapBansGlobal} type="ban" />
+            </div>
+          )}
+        </div>
+        
+        {/* New BoX Series Overview Card */}
+        <div className="card box-series-card">
+          <h2 className="section-title">BoX Series Overview</h2>
+          <div className="box-format-selector">
+            <label htmlFor="boxFormat">Series Format:</label>
+            <select 
+              id="boxFormat" 
+              value={boxSeriesFormat || ''} 
+              onChange={(e) => setBoxSeriesFormat(e.target.value as typeof boxSeriesFormat)}
+              className="button-like" // Basic styling for select
+            >
+              <option value="">Select Format</option>
+              <option value="bo1">Bo1</option>
+              <option value="bo3">Bo3</option>
+              <option value="bo5">Bo5</option>
+              <option value="bo7">Bo7</option>
+            </select>
+          </div>
+
+          {boxSeriesFormat && boxSeriesGames.length > 0 && (
+            <div className="box-games-list">
+              {boxSeriesGames.map((game, index) => (
+                <div key={index} className="box-game-slot">
+                  <h4 className="game-slot-title">Game {index + 1}</h4>
+                  <div className="game-slot-selectors">
+                    {/* Host Civ */}
+                    <div className="selector-group">
+                      <label htmlFor={`box-host-civ-${index}`}>{hostName} Civ:</label>
+                      <select
+                        id={`box-host-civ-${index}`}
+                        value={game.hostCiv || ''}
+                        onChange={(e) => updateBoxSeriesGame(index, 'hostCiv', e.target.value || null)}
+                        className="button-like"
+                      >
+                        <option value="">- Select Civ -</option>
+                        {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
+                      </select>
+                    </div>
+                    {/* Map */}
+                     <div className="selector-group map-selector-group">
+                      <label htmlFor={`box-map-${index}`}>Map:</label>
+                      <select
+                        id={`box-map-${index}`}
+                        value={game.map || ''}
+                        onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)}
+                        className="button-like"
+                      >
+                        <option value="">- Select Map -</option>
+                        {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
+                      </select>
+                    </div>
+                    {/* Guest Civ */}
+                    <div className="selector-group">
+                      <label htmlFor={`box-guest-civ-${index}`}>{guestName} Civ:</label>
+                      <select
+                        id={`box-guest-civ-${index}`}
+                        value={game.guestCiv || ''}
+                        onChange={(e) => updateBoxSeriesGame(index, 'guestCiv', e.target.value || null)}
+                        className="button-like"
+                      >
+                        <option value="">- Select Civ -</option>
+                        {availableGuestCivsForBoX.map(civ => <option key={`g-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -99,6 +99,14 @@ export interface CombinedDraftState {
   isLoadingMapDraft: boolean;
 
   savedPresets: SavedPreset[]; // Added for storing user-saved presets
+
+  // New properties for BoX series
+  boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null;
+  boxSeriesGames: Array<{ 
+    map: string | null; 
+    hostCiv: string | null; 
+    guestCiv: string | null; 
+  }>;
 }
 
 
