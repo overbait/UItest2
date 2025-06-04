@@ -106,6 +106,7 @@ export interface CombinedDraftState {
     map: string | null; 
     hostCiv: string | null; 
     guestCiv: string | null; 
+    winner: 'host' | 'guest' | null; // Added winner field
   }>;
 }
 

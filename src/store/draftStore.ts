@@ -33,6 +33,7 @@ interface DraftStore extends CombinedDraftState {
 
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
+  setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void; // Added
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -63,7 +64,7 @@ const initialCombinedState: CombinedDraftState = {
   isLoadingMapDraft: false,
   savedPresets: [],
   boxSeriesFormat: null,
-  boxSeriesGames: [],
+  boxSeriesGames: [], // Initialized as empty, setBoxSeriesFormat will populate with winner: null
 };
 
 const transformRawDataToSingleDraft = (
@@ -112,10 +113,6 @@ const transformRawDataToSingleDraft = (
       } else if (isMapAction && draftType === 'map') {
         if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName);
         else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName);
-        // For global map picks, if the preset indicates it or no player is specified for map pick
-        // This part might need more specific logic based on how aoe2cm handles global map picks in events
-        // For now, assuming per-player picks as per UI.
-        // else if (!output.mapPicksGlobal!.includes(optionName)) output.mapPicksGlobal!.push(optionName);
       }
     } else if (action === 'ban') {
       if (isCivAction && draftType === 'civ') {
@@ -124,7 +121,6 @@ const transformRawDataToSingleDraft = (
       } else if (isMapAction && draftType === 'map') {
         if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName);
         else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName);
-        // else if (!output.mapBansGlobal!.includes(optionName)) output.mapBansGlobal!.push(optionName);
       }
     } else if (action === 'snipe') {
          if (isCivAction && draftType === 'civ') {
@@ -233,10 +229,9 @@ const useDraftStore = create<DraftStore>()(
             
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
             
-            // Auto-detect BoX format from preset name (do this before setting specific draft data)
             const presetName = rawDraftData.preset.name?.toLowerCase() || '';
-            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; // Keep existing if already set
-            if (!detectedFormat) { // Only detect if not already set by user or other draft
+            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; 
+            if (!detectedFormat) { 
                 if (presetName.includes('bo1')) detectedFormat = 'bo1';
                 else if (presetName.includes('bo3')) detectedFormat = 'bo3';
                 else if (presetName.includes('bo5')) detectedFormat = 'bo5';
@@ -244,11 +239,10 @@ const useDraftStore = create<DraftStore>()(
             }
 
             if (detectedFormat && get().boxSeriesFormat !== detectedFormat) {
-              get().setBoxSeriesFormat(detectedFormat); // This will initialize/reset boxSeriesGames
+              get().setBoxSeriesFormat(detectedFormat); 
               console.log(`Auto-detected and set BoX format: ${detectedFormat} from preset name: "${rawDraftData.preset.name}"`);
             }
             
-            // Update state based on draft type
             if (draftType === 'civ') {
               set(state => ({
                 hostName: processedData.hostName || state.hostName,
@@ -260,16 +254,15 @@ const useDraftStore = create<DraftStore>()(
                 civDraftStatus: 'connected',
                 isLoadingCivDraft: false,
                 civDraftError: null,
-                // Re-populate BoX games with new civ data
                 boxSeriesGames: state.boxSeriesFormat ? 
                   state.boxSeriesGames.map((game, index) => ({
                     ...game,
-                    hostCiv: processedData.civPicksHost?.[index] || game.hostCiv || null, // Keep existing map if already set
+                    hostCiv: processedData.civPicksHost?.[index] || game.hostCiv || null, 
                     guestCiv: processedData.civPicksGuest?.[index] || game.guestCiv || null,
                   })) 
                   : [],
               }));
-            } else { // map draft
+            } else { 
               set(state => {
                 const combinedMapPicks = Array.from(new Set([
                   ...(processedData.mapPicksHost || []),
@@ -289,10 +282,9 @@ const useDraftStore = create<DraftStore>()(
                   mapDraftStatus: 'connected',
                   isLoadingMapDraft: false,
                   mapDraftError: null,
-                  // Re-populate BoX games with new map data
                   boxSeriesGames: state.boxSeriesFormat ?
                     state.boxSeriesGames.map((game, index) => ({
-                      ...game, // Keep existing civs
+                      ...game, 
                       map: combinedMapPicks[index] || game.map || null,
                     }))
                     : [],
@@ -325,12 +317,11 @@ const useDraftStore = create<DraftStore>()(
               civDraftError: null,
               isLoadingCivDraft: false,
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
-              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, // Keep names if map draft still active
+              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, 
               guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
-              // If civ draft is disconnected, clear civs from BoX games
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
             });
-          } else { // map draft
+          } else { 
             set({
               mapDraftId: null,
               mapDraftStatus: 'disconnected',
@@ -338,11 +329,9 @@ const useDraftStore = create<DraftStore>()(
               isLoadingMapDraft: false,
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
-              // If map draft is disconnected, clear maps from BoX games
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
             });
           }
-           // If both drafts are disconnected, reset BoX format
            if (!get().civDraftId && !get().mapDraftId) {
             set({ boxSeriesFormat: null, boxSeriesGames: [] });
           }
@@ -377,7 +366,6 @@ const useDraftStore = create<DraftStore>()(
           civPicksGuest: state.civPicksHost,
           civBansHost: state.civBansGuest,
           civBansGuest: state.civBansHost,
-          // Also swap civs in BoX games
           boxSeriesGames: state.boxSeriesGames.map(game => ({
             ...game,
             hostCiv: game.guestCiv,
@@ -389,13 +377,10 @@ const useDraftStore = create<DraftStore>()(
           mapPicksGuest: state.mapPicksHost,
           mapBansHost: state.mapBansGuest,
           mapBansGuest: state.mapBansHost,
-          // If maps are swapped, this might affect BoX games if they were per-player
-          // but current BoX map logic uses a combined list.
-          // If BoX maps were strictly tied to host/guest map picks, they'd need swapping too.
         })),
 
         saveCurrentAsPreset: (name?: string) => {
-          const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames } = get();
+          const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets } = get();
           const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
           const newPreset: SavedPreset = {
             id: Date.now().toString(),
@@ -405,7 +390,6 @@ const useDraftStore = create<DraftStore>()(
             hostName,
             guestName,
             scores: { ...scores },
-            // Consider saving boxSeriesFormat and boxSeriesGames with the preset if desired
           };
           set({ savedPresets: [...savedPresets, newPreset] });
         },
@@ -423,7 +407,7 @@ const useDraftStore = create<DraftStore>()(
               civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
-              boxSeriesFormat: null, // Reset BoX, it will be re-evaluated by connectToDraft
+              boxSeriesFormat: null, 
               boxSeriesGames: [],
             });
             if (preset.civDraftId) {
@@ -458,9 +442,9 @@ const useDraftStore = create<DraftStore>()(
             map: null,
             hostCiv: null,
             guestCiv: null,
+            winner: null, // Initialize winner
           }));
 
-          // Attempt to re-populate with existing data
           const state = get();
           if (numGames > 0) {
             const combinedMapPicks = Array.from(new Set([
@@ -473,6 +457,7 @@ const useDraftStore = create<DraftStore>()(
               map: combinedMapPicks[index] || null,
               hostCiv: state.civPicksHost[index] || null,
               guestCiv: state.civPicksGuest[index] || null,
+              winner: null, // Ensure winner is reset/initialized
             }));
           }
         
@@ -482,10 +467,35 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const newGames = [...state.boxSeriesGames];
             if (newGames[gameIndex]) {
-              newGames[gameIndex] = { ...newGames[gameIndex], [field]: value };
+              newGames[gameIndex] = { 
+                ...newGames[gameIndex], 
+                [field]: value,
+                winner: null, // Reset winner if map or civ changes for this game
+              };
               return { boxSeriesGames: newGames };
             }
             return state;
+          });
+        },
+        setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => {
+          set(state => {
+            const newGames = [...state.boxSeriesGames];
+            if (newGames[gameIndex]) {
+              newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer };
+            }
+
+            // Recalculate scores
+            let hostScore = 0;
+            let guestScore = 0;
+            newGames.forEach(game => {
+              if (game.winner === 'host') hostScore++;
+              else if (game.winner === 'guest') guestScore++;
+            });
+
+            return { 
+              boxSeriesGames: newGames,
+              scores: { host: hostScore, guest: guestScore },
+            };
           });
         },
       }),

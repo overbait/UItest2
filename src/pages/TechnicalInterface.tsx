@@ -36,7 +36,7 @@ const TechnicalInterface = () => {
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
     disconnectDraft,
-    setBoxSeriesFormat, updateBoxSeriesGame,
+    setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -338,16 +338,28 @@ const TechnicalInterface = () => {
                   <h4 className="game-slot-title">Game {index + 1}</h4>
                   <div className="game-slot-selectors">
                     <div className="selector-group">
-                      <label htmlFor={`box-host-civ-${index}`}>{hostName} Civ:</label>
-                      <select
-                        id={`box-host-civ-${index}`}
-                        value={game.hostCiv || ''}
-                        onChange={(e) => updateBoxSeriesGame(index, 'hostCiv', e.target.value || null)}
-                        className="button-like"
-                      >
-                        <option value="">- Select Civ -</option>
-                        {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
-                      </select>
+                      <label htmlFor={`box-host-civ-${index}`} 
+                             className={game.winner === 'host' ? 'text-winner' : game.winner === 'guest' ? 'text-loser' : ''}>
+                        {hostName} Civ:
+                      </label>
+                      <div className="civ-selection-group">
+                        <select
+                          id={`box-host-civ-${index}`}
+                          value={game.hostCiv || ''}
+                          onChange={(e) => updateBoxSeriesGame(index, 'hostCiv', e.target.value || null)}
+                          className={`button-like ${game.winner === 'host' ? 'select-winner' : game.winner === 'guest' ? 'select-loser' : ''}`}
+                        >
+                          <option value="">- Select Civ -</option>
+                          {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
+                        </select>
+                        <button 
+                          className={`win-button ${game.winner === 'host' ? 'active' : ''}`} 
+                          onClick={() => setGameWinner(index, game.winner === 'host' ? null : 'host')}
+                          title={`Mark ${hostName} as winner for Game ${index + 1}`}
+                        >
+                          W
+                        </button>
+                      </div>
                     </div>
                      <div className="selector-group map-selector-group">
                       <label htmlFor={`box-map-${index}`}>Map:</label>
@@ -362,16 +374,28 @@ const TechnicalInterface = () => {
                       </select>
                     </div>
                     <div className="selector-group">
-                      <label htmlFor={`box-guest-civ-${index}`}>{guestName} Civ:</label>
-                      <select
-                        id={`box-guest-civ-${index}`}
-                        value={game.guestCiv || ''}
-                        onChange={(e) => updateBoxSeriesGame(index, 'guestCiv', e.target.value || null)}
-                        className="button-like"
-                      >
-                        <option value="">- Select Civ -</option>
-                        {availableGuestCivsForBoX.map(civ => <option key={`g-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
-                      </select>
+                       <label htmlFor={`box-guest-civ-${index}`}
+                              className={game.winner === 'guest' ? 'text-winner' : game.winner === 'host' ? 'text-loser' : ''}>
+                        {guestName} Civ:
+                      </label>
+                      <div className="civ-selection-group">
+                        <select
+                          id={`box-guest-civ-${index}`}
+                          value={game.guestCiv || ''}
+                          onChange={(e) => updateBoxSeriesGame(index, 'guestCiv', e.target.value || null)}
+                          className={`button-like ${game.winner === 'guest' ? 'select-winner' : game.winner === 'host' ? 'select-loser' : ''}`}
+                        >
+                          <option value="">- Select Civ -</option>
+                          {availableGuestCivsForBoX.map(civ => <option key={`g-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
+                        </select>
+                        <button 
+                          className={`win-button ${game.winner === 'guest' ? 'active' : ''}`}
+                          onClick={() => setGameWinner(index, game.winner === 'guest' ? null : 'guest')}
+                          title={`Mark ${guestName} as winner for Game ${index + 1}`}
+                        >
+                          W
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
