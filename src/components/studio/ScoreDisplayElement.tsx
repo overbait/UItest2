@@ -1,5 +1,5 @@
 import React from 'react';
-import useDraftStore from '../../../store/draftStore'; // Path from src/components/studio/ to src/store/
+import useDraftStore from '../../store/draftStore'; // Corrected path
 
 // Define props for the component, though it primarily uses the store for data.
 // We might add props later for ID, position, size if needed when rendering from studioLayout.
@@ -22,6 +22,12 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = () => {
       display: 'inline-block', // So it takes content width by default
       fontFamily: 'Arial, sans-serif',
       fontSize: '18px', // Default font size
+      width: '100%', // Ensure it fills the resizable box
+      height: '100%', // Ensure it fills the resizable box
+      boxSizing: 'border-box', // Include padding and border in the element's total width and height
+      display: 'flex', // Use flex to center content or manage layout
+      alignItems: 'center', // Center content vertically
+      justifyContent: 'center', // Center content horizontally
     }}>
       <span>{hostName}</span>
       <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({scores.host})</span>
