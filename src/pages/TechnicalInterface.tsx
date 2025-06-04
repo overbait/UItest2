@@ -28,7 +28,7 @@ const TechnicalInterface = () => {
     savedPresets,
     boxSeriesFormat, boxSeriesGames,
     activePresetId,
-    isPresetDirty, // Assuming this is now in the store
+    // isPresetDirty, // This state is implicitly handled by activePresetId === null when changes occur
     connectToDraft,
     setHostName, setGuestName,
     incrementScore, decrementScore,
@@ -65,20 +65,24 @@ const TechnicalInterface = () => {
 
   const handleAddNewPresetAndSaveCurrent = () => {
     const storeState = useDraftStore.getState();
-    // Prompt to save if there's active data and (it's a new session OR the active preset is dirty)
-    if ((storeState.civDraftId || storeState.mapDraftId) && (storeState.activePresetId === null || storeState.isPresetDirty)) {
+    // Prompt to save if there's active data AND (it's a new session OR the active preset is dirty)
+    // A "dirty" active preset means activePresetId is NOT null, but data has changed.
+    // A "new session" means activePresetId IS null, but there's data.
+    const activePresetIsDirty = storeState.activePresetId !== null && isCurrentStateDirtyForPreset(storeState.savedPresets.find(p => p.id === storeState.activePresetId)!);
+    const isNewSessionWithData = storeState.activePresetId === null && (storeState.civDraftId || storeState.mapDraftId);
+
+    if (isNewSessionWithData || activePresetIsDirty) {
       const defaultName = `${storeState.hostName || 'P1'} vs ${storeState.guestName || 'P2'} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
       let presetName: string | null = null;
-      if (storeState.activePresetId && storeState.isPresetDirty) {
-        // If it's a dirty active preset, suggest its current name for update
+      if (activePresetIsDirty) {
         const activePreset = storeState.savedPresets.find(p => p.id === storeState.activePresetId);
         presetName = prompt(`Current session (based on "${activePreset?.name || 'Loaded Preset'}") has unsaved changes. Save as:`, activePreset?.name || defaultName);
-      } else {
+      } else { // isNewSessionWithData
         presetName = prompt("Enter a name for the current session before starting a new one:", defaultName);
       }
       
       if (presetName) { 
-        saveCurrentAsPreset(presetName); // This action should now set activePresetId and isPresetDirty = false
+        saveCurrentAsPreset(presetName); 
       } else if (presetName === "") { 
          console.log("Discarding current session changes.");
       } else { 
@@ -88,17 +92,41 @@ const TechnicalInterface = () => {
     _resetCurrentSessionState();
   };
   
+  const handleDirectReset = () => {
+    // window.confirm removed as per user request
+    _resetCurrentSessionState();
+  };
+
   const handleDeletePresetAndReset = (presetIdToDelete: string) => {
-    // window.confirm removed
     deletePreset(presetIdToDelete); 
-    // The store's deletePreset action should now handle resetting the session 
-    // if the deleted preset was the active one.
+  };
+  
+  const isCurrentStateDirtyForPreset = (preset: SavedPreset | undefined): boolean => {
+    if (!preset || activePresetId !== preset.id) {
+      return false; 
+    }
+    const currentState = useDraftStore.getState();
+    let dirty = false;
+
+    // console.log(`Dirty check for preset: ${preset.name} (ID: ${preset.id}) | Active Preset ID: ${activePresetId}`);
+
+    if (currentState.hostName !== preset.hostName) dirty = true;
+    if (currentState.guestName !== preset.guestName) dirty = true;
+    if (currentState.scores.host !== preset.scores.host || currentState.scores.guest !== preset.scores.guest) dirty = true;
+    if (currentState.civDraftId !== preset.civDraftId) dirty = true;
+    if (currentState.mapDraftId !== preset.mapDraftId) dirty = true;
+    if (currentState.boxSeriesFormat !== preset.boxSeriesFormat) dirty = true;
+    if (JSON.stringify(currentState.boxSeriesGames) !== JSON.stringify(preset.boxSeriesGames)) dirty = true;
+    
+    // if (dirty) console.log(`Preset "${preset.name}" is active and dirty.`);
+    // else if (activePresetId === preset.id) console.log(`Preset "${preset.name}" is active but not dirty.`);
+
+    return dirty;
   };
   
   const handleUpdatePreset = (presetName: string) => {
     console.log(`Update button clicked for: ${presetName}, attempting to save...`);
     saveCurrentAsPreset(presetName); 
-    // saveCurrentAsPreset should set isPresetDirty to false and keep activePresetId
   };
 
   const availableMapsForBoX = useMemo(() => Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean), [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
@@ -134,14 +162,14 @@ const TechnicalInterface = () => {
             <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'0'}}>Saved Presets</h2>
             <div className="preset-actions-buttons">
               <button onClick={handleAddNewPresetAndSaveCurrent} className="button-like add-new-preset-button-plus" title="Save Current & Start New Session">+</button>
-              <button onClick={_resetCurrentSessionState} className="button-like reset-session-button" title="Reset Current Session">Reset Session</button>
+              <button onClick={handleDirectReset} className="button-like reset-session-button" title="Reset Current Session">Reset Session</button>
             </div>
           </div>
           <div className="saved-presets-list">
             {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save current session and start new.</p>}
             {savedPresets.map((preset: SavedPreset) => {
               const isActive = preset.id === activePresetId;
-              const isDirty = isActive && isPresetDirty;
+              const isDirty = isActive && isCurrentStateDirtyForPreset(preset);
               return (
                 <div key={preset.id} className="preset-item">
                   <button onClick={() => loadPreset(preset.id)} className={`button-like preset-load-button ${isActive && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
