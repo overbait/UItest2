@@ -34,7 +34,7 @@ interface DraftStore extends CombinedDraftState {
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
   setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void;
-  _resetCurrentSessionState: () => void; // Internal helper
+  _resetCurrentSessionState: () => void; 
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -66,7 +66,7 @@ const initialCombinedState: CombinedDraftState = {
   savedPresets: [],
   boxSeriesFormat: null,
   boxSeriesGames: [],
-  activePresetId: null, // Added
+  activePresetId: null, 
 };
 
 const transformRawDataToSingleDraft = (
@@ -137,25 +137,33 @@ const transformRawDataToSingleDraft = (
         }
     }
   });
+  
+  let currentTurnPlayerDisplay: string | undefined = 'none';
+  let currentActionDisplay: string | undefined = 'unknown';
+  let draftStatus: SingleDraftData['status'] = 'unknown';
 
   if (raw.preset?.turns && typeof raw.nextAction === 'number') {
     if (raw.nextAction >= raw.preset.turns.length) {
-      output.status = 'completed';
+      draftStatus = 'completed';
     } else {
-      output.status = 'inProgress';
+      draftStatus = 'inProgress';
       const currentTurnInfo = raw.preset.turns[raw.nextAction];
       if (currentTurnInfo) {
-        output.currentTurnPlayer = currentTurnInfo.player === 'HOST' ? output.hostName : currentTurnInfo.player === 'GUEST' ? output.guestName : 'None';
-        output.currentAction = currentTurnInfo.action?.toUpperCase().replace('G', '');
+          currentTurnPlayerDisplay = currentTurnInfo.player === 'HOST' ? hostName : currentTurnInfo.player === 'GUEST' ? guestName : 'None';
+          currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', '');
       }
     }
   } else if (raw.status) {
-    output.status = raw.status.toLowerCase();
+    draftStatus = raw.status.toLowerCase() as SingleDraftData['status'];
   } else if (raw.ongoing === false) {
-    output.status = 'completed';
+    draftStatus = 'completed';
   } else if (raw.ongoing === true) {
-    output.status = 'inProgress';
+    draftStatus = 'inProgress';
   }
+
+  output.status = draftStatus;
+  output.currentTurnPlayer = currentTurnPlayerDisplay;
+  output.currentAction = currentActionDisplay;
 
   return output;
 };
@@ -200,19 +208,19 @@ const useDraftStore = create<DraftStore>()(
           try {
             if (url.startsWith('http://') || url.startsWith('https://')) {
               const urlObj = new URL(url);
-              if (urlObj.hostname.includes('aoe2cm.net')) {
+              if (urlObj.hostname.includes('aoe2cm.net')) { 
                 const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
                 if (pathMatch && pathMatch[1]) return pathMatch[1];
                 const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname);
                 if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1];
               }
               const pathSegments = urlObj.pathname.split('/');
-              const potentialId = pathSegments.pop() || pathSegments.pop();
+              const potentialId = pathSegments.pop() || pathSegments.pop(); 
               if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) {
                 return potentialId;
               }
-              const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
-              if (draftIdParam) return draftIdParam;
+             const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id');
+             if (draftIdParam) return draftIdParam;
             }
             if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) {
               return url;
@@ -241,7 +249,6 @@ const useDraftStore = create<DraftStore>()(
             return false;
           }
           
-          // If this connection is not part of loading an active preset, mark state as dirty
           const activePreset = get().savedPresets.find(p => p.id === get().activePresetId);
           if (!activePreset || 
               (draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
@@ -256,7 +263,7 @@ const useDraftStore = create<DraftStore>()(
           
           try {
             console.log(`Attempting to fetch ${draftType} draft data from: ${apiUrl}`);
-            const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
+            const response = await axios.get<Aoe2cmRawDraftData>(apiUrl); 
             console.log(`Raw response for ${draftType} draft from API:`, response.data);
 
             if (!response.data || typeof response.data !== 'object') {
@@ -362,7 +369,7 @@ const useDraftStore = create<DraftStore>()(
               hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, 
               guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
-              activePresetId: null, // Mark as dirty if a draft is disconnected
+              activePresetId: null, 
             });
           } else { 
             set({
@@ -373,7 +380,7 @@ const useDraftStore = create<DraftStore>()(
               mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
               mapPicksGlobal: [], mapBansGlobal: [],
               boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
-              activePresetId: null, // Mark as dirty
+              activePresetId: null, 
             });
           }
            if (!get().civDraftId && !get().mapDraftId) {
@@ -444,7 +451,7 @@ const useDraftStore = create<DraftStore>()(
             guestName,
             scores: { ...scores },
             boxSeriesFormat,
-            boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), // Deep copy
+            boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), 
           };
 
           if (existingPresetIndex !== -1) {
@@ -459,16 +466,15 @@ const useDraftStore = create<DraftStore>()(
           const preset = get().savedPresets.find(p => p.id === presetId);
           if (preset) {
             set({
-              // Set IDs first, so connectToDraft knows not to clear activePresetId
               civDraftId: preset.civDraftId,
               mapDraftId: preset.mapDraftId,
-              activePresetId: preset.id, // Set active preset ID BEFORE connecting
+              activePresetId: preset.id, 
               
               hostName: preset.hostName,
               guestName: preset.guestName,
               scores: { ...preset.scores },
               boxSeriesFormat: preset.boxSeriesFormat,
-              boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), // Deep copy
+              boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), 
 
               civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
               mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
@@ -482,7 +488,6 @@ const useDraftStore = create<DraftStore>()(
             if (preset.mapDraftId) {
               await get().connectToDraft(preset.mapDraftId, 'map');
             }
-            // Ensure activePresetId is correctly set after connections
             set({ activePresetId: preset.id });
           }
         },
@@ -553,7 +558,6 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const newGames = [...state.boxSeriesGames];
             if (newGames[gameIndex]) {
-              // If clicking the same winner again, deselect
               if (newGames[gameIndex].winner === winningPlayer) {
                 newGames[gameIndex] = { ...newGames[gameIndex], winner: null };
               } else {
@@ -587,7 +591,7 @@ const useDraftStore = create<DraftStore>()(
             mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat,
             boxSeriesGames: state.boxSeriesGames,
-            activePresetId: state.activePresetId, // Persist activePresetId
+            activePresetId: state.activePresetId, 
         }),
       }
     )
