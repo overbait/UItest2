@@ -1,96 +1,399 @@
-/* ... (существующие стили) ... */
+/* src/styles/TechnicalInterface.css */
 
-/* --- Saved Presets Card --- */
-.presets-header {
+/* --- Variables --- */
+:root {
+  --aoe-dark-bg: #1e1e1e;
+  --aoe-panel-bg: #2c2c2c;
+  --aoe-border-color: #4a3b2a;
+  --aoe-gold-accent: #c19a49;
+  --aoe-text-light: #f0e6d2;
+  --aoe-red-error: #d9534f;
+  --aoe-green-success: #5cb85c;
+  --aoe-yellow-warning: #f0ad4e;
+  --aoe-blue-action: #3498db; /* For Update button and + button */
+  --aoe-button-bg: #4a3b2a;
+  --aoe-button-hover-bg: #6b553c;
+  --aoe-input-bg: #3c3c3c;
+  --aoe-input-border: #5c5c5c;
+  --font-medieval: 'Cinzel', serif;
+  --font-sans: 'Roboto', sans-serif;
+  --winner-text-color: var(--aoe-green-success);
+  --loser-text-color: var(--aoe-red-error);
+}
+
+/* --- General Styles --- */
+.technical-interface {
+  background-color: var(--aoe-dark-bg);
+  color: var(--aoe-text-light);
+  font-family: var(--font-sans);
+  padding: 20px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  /* overflow-y: auto; -- This is handled by html,body in index.css */
+}
+
+.main-title {
+  font-size: 2em;
+  text-align: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--aoe-gold-accent);
+  color: var(--aoe-gold-accent);
+  font-family: var(--font-medieval);
+}
+
+.technical-interface h2.section-title {
+  font-family: var(--font-medieval);
+  color: var(--aoe-gold-accent);
+  font-size: 1.3em;
+  border-bottom: 1px solid var(--aoe-border-color);
+  padding-bottom: 5px;
+  margin-top: 0;
+  margin-bottom: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* margin-bottom is handled by section-title if it's inside */
 }
 
+/* --- Main Layout Grids --- */
+.top-section-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1.4fr; /* Draft Inputs | Saved Presets | Match Control */
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.drafts-section-grid {
+  display: grid;
+  grid-template-columns: 0.7fr 0.7fr 1.6fr; /* Civ Draft | Map Draft | BoX Series Overview */
+  gap: 15px;
+  align-items: flex-start; 
+}
+
+
+/* --- Card Styles --- */
+.card {
+  background-color: var(--aoe-panel-bg);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--aoe-border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  min-height: 150px; 
+}
+
+/* --- Player Scores Card (Match Control) --- */
+.player-scores-card { justify-content: flex-start; }
+.player-scores-horizontal-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-around; 
+  width: 100%;
+  flex-wrap: wrap; 
+  gap: 8px; 
+  margin-top: 10px; 
+}
+.player-scores-card .player-name-input-group {
+  display: flex;
+  flex-direction: column; 
+  align-items: flex-start;
+  gap: 3px; 
+  flex-grow: 1;
+  min-width: 130px; 
+}
+.player-scores-card .player-name-input-group label {
+  font-size: 0.8em; 
+  color: var(--aoe-text-light);
+  font-family: var(--font-sans);
+  margin-bottom: 0;
+}
+.player-scores-card .name-input {
+  background-color: var(--aoe-input-bg);
+  color: var(--aoe-text-light);
+  border: 1px solid var(--aoe-input-border);
+  padding: 5px 7px; 
+  border-radius: 3px;
+  font-family: var(--font-sans);
+  font-size: 0.85em; 
+  width: 100%;
+  box-sizing: border-box;
+}
+.player-scores-card .score-controls-group { display: flex; align-items: center; gap: 5px; }
+.player-scores-card .score-display {
+  font-size: 1.4em; font-weight: bold; color: var(--aoe-gold-accent);
+  min-width: 25px; text-align: center; font-family: var(--font-sans); padding: 0 5px; 
+}
+/* .player-scores-card .swap-scores-button was removed */
+
+/* --- Base Button Styles --- */
+.button-like {
+  background-color: var(--aoe-button-bg); color: var(--aoe-text-light);
+  border: 1px solid var(--aoe-gold-accent); padding: 6px 10px;
+  border-radius: 3px; cursor: pointer; font-family: var(--font-medieval);
+  font-size: 0.85em; transition: background-color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap; text-align: center;
+}
+.button-like:hover { background-color: var(--aoe-button-hover-bg); border-color: var(--aoe-text-light); }
+.button-like:disabled { background-color: #555; border-color: #777; color: #aaa; cursor: not-allowed; }
+.score-button { padding: 4px 7px; font-size: 0.9em; line-height: 1; }
+
+/* --- Draft Inputs Card --- */
+.draft-inputs-card { gap: 10px; }
+.draft-input-group {
+  display: grid; grid-template-columns: 1fr auto; /* Input | Button+Status (label on its own row) */
+  grid-template-rows: auto auto;    
+  align-items: center;
+  gap: 4px 8px; 
+  background-color: var(--aoe-dark-bg); padding: 8px; 
+  border-radius: 4px; border: 1px solid var(--aoe-border-color);
+}
+.draft-input-group label {
+  grid-column: 1 / -1; font-size: 0.85em; color: var(--aoe-text-light);
+  font-family: var(--font-sans); font-weight: 500;
+}
+.draft-id-input {
+  background-color: var(--aoe-input-bg); color: var(--aoe-text-light);
+  border: 1px solid var(--aoe-input-border); padding: 5px 8px; 
+  border-radius: 3px; font-family: var(--font-sans); font-size: 0.85em;
+  box-sizing: border-box; grid-column: 1 / 2; width: 100%; 
+}
+.draft-input-group .import-button {
+  padding: 5px 8px; grid-column: 2 / 3; align-self: stretch; 
+  margin-left: 5px; 
+}
+.status-circle {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1); grid-column: 2 / 3; /* Align with button */
+  justify-self: end; align-self: center; /* Push to the right end of the button's grid cell */
+  margin-left: 5px; /* Space it from the button */
+}
+
+/* --- Saved Presets Card --- */
+.saved-presets-card { gap: 10px; }
+.presets-header { 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .presets-header h2.section-title {
   margin-bottom: 0; 
   border-bottom: none; 
-  flex-grow: 1; /* Title takes available space */
+  flex-grow: 1; 
 }
-
-.preset-actions-buttons { /* Container for + and Reset buttons */
+.preset-actions-buttons { 
   display: flex;
   gap: 8px;
-  margin-left: 10px; /* Space from title */
+  margin-left: 10px; 
 }
-
 .add-new-preset-button-plus,
 .reset-session-button {
-  padding: 6px 10px; /* Consistent padding */
-  font-size: 1em;   /* Make + more visible */
+  padding: 5px; /* Make it more square */
+  font-size: 1.1em;   
   line-height: 1;
-  min-width: 36px; 
-  max-width: auto;
+  min-width: 30px; 
+  width: 30px; /* Fixed width */
+  height: 30px; /* Fixed height */
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
 .add-new-preset-button-plus {
-  background-color: var(--aoe-gold-accent);
-  color: var(--aoe-dark-bg);
-  border-color: var(--aoe-gold-accent);
+  background-color: var(--aoe-blue-action); 
+  border-color: var(--aoe-blue-action);
+  color: white;
 }
-.add-new-preset-button-plus:hover {
-  background-color: #dab65b;
-}
-
+.add-new-preset-button-plus:hover { background-color: #2980b9; }
 .reset-session-button {
   background-color: var(--aoe-red-error);
   color: white;
   border-color: #c4413c;
 }
-.reset-session-button:hover {
-  background-color: #c9302c;
-  border-color: #a72824;
+.reset-session-button:hover { background-color: #c9302c; border-color: #a72824; }
+.saved-presets-list {
+  min-height: 60px; 
+  max-height: 100px; 
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; 
+  background-color: var(--aoe-dark-bg);
+  border: 1px solid var(--aoe-input-border);
+  border-radius: 4px;
+  padding: 6px; 
 }
-
-
-.preset-load-button.active-preset {
-  border-width: 2px; /* Thicker border for active */
-  border-color: var(--aoe-gold-accent) !important; /* Ensure it overrides */
+.preset-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 6px; background-color: var(--aoe-panel-bg);
+  border-radius: 3px; border: 1px solid var(--aoe-border-color);
+  gap: 5px; /* Add gap between buttons */
+}
+.preset-load-button {
+  flex-grow: 1; text-align: left; margin-right: 0; /* Removed margin-right */
+  font-size: 0.8em; padding: 4px 6px; 
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.preset-load-button.active-preset { 
+  border-width: 2px; 
+  border-color: var(--aoe-gold-accent) !important; 
   box-shadow: 0 0 6px var(--aoe-gold-accent);
   font-weight: bold;
-  background-color: var(--aoe-button-hover-bg); /* Slightly different bg for active */
+  background-color: var(--aoe-button-hover-bg); 
 }
-
-.preset-load-button.dirty-preset {
-  /* Style for active but modified preset, Update button will appear */
-  /* You can make the border dashed or add an asterisk or something */
+.preset-load-button.dirty-preset { 
    border-left: 3px solid var(--aoe-yellow-warning) !important;
    font-style: italic;
 }
-
-.preset-update-button {
+.preset-update-button { 
   background-color: var(--aoe-blue-action) !important;
   color: white !important;
   border-color: var(--aoe-blue-action) !important;
-  padding: 3px 7px !important; /* Adjusted padding */
-  font-size: 0.78em !important; /* Adjusted font size */
-  margin-left: 6px; /* Space from load button */
+  padding: 3px 7px !important; 
+  font-size: 0.78em !important; 
+  /* margin-left: 5px; -- Removed, gap on preset-item handles it */
+  flex-shrink: 0; /* Prevent shrinking */
 }
-.preset-update-button:hover {
-  background-color: #2980b9 !important; 
+.preset-update-button:hover { background-color: #2980b9 !important; }
+.preset-delete-button {
+  background-color: var(--aoe-red-error); color: white; border: none;
+  padding: 3px 6px; font-size: 0.8em; line-height: 1;
+  border-radius: 3px; cursor: pointer;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+.preset-delete-button:hover { background-color: #c9302c; }
+.no-presets-message {
+  text-align: center; color: #888; font-style: italic;
+  padding: 8px; font-size: 0.85em;
 }
 
-/* Ensure preset items can show Load, Update, and Delete buttons in a row */
-.preset-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 5px; /* Add gap between buttons */
+/* --- Draft Display Card (Civ & Map) --- */
+.draft-display-card { }
+.draft-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--aoe-border-color);
+  font-family: var(--font-medieval); font-size: 1em; color: var(--aoe-gold-accent);
 }
-.preset-item .preset-load-button {
-  flex-grow: 1; /* Load button takes most space */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.draft-header span { flex-basis: 38%; font-size: 1em; font-weight: bold; }
+.draft-header span:first-child { text-align: left; }
+.draft-header span:last-child { text-align: right; }
+/* .swap-players-button was removed */
+.draft-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.player-column { background-color: var(--aoe-dark-bg); padding: 8px; border-radius: 4px; border: 1px solid var(--aoe-border-color); }
+.data-section { margin-bottom: 8px; }
+.data-section h4 {
+  font-size: 0.9em; color: var(--aoe-text-light); margin-bottom: 5px;
+  font-family: var(--font-sans); font-weight: 600;
+  border-bottom: 1px solid var(--aoe-input-border); padding-bottom: 3px;
 }
-.preset-item .preset-update-button,
-.preset-item .preset-delete-button {
-  flex-shrink: 0; /* Prevent these buttons from shrinking */
+.data-section ul { list-style: none; padding-left: 0; font-size: 0.85em; font-family: var(--font-sans); }
+.data-section ul li { padding: 2px 0; display: flex; align-items: center; }
+.data-section ul li::before { content: '•'; margin-right: 5px; font-size: 1em; }
+.list-disc.text-green-400 li::before { color: var(--aoe-green-success); }
+.list-disc.text-red-400 li::before { color: var(--aoe-red-error); }
+.list-disc.text-green-400 li, .list-disc.text-red-400 li { color: var(--aoe-text-light); }
+.global-maps-section { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--aoe-border-color); }
+.global-maps-section .data-section { padding-left: 0; }
+.global-maps-section .draft-columns { grid-template-columns: 1fr; }
+
+/* --- BoX Series Card --- */
+.box-series-card { gap: 10px; }
+.box-format-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.box-format-selector label { font-size: 0.9em; font-weight: 500; white-space: nowrap; }
+.box-format-selector select.button-like { padding: 6px 8px; font-size: 0.85em; flex-grow: 1; }
+.box-games-list { display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
+.box-game-slot {
+  background-color: var(--aoe-dark-bg); padding: 10px;
+  border-radius: 4px; border: 1px solid var(--aoe-input-border);
 }
+.game-slot-title { font-family: var(--font-medieval); font-size: 1em; color: var(--aoe-gold-accent); margin-bottom: 8px; }
+.game-slot-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.selector-group { display: flex; flex-direction: column; gap: 4px; }
+.selector-group label { font-size: 0.8em; color: var(--aoe-text-light); }
+.selector-group select.button-like { width: 100%; font-size: 0.8em; padding: 5px; }
+
+/* Styles for winner/loser indication in BoX card */
+.civ-selection-group { display: flex; align-items: center; gap: 5px; }
+.civ-selection-group select { flex-grow: 1; }
+.win-button {
+  padding: 4px 6px; font-size: 0.75em; line-height: 1;
+  background-color: var(--aoe-input-bg); border: 1px solid var(--aoe-input-border);
+  color: var(--aoe-text-light); cursor: pointer; border-radius: 3px;
+}
+.win-button:hover { background-color: var(--aoe-button-hover-bg); }
+.win-button.active { background-color: var(--aoe-green-success); color: white; border-color: var(--aoe-green-success); }
+.text-winner { color: var(--winner-text-color) !important; font-weight: bold; }
+.text-loser { color: var(--loser-text-color) !important; text-decoration: line-through; opacity: 0.7; }
+.select-winner { border-color: var(--winner-text-color) !important; box-shadow: 0 0 3px var(--winner-text-color); }
+.select-loser { border-color: var(--loser-text-color) !important; opacity: 0.7; }
+
+/* --- Status Indicators & Messages --- */
+.status-dot.connected, .status-circle[style*="background-color: green"] { background-color: var(--aoe-green-success); }
+.status-dot.disconnected, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); }
+.status-dot.connecting, .status-circle[style*="background-color: orange"] { background-color: var(--aoe-yellow-warning); animation: pulse 1.5s infinite; }
+.status-dot.error, .status-circle[style*="background-color: red"] { background-color: var(--aoe-red-error); }
+.status-circle[style*="background-color: grey"] { background-color: grey; }
+
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.loading-message, .placeholder-message {
+  text-align: center; padding: 15px; font-size: 0.95em; color: var(--aoe-text-light);
+  background-color: var(--aoe-panel-bg); border: 1px dashed var(--aoe-border-color);
+  border-radius: 6px; margin-top: 15px;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 1300px) {
+  .top-section-grid { grid-template-columns: 1fr 1fr; }
+  .player-scores-card { grid-column: 1 / -1; margin-top: 15px; }
+  .drafts-section-grid { grid-template-columns: 1fr 1.5fr; }
+}
+@media (max-width: 900px) {
+    .top-section-grid { grid-template-columns: 1fr; }
+    .drafts-section-grid { grid-template-columns: 1fr; }
+    .player-scores-card { margin-top: 15px; }
+    .player-scores-horizontal-layout { flex-direction: column; gap: 10px; }
+}
+@media (max-width: 768px) {
+  .main-title { font-size: 1.6em; }
+  .technical-interface h2.section-title { font-size: 1.2em; }
+}
+@media (max-width: 600px) {
+  .draft-input-group { grid-template-columns: 1fr; }
+  .draft-input-group .import-button, .status-circle { grid-column: 1 / -1; justify-self: stretch; margin-left: 0; }
+  .status-circle { justify-self: center; margin-top: 5px; }
+  .draft-columns { grid-template-columns: 1fr; }
+  .draft-header { flex-direction: column; gap: 6px; align-items: stretch; }
+  .draft-header span { text-align: center !important; }
+  .card { padding: 10px; }
+  .technical-interface { padding: 10px; }
+  .game-slot-selectors { grid-template-columns: 1fr; }
+}
+```
+
+**Ключевые изменения в CSS:**
+
+*   **`.top-section-grid`**: Пропорции колонок изменены на `0.8fr 0.8fr 1.4fr;`.
+*   **`.saved-presets-card .presets-header`**: Добавлен flex для размещения заголовка и новых кнопок в одну строку.
+*   **`.add-new-preset-button-plus`**: Стили для маленькой квадратной кнопки "+".
+*   **`.reset-session-button`**: Стили для красной кнопки "Reset".
+*   **`.preset-update-button`**: Стили для синей кнопки "Update".
+*   **`.preset-load-button.active-preset`**: Стиль для выделения активного пресета (добавил более жирную рамку и другой фон, можете настроить по вкусу).
+*   **`.preset-load-button.dirty-preset`**: Стиль для "грязного" активного пресета (добавил левую желтую рамку и курсив).
+*   **`.player-scores-card .player-scores-horizontal-layout`**: Добавлен для явного управления горизонтальным расположением элементов внутри карточки счета.
+*   **Адаптивность**: Скорректированы брейкпоинты и поведение сеток для нового макета.
+
+**Пожалуйста, проверьте:**
+
+1.  **Замените CSS.**
+2.  **Полностью обновите страницу.**
+3.  **Визуально оцените макет**:
+    *   Соответствует ли расположение и размеры верхних карточек вашему последнему скетчу?
+    *   Как выглядят новые кнопки "+" и "Reset" в карточке "Saved Presets"?
+    *   Появляется ли синяя кнопка "Update" и корректно ли стилизуются активные/измененные пресеты?
+4.  **Проверьте функциональность** (особенно связанную с пресетами).
+
+Если все хорошо, мы можем считать эту часть завершенной и перейти к следующему этапу, если он есть, или к доработке деталей.
+
+Я не буду сейчас делать push в GitHub, так как вы вручную обновите CSS. Если после этого все будет работать, мы сможем закоммитить только изменения в `.tsx` файлах, которые были сделаны ранее.
