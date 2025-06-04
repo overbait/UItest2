@@ -33,8 +33,8 @@ const TechnicalInterface = () => {
     activePresetId,
     connectToDraft,
     setHostName, setGuestName,
-    incrementScore, decrementScore, swapScores,
-    swapCivPlayers, swapMapPlayers,
+    incrementScore, decrementScore, // swapScores removed
+    // swapCivPlayers, swapMapPlayers removed
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
@@ -166,7 +166,7 @@ const TechnicalInterface = () => {
                 <span className="score-display">{scores.host}</span>
                 <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
               </div>
-              <button onClick={swapScores} className="swap-scores-button button-like">Swap Scores</button>
+              {/* "Swap Scores" button removed */}
               <div className="score-controls-group">
                 <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
                 <span className="score-display">{scores.guest}</span>
@@ -185,7 +185,7 @@ const TechnicalInterface = () => {
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
-            <button onClick={swapCivPlayers} className="button-like swap-players-button">Swap Civs</button>
+            {/* "Swap Civ Players" button removed */}
             <span>{guestName}</span>
           </div>
           <div className="draft-columns">
@@ -204,7 +204,7 @@ const TechnicalInterface = () => {
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
-            <button onClick={swapMapPlayers} className="button-like swap-players-button">Swap Maps</button>
+            {/* "Swap Map Players" button removed */}
             <span>{guestName}</span>
           </div>
           <div className="draft-columns">
