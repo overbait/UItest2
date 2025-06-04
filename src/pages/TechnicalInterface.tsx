@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 // import { Link } from 'react-router-dom'; // Link is not used
 import useDraftStore from '../store/draftStore';
-import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft'; // Ensure CombinedDraftState is imported if needed for types
+import { ConnectionStatus, SavedPreset } from '../types/draft';
 import '../styles/TechnicalInterface.css';
 
 // Helper component to display a list of picks or bans
@@ -29,14 +29,14 @@ const TechnicalInterface = () => {
     civDraftStatus, civDraftError, isLoadingCivDraft,
     mapDraftStatus, mapDraftError, isLoadingMapDraft,
     savedPresets,
-    boxSeriesFormat, boxSeriesGames, // Destructure BoX series state
+    boxSeriesFormat, boxSeriesGames,
     connectToDraft,
     setHostName, setGuestName,
     incrementScore, decrementScore, swapScores,
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
     disconnectDraft,
-    setBoxSeriesFormat, updateBoxSeriesGame, // Destructure BoX series actions
+    setBoxSeriesFormat, updateBoxSeriesGame,
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -145,7 +145,7 @@ const TechnicalInterface = () => {
       ...mapPicksGuest,
       ...mapPicksGlobal,
     ]);
-    return Array.from(allPickedMaps).filter(Boolean); // Filter out null/empty strings
+    return Array.from(allPickedMaps).filter(Boolean);
   }, [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
 
   const availableHostCivsForBoX = useMemo(() => {
@@ -266,7 +266,7 @@ const TechnicalInterface = () => {
       </div>
 
       <div className="drafts-section-grid">
-        <div className="card draft-display-card civ-draft-card"> {/* Added specific class */}
+        <div className="card draft-display-card civ-draft-card">
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
@@ -285,7 +285,7 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
-        <div className="card draft-display-card map-draft-card"> {/* Added specific class */}
+        <div className="card draft-display-card map-draft-card">
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
@@ -321,7 +321,7 @@ const TechnicalInterface = () => {
               id="boxFormat" 
               value={boxSeriesFormat || ''} 
               onChange={(e) => setBoxSeriesFormat(e.target.value as typeof boxSeriesFormat)}
-              className="button-like" // Basic styling for select
+              className="button-like"
             >
               <option value="">Select Format</option>
               <option value="bo1">Bo1</option>
@@ -337,7 +337,6 @@ const TechnicalInterface = () => {
                 <div key={index} className="box-game-slot">
                   <h4 className="game-slot-title">Game {index + 1}</h4>
                   <div className="game-slot-selectors">
-                    {/* Host Civ */}
                     <div className="selector-group">
                       <label htmlFor={`box-host-civ-${index}`}>{hostName} Civ:</label>
                       <select
@@ -350,7 +349,6 @@ const TechnicalInterface = () => {
                         {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
                       </select>
                     </div>
-                    {/* Map */}
                      <div className="selector-group map-selector-group">
                       <label htmlFor={`box-map-${index}`}>Map:</label>
                       <select
@@ -363,7 +361,6 @@ const TechnicalInterface = () => {
                         {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
                       </select>
                     </div>
-                    {/* Guest Civ */}
                     <div className="selector-group">
                       <label htmlFor={`box-guest-civ-${index}`}>{guestName} Civ:</label>
                       <select
