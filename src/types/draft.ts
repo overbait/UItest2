@@ -60,12 +60,18 @@ export interface SingleDraftData {
   currentAction?: string;
 }
 
-// New Types for Studio Interface
+// Updated Types for Studio Interface
 export interface StudioElement {
   id: string;
   type: string; // e.g., 'ScoreDisplay', 'MapImage'
   position: { x: number; y: number };
   size: { width: number; height: number };
+  // New optional settings
+  fontFamily?: string;
+  showName?: boolean;
+  showScore?: boolean;
+  backgroundColor?: string;
+  borderColor?: string;
   // Potentially other properties like styleOverrides, dataBinding, etc.
   [key: string]: any; // Allow other properties for flexibility initially
 }
@@ -109,7 +115,7 @@ export interface CombinedDraftState {
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null;
   boxSeriesGames: BoxSeriesGame[];
 
-  // New state for Studio Interface
   studioLayout: StudioElement[];
   savedStudioLayouts: SavedStudioLayout[];
+  selectedElementId?: string | null; // For Phase 6
 }

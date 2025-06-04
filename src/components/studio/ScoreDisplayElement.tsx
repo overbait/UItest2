@@ -1,39 +1,61 @@
 import React from 'react';
-import useDraftStore from '../../store/draftStore'; // Corrected path
+import useDraftStore from '../../store/draftStore'; // Ensure this is not commented out
+import { StudioElement } from '../../types/draft'; // Import StudioElement type
 
-// Define props for the component, though it primarily uses the store for data.
-// We might add props later for ID, position, size if needed when rendering from studioLayout.
 interface ScoreDisplayElementProps {
-  // Example: elementId: string;
+  element: StudioElement; // Expect the full element object as a prop
 }
 
-const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = () => {
-  const hostName = useDraftStore((state) => state.hostName);
-  const guestName = useDraftStore((state) => state.guestName);
-  const scores = useDraftStore((state) => state.scores);
+const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) => {
+  // Destructure styling and visibility settings from the element prop
+  const {
+    fontFamily,
+    showName,
+    showScore,
+    backgroundColor,
+    borderColor
+  } = element;
+
+  // Fallback to defaults if properties are undefined
+  const currentFontFamily = fontFamily || 'Arial';
+  const currentShowName = typeof showName === 'boolean' ? showName : true;
+  const currentShowScore = typeof showScore === 'boolean' ? showScore : true;
+  const currentBackgroundColor = backgroundColor || 'transparent';
+  const currentBorderColor = borderColor || 'transparent';
+
+  // Retrieve live data from the store
+  const liveHostName = useDraftStore((state) => state.hostName);
+  const liveGuestName = useDraftStore((state) => state.guestName);
+  const liveScores = useDraftStore((state) => state.scores);
 
   return (
     <div style={{
-      border: '1px solid #555',
+      border: `1px solid ${currentBorderColor}`,
       padding: '10px',
       borderRadius: '5px',
-      backgroundColor: '#333',
+      backgroundColor: currentBackgroundColor,
       color: 'white',
-      display: 'inline-block', // So it takes content width by default
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '18px', // Default font size
-      width: '100%', // Ensure it fills the resizable box
-      height: '100%', // Ensure it fills the resizable box
-      boxSizing: 'border-box', // Include padding and border in the element's total width and height
-      display: 'flex', // Use flex to center content or manage layout
-      alignItems: 'center', // Center content vertically
-      justifyContent: 'center', // Center content horizontally
+      fontFamily: currentFontFamily,
+      fontSize: '18px',
+      width: '100%',
+      height: '100%',
+      boxSizing: 'border-box',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
     }}>
-      <span>{hostName}</span>
-      <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({scores.host})</span>
-      <span style={{ margin: '0 5px' }}>-</span>
-      <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({scores.guest})</span>
-      <span>{guestName}</span>
+      {currentShowName && <span>{liveHostName}</span>}
+      {currentShowName && currentShowScore && <span style={{ margin: '0 5px' }}> </span>}
+
+      {currentShowScore && <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({liveScores.host})</span>}
+      {currentShowScore && <span style={{ margin: '0 5px' }}>-</span>}
+      {currentShowScore && <span style={{ fontWeight: 'bold', margin: '0 5px' }}>({liveScores.guest})</span>}
+
+      {currentShowName && currentShowScore && <span style={{ margin: '0 5px' }}> </span>}
+      {currentShowName && <span>{liveGuestName}</span>}
+
+      {!currentShowName && !currentShowScore && <span style={{fontSize: '0.8em', opacity: 0.7}}>(Content Hidden)</span>}
     </div>
   );
 };
