@@ -1,10 +1,9 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-// import useDraftStore from './store/draftStore'; // Not directly used in App.tsx for routing logic anymore
 
 // Lazy load page components for code splitting
 const TechnicalInterface = lazy(() => import('./pages/TechnicalInterface'));
-// BroadcastView import removed as per instructions
+const StudioInterface = lazy(() => import('./pages/StudioInterface')); // Added import
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
@@ -56,37 +55,42 @@ const LoadingScreen = () => (
   </div>
 );
 
-// HomePage component removed as per instructions
-
-// Navigation component - Simplified
+// Navigation component - Updated
 const Navigation = () => {
-  const location = useLocation(); // Kept for potential future use or active styling of the main link
+  const location = useLocation();
 
   return (
     <nav className="bg-ui-background shadow-md py-3 px-4">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className={`text-xl font-medieval ${location.pathname === '/' ? 'text-aoe-gold' : 'text-aoe-light hover:text-aoe-tan'}`}>
+        <Link to="/technical" className={`text-xl font-medieval ${location.pathname.startsWith('/technical') ? 'text-aoe-gold' : 'text-aoe-light hover:text-aoe-tan'}`}>
           AoE4 Draft Overlay
         </Link>
-        {/* Other navigation links removed */}
+        <div className="space-x-4">
+          <Link to="/technical" className={`font-medieval ${location.pathname.startsWith('/technical') ? 'text-aoe-gold' : 'text-aoe-light hover:text-aoe-tan'}`}>
+            Data Management
+          </Link>
+          <Link to="/studio" className={`font-medieval ${location.pathname.startsWith('/studio') ? 'text-aoe-gold' : 'text-aoe-light hover:text-aoe-tan'}`}>
+            Broadcast Studio
+          </Link>
+        </div>
       </div>
     </nav>
   );
 };
 
 const App: React.FC = () => {
-  // const { connectionStatus } = useDraftStore(); // No longer needed for routing decisions here
-
   return (
     <ErrorBoundary>
       <div className="flex flex-col min-h-screen">
         <Navigation />
         <main className="flex-grow">
           <Suspense fallback={<LoadingScreen />}>
+            {/* Updated Routes */}
             <Routes>
-              <Route path="/" element={<TechnicalInterface />} />
-              {/* Routes for HomePage, /technical, and /broadcast removed */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/technical" element={<TechnicalInterface />} />
+              <Route path="/studio" element={<StudioInterface />} />
+              <Route path="/" element={<Navigate to="/technical" replace />} /> {/* Default to technical */}
+              <Route path="*" element={<Navigate to="/technical" replace />} /> {/* Catch all to technical */}
             </Routes>
           </Suspense>
         </main>
