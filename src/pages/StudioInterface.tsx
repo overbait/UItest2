@@ -1,7 +1,7 @@
-import React, { useState } from 'react'; // Added useState
-import useDraftStore from '../../store/draftStore';
-import ScoreDisplayElement from '../../components/studio/ScoreDisplayElement';
-import { StudioElement, SavedStudioLayout } from '../../types/draft'; // Added SavedStudioLayout
+import React, { useState } from 'react';
+import useDraftStore from '../store/draftStore'; // Corrected path
+import ScoreDisplayElement from '../components/studio/ScoreDisplayElement'; // Corrected path
+import { StudioElement, SavedStudioLayout } from '../types/draft'; // Corrected path
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -9,14 +9,13 @@ import 'react-resizable/css/styles.css';
 const StudioInterface: React.FC = () => {
   const {
     studioLayout,
-    savedStudioLayouts, // Added
+    savedStudioLayouts,
     addStudioElement,
     updateStudioElementPosition,
     updateStudioElementSize,
-    saveCurrentStudioLayout, // Added
-    loadStudioLayout,       // Added
-    deleteStudioLayout,     // Added
-    // updateStudioLayoutName, // For future enhancement
+    saveCurrentStudioLayout,
+    loadStudioLayout,
+    deleteStudioLayout,
   } = useDraftStore(state => ({
     studioLayout: state.studioLayout,
     savedStudioLayouts: state.savedStudioLayouts,
@@ -26,7 +25,6 @@ const StudioInterface: React.FC = () => {
     saveCurrentStudioLayout: state.saveCurrentStudioLayout,
     loadStudioLayout: state.loadStudioLayout,
     deleteStudioLayout: state.deleteStudioLayout,
-    // updateStudioLayoutName: state.updateStudioLayoutName,
   }));
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
@@ -49,7 +47,7 @@ const StudioInterface: React.FC = () => {
       return;
     }
     saveCurrentStudioLayout(newLayoutName.trim());
-    setNewLayoutName(""); // Clear input after saving
+    setNewLayoutName("");
   };
 
   const toolboxSectionStyle: React.CSSProperties = {
@@ -65,7 +63,7 @@ const StudioInterface: React.FC = () => {
   };
 
   const inputStyle: React.CSSProperties = {
-    width: 'calc(100% - 22px)', // Account for padding/border
+    width: 'calc(100% - 22px)',
     padding: '8px 10px',
     marginBottom: '10px',
     backgroundColor: '#2c2c2c',
@@ -115,7 +113,6 @@ const StudioInterface: React.FC = () => {
     border: 'none',
   };
 
-
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -126,7 +123,6 @@ const StudioInterface: React.FC = () => {
           <button onClick={handleAddScoreDisplay} style={buttonStyle}>
             Add Score Display
           </button>
-          {/* Future elements will be added here */}
         </div>
 
         <div style={toolboxSectionStyle}>
@@ -143,7 +139,7 @@ const StudioInterface: React.FC = () => {
           </button>
         </div>
 
-        <div style={{flexGrow: 1, overflowY: 'auto'}}> {/* Make this section scrollable */}
+        <div style={{flexGrow: 1, overflowY: 'auto'}}>
           <h3 style={toolboxHeaderStyle}>Saved Layouts</h3>
           {savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -165,7 +161,6 @@ const StudioInterface: React.FC = () => {
                   >
                     Del
                   </button>
-                  {/* TODO: Add rename functionality here */}
                 </div>
               </li>
             ))}
