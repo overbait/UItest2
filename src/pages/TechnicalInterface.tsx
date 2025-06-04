@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// import { Link } from 'react-router-dom'; // Link is not used
 import useDraftStore from '../store/draftStore';
 import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft';
 import '../styles/TechnicalInterface.css';
 
-// Helper component to display a list of picks or bans
 const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' | 'ban' }> = ({ title, items, type }) => (
   <div className="data-section">
     <h4>{title}:</h4>
@@ -18,7 +16,6 @@ const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' 
   </div>
 );
 
-// Main Technical Interface component
 const TechnicalInterface = () => {
   const {
     civDraftId, mapDraftId,
@@ -33,8 +30,8 @@ const TechnicalInterface = () => {
     activePresetId,
     connectToDraft,
     setHostName, setGuestName,
-    incrementScore, decrementScore, // swapScores removed
-    // swapCivPlayers, swapMapPlayers removed
+    incrementScore, decrementScore,
+    swapCivPlayers, swapMapPlayers, // Re-added for completeness, will be removed from UI
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
@@ -66,64 +63,47 @@ const TechnicalInterface = () => {
     return <div className="status-circle" style={{ backgroundColor: color }} title={error || status}></div>;
   };
 
-  const handleAddNewPreset = () => {
+  const handleAddNewPresetAndSaveCurrent = () => {
     const storeState = useDraftStore.getState();
+    // Only prompt to save if there's active data AND it's not already matching the active preset (i.e., it's dirty)
     if ((storeState.civDraftId || storeState.mapDraftId) && storeState.activePresetId === null) {
       const defaultName = `${storeState.hostName || 'P1'} vs ${storeState.guestName || 'P2'} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
-      const presetName = prompt("Enter a name for the current session before starting a new one:", defaultName);
-      if (presetName) saveCurrentAsPreset(presetName);
-      else return;
+      const presetName = prompt("Name for current session (leave empty to discard current changes before starting new):", defaultName);
+      if (presetName) { // If user provides a name (or confirms default by not emptying it)
+        saveCurrentAsPreset(presetName);
+      } else if (presetName === "") { // User explicitly cleared the name, wants to discard
+         console.log("Discarding current session changes.");
+      } else { // User cancelled the prompt
+        return; 
+      }
     }
     _resetCurrentSessionState();
   };
+  
+  const handleDirectReset = () => {
+      if (window.confirm("Are you sure you want to reset the current session? Unsaved changes will be lost.")) {
+          _resetCurrentSessionState();
+      }
+  }
 
   const handleDeletePresetAndReset = (presetIdToDelete: string) => deletePreset(presetIdToDelete);
 
   const isCurrentStateDirtyForPreset = (preset: SavedPreset): boolean => {
-    if (!activePresetId || activePresetId !== preset.id) {
-      // console.log(`isCurrentStateDirtyForPreset: Preset ${preset.name} is not active or ID mismatch. ActiveID: ${activePresetId}`);
-      return false; 
-    }
+    if (activePresetId !== preset.id) return false; 
     const currentState = useDraftStore.getState();
     let dirty = false;
-
-    console.log(`Dirty check for preset: ${preset.name} (ID: ${preset.id}) | Active Preset ID: ${activePresetId}`);
-
-    if (currentState.hostName !== preset.hostName) {
-      console.log('Dirty check - hostName: Current:', currentState.hostName, 'Preset:', preset.hostName, true);
-      dirty = true;
-    }
-    if (currentState.guestName !== preset.guestName) {
-      console.log('Dirty check - guestName: Current:', currentState.guestName, 'Preset:', preset.guestName, true);
-      dirty = true;
-    }
-    if (currentState.scores.host !== preset.scores.host || currentState.scores.guest !== preset.scores.guest) {
-      console.log('Dirty check - scores: Current:', currentState.scores, 'Preset:', preset.scores, true);
-      dirty = true;
-    }
-    if (currentState.civDraftId !== preset.civDraftId) {
-      console.log('Dirty check - civDraftId: Current:', currentState.civDraftId, 'Preset:', preset.civDraftId, true);
-      dirty = true;
-    }
-    if (currentState.mapDraftId !== preset.mapDraftId) {
-      console.log('Dirty check - mapDraftId: Current:', currentState.mapDraftId, 'Preset:', preset.mapDraftId, true);
-      dirty = true;
-    }
-    if (currentState.boxSeriesFormat !== preset.boxSeriesFormat) {
-      console.log('Dirty check - boxSeriesFormat: Current:', currentState.boxSeriesFormat, 'Preset:', preset.boxSeriesFormat, true);
-      dirty = true;
-    }
+    if (currentState.hostName !== preset.hostName) dirty = true;
+    if (currentState.guestName !== preset.guestName) dirty = true;
+    if (currentState.scores.host !== preset.scores.host || currentState.scores.guest !== preset.scores.guest) dirty = true;
+    if (currentState.civDraftId !== preset.civDraftId) dirty = true;
+    if (currentState.mapDraftId !== preset.mapDraftId) dirty = true;
+    if (currentState.boxSeriesFormat !== preset.boxSeriesFormat) dirty = true;
+    if (JSON.stringify(currentState.boxSeriesGames) !== JSON.stringify(preset.boxSeriesGames)) dirty = true;
     
-    const currentGamesString = JSON.stringify(currentState.boxSeriesGames);
-    const presetGamesString = JSON.stringify(preset.boxSeriesGames);
-    if (currentGamesString !== presetGamesString) {
-      console.log('Dirty check - boxSeriesGames (stringified): Current:', currentGamesString, 'Preset:', presetGamesString, true);
-      dirty = true;
-    }
-    
-    if (!dirty) {
-      console.log(`Dirty check for preset ${preset.name}: No changes detected.`);
-    }
+    // Log for debugging
+    // if (dirty) console.log(`Preset "${preset.name}" is active and dirty.`);
+    // else if (activePresetId === preset.id) console.log(`Preset "${preset.name}" is active but not dirty.`);
+
     return dirty;
   };
   
@@ -163,20 +143,21 @@ const TechnicalInterface = () => {
         <div className="card saved-presets-card">
           <div className="presets-header">
             <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'0'}}>Saved Presets</h2>
-            <button onClick={handleAddNewPreset} className="button-like add-new-preset-button-plus" title="Start New Preset Session">
-              +
-            </button>
+            <div className="preset-actions-buttons">
+              <button onClick={handleAddNewPresetAndSaveCurrent} className="button-like add-new-preset-button-plus" title="Save Current & Start New Session">+</button>
+              <button onClick={handleDirectReset} className="button-like reset-session-button" title="Reset Current Session">Reset</button>
+            </div>
           </div>
           <div className="saved-presets-list">
-            {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save.</p>}
+            {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save current session and start new.</p>}
             {savedPresets.map((preset: SavedPreset) => {
-              const isDirty = isCurrentStateDirtyForPreset(preset); // Check if this specific preset is active AND dirty
+              const isDirty = isCurrentStateDirtyForPreset(preset);
               return (
                 <div key={preset.id} className="preset-item">
                   <button onClick={() => loadPreset(preset.id)} className={`button-like preset-load-button ${preset.id === activePresetId && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
                     {preset.name}
                   </button>
-                  {isDirty && ( // Show update button only if this preset is active and dirty
+                  {isDirty && (
                     <button onClick={() => handleUpdatePreset(preset.name)} className="button-like preset-update-button">
                       Update
                     </button>
@@ -200,7 +181,7 @@ const TechnicalInterface = () => {
                 <span className="score-display">{scores.host}</span>
                 <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
               </div>
-              {/* "Swap Scores" button removed */}
+               {/* Swap Scores button removed */}
               <div className="score-controls-group">
                 <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
                 <span className="score-display">{scores.guest}</span>
@@ -219,7 +200,7 @@ const TechnicalInterface = () => {
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
-            {/* "Swap Civ Players" button removed */}
+             {/* Swap Civ Players button removed */}
             <span>{guestName}</span>
           </div>
           <div className="draft-columns">
@@ -238,7 +219,7 @@ const TechnicalInterface = () => {
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
             <span>{hostName}</span>
-            {/* "Swap Map Players" button removed */}
+            {/* Swap Map Players button removed */}
             <span>{guestName}</span>
           </div>
           <div className="draft-columns">
@@ -254,7 +235,7 @@ const TechnicalInterface = () => {
           {(mapPicksGlobal.length > 0 || mapBansGlobal.length > 0) &&
             !mapPicksHost.length && !mapPicksGuest.length && !mapBansHost.length && !mapBansGuest.length && (
             <div className="global-maps-section">
-              <h3 className="section-title-small">Global Map Draft:</h3>
+              <h3 className="section-title-small" style={{ fontFamily: 'var(--font-medieval)', color: 'var(--aoe-gold-accent)', fontSize: '1.1em' }}>Global Map Draft:</h3>
               <DraftListDisplay title="Picks" items={mapPicksGlobal} type="pick" />
               <DraftListDisplay title="Bans" items={mapBansGlobal} type="ban" />
             </div>
