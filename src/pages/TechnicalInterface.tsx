@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// import { Link } from 'react-router-dom'; // Link is not used
 import useDraftStore from '../store/draftStore';
-import { ConnectionStatus, SavedPreset } from '../types/draft';
+import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft';
 import '../styles/TechnicalInterface.css';
 
-// Helper component to display a list of picks or bans
 const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' | 'ban' }> = ({ title, items, type }) => (
   <div className="data-section">
     <h4>{title}:</h4>
@@ -18,7 +16,6 @@ const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' 
   </div>
 );
 
-// Main Technical Interface component
 const TechnicalInterface = () => {
   const {
     civDraftId, mapDraftId,
@@ -30,15 +27,14 @@ const TechnicalInterface = () => {
     mapDraftStatus, mapDraftError, isLoadingMapDraft,
     savedPresets,
     boxSeriesFormat, boxSeriesGames,
-    activePresetId, // Destructure activePresetId
+    activePresetId,
     connectToDraft,
     setHostName, setGuestName,
     incrementScore, decrementScore, swapScores,
     swapCivPlayers, swapMapPlayers,
     saveCurrentAsPreset, loadPreset, deletePreset,
-    // disconnectDraft, // disconnectDraft is part of _resetCurrentSessionState now
+    _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
-    _resetCurrentSessionState, // Destructure the reset action
   } = useDraftStore();
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
@@ -47,124 +43,72 @@ const TechnicalInterface = () => {
   const [editableHostName, setEditableHostName] = useState(hostName);
   const [editableGuestName, setEditableGuestName] = useState(guestName);
 
-  useEffect(() => {
-    setEditableHostName(hostName);
-  }, [hostName]);
+  useEffect(() => { setEditableHostName(hostName); }, [hostName]);
+  useEffect(() => { setEditableGuestName(guestName); }, [guestName]);
+  useEffect(() => { setCivDraftIdInput(civDraftId || ''); setMapDraftIdInput(mapDraftId || ''); }, [civDraftId, mapDraftId]);
 
-  useEffect(() => {
-    setEditableGuestName(guestName);
-  }, [guestName]);
-  
-  useEffect(() => { 
-    setCivDraftIdInput(civDraftId || '');
-    setMapDraftIdInput(mapDraftId || '');
-  }, [civDraftId, mapDraftId]);
+  const handleHostNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableHostName(e.target.value);
+  const handleGuestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableGuestName(e.target.value);
+  const updateHostNameInStore = () => setHostName(editableHostName);
+  const updateGuestNameInStore = () => setGuestName(editableGuestName);
 
+  const handleCivDraftConnect = async () => { if (civDraftIdInput.trim()) await connectToDraft(civDraftIdInput.trim(), 'civ'); };
+  const handleMapDraftConnect = async () => { if (mapDraftIdInput.trim()) await connectToDraft(mapDraftIdInput.trim(), 'map'); };
 
-  const handleHostNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditableHostName(e.target.value);
-  };
-  const handleGuestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditableGuestName(e.target.value);
-  };
-
-  const updateHostNameInStore = () => {
-    setHostName(editableHostName);
-  };
-  const updateGuestNameInStore = () => {
-    setGuestName(editableGuestName);
-  };
-
-  const handleCivDraftConnect = async () => {
-    if (civDraftIdInput.trim()) {
-      await connectToDraft(civDraftIdInput.trim(), 'civ');
-    }
-  };
-
-  const handleMapDraftConnect = async () => {
-    if (mapDraftIdInput.trim()) {
-      await connectToDraft(mapDraftIdInput.trim(), 'map');
-    }
-  };
-  
   const renderStatusIndicator = (status: ConnectionStatus, isLoading: boolean, error: string | null) => {
-    let color = 'grey'; 
-    if (isLoading) color = 'orange'; 
-    else if (error) color = 'red'; 
-    else if (status === 'connected') color = 'green'; 
-    
+    let color = 'grey';
+    if (isLoading) color = 'orange';
+    else if (error) color = 'red';
+    else if (status === 'connected') color = 'green';
     return <div className="status-circle" style={{ backgroundColor: color }} title={error || status}></div>;
   };
 
   const handleAddNewPreset = () => {
-    const { 
-      civDraftId: currentCivId, 
-      mapDraftId: currentMapId,
-      hostName: currentHostName,
-      guestName: currentGuestName,
-      activePresetId: currentActivePresetId
-    } = useDraftStore.getState();
-
-    // Save if there's data and it's not an unmodified active preset
-    if ((currentCivId || currentMapId) && currentActivePresetId === null) {
-      const defaultName = `${currentHostName || 'P1'} vs ${currentGuestName || 'P2'} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+    const storeState = useDraftStore.getState();
+    if ((storeState.civDraftId || storeState.mapDraftId) && storeState.activePresetId === null) {
+      const defaultName = `${storeState.hostName || 'P1'} vs ${storeState.guestName || 'P2'} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
       const presetName = prompt("Enter a name for the current session before starting a new one:", defaultName);
-      if (presetName) {
-        saveCurrentAsPreset(presetName); // This will also set the new preset as active
-      } else {
-        return; // User cancelled saving, so don't reset
-      }
+      if (presetName) saveCurrentAsPreset(presetName);
+      else return;
     }
-    
-    _resetCurrentSessionState(); // Call the store action to reset everything
-
-    // Input fields are already updated by useEffect watching store's civDraftId/mapDraftId
+    _resetCurrentSessionState();
   };
 
-  const handleDeletePresetAndReset = (presetIdToDelete: string) => {
-    // The store's deletePreset action now handles resetting if the active preset is deleted.
-    deletePreset(presetIdToDelete);
+  const handleDeletePresetAndReset = (presetIdToDelete: string) => deletePreset(presetIdToDelete);
+
+  const isCurrentStateDirtyForPreset = (preset: SavedPreset): boolean => {
+    if (!activePresetId || activePresetId !== preset.id) return false; // Not active or not this preset
+    const currentState = useDraftStore.getState();
+    return (
+      currentState.hostName !== preset.hostName ||
+      currentState.guestName !== preset.guestName ||
+      currentState.scores.host !== preset.scores.host ||
+      currentState.scores.guest !== preset.scores.guest ||
+      currentState.civDraftId !== preset.civDraftId ||
+      currentState.mapDraftId !== preset.mapDraftId ||
+      currentState.boxSeriesFormat !== preset.boxSeriesFormat ||
+      JSON.stringify(currentState.boxSeriesGames) !== JSON.stringify(preset.boxSeriesGames)
+    );
+  };
+  
+  const handleUpdatePreset = (presetName: string) => {
+    saveCurrentAsPreset(presetName); // This will update the existing preset
   };
 
-
-  const availableMapsForBoX = useMemo(() => {
-    const allPickedMaps = new Set([
-      ...mapPicksHost,
-      ...mapPicksGuest,
-      ...mapPicksGlobal,
-    ]);
-    return Array.from(allPickedMaps).filter(Boolean);
-  }, [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
-
-  const availableHostCivsForBoX = useMemo(() => {
-    return [...new Set(civPicksHost)].filter(Boolean);
-  }, [civPicksHost]);
-
-  const availableGuestCivsForBoX = useMemo(() => {
-    return [...new Set(civPicksGuest)].filter(Boolean);
-  }, [civPicksGuest]);
-
+  const availableMapsForBoX = useMemo(() => Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean), [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
+  const availableHostCivsForBoX = useMemo(() => [...new Set(civPicksHost)].filter(Boolean), [civPicksHost]);
+  const availableGuestCivsForBoX = useMemo(() => [...new Set(civPicksGuest)].filter(Boolean), [civPicksGuest]);
 
   return (
     <div className="technical-interface main-dashboard-layout">
-      
       <h1 className="main-title">AoE4 Draft Overlay Control Panel</h1>
-
-      {/* Top Section Grid: Draft Inputs, Saved Presets, Player Info & Scores */}
       <div className="top-section-grid">
-        {/* Column 1: Draft Inputs */}
         <div className="card draft-inputs-card">
+          {/* Draft Inputs UI */}
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Draft Inputs</h2>
           <div className="draft-input-group">
             <label htmlFor="civDraftIdInput">Civ Draft ID:</label>
-            <input
-              id="civDraftIdInput"
-              type="text"
-              value={civDraftIdInput}
-              onChange={(e) => setCivDraftIdInput(e.target.value)}
-              placeholder="Civ Draft ID"
-              className="draft-id-input"
-            />
+            <input id="civDraftIdInput" type="text" value={civDraftIdInput} onChange={(e) => setCivDraftIdInput(e.target.value)} placeholder="Civ Draft ID" className="draft-id-input"/>
             <button onClick={handleCivDraftConnect} disabled={isLoadingCivDraft} className="button-like import-button">
               {isLoadingCivDraft ? 'Connecting...' : 'Import Civ'}
             </button>
@@ -172,14 +116,7 @@ const TechnicalInterface = () => {
           </div>
           <div className="draft-input-group">
             <label htmlFor="mapDraftIdInput">Map Draft ID:</label>
-            <input
-              id="mapDraftIdInput"
-              type="text"
-              value={mapDraftIdInput}
-              onChange={(e) => setMapDraftIdInput(e.target.value)}
-              placeholder="Map Draft ID"
-              className="draft-id-input"
-            />
+            <input id="mapDraftIdInput" type="text" value={mapDraftIdInput} onChange={(e) => setMapDraftIdInput(e.target.value)} placeholder="Map Draft ID" className="draft-id-input"/>
             <button onClick={handleMapDraftConnect} disabled={isLoadingMapDraft} className="button-like import-button">
               {isLoadingMapDraft ? 'Connecting...' : 'Import Map'}
             </button>
@@ -187,47 +124,40 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
-        {/* Column 2: Saved Presets */}
         <div className="card saved-presets-card">
+          {/* Saved Presets UI */}
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Saved Presets</h2>
-          <button onClick={handleAddNewPreset} className="button-like save-preset-button add-new-preset-button">
+          <button onClick={handleAddNewPreset} className="button-like add-new-preset-button">
             + New Preset Session
           </button>
           <div className="saved-presets-list">
-            {savedPresets.length === 0 && 
-              <p className="no-presets-message">No presets. Import drafts then click "+ New Preset Session" to save.</p>
-            }
-            {savedPresets.map((preset: SavedPreset) => (
-              <div key={preset.id} className="preset-item">
-                <button 
-                  onClick={() => loadPreset(preset.id)} 
-                  className={`button-like preset-load-button ${preset.id === activePresetId ? 'active-preset' : ''}`}
-                >
-                  {preset.name}
-                </button>
-                <button onClick={() => handleDeletePresetAndReset(preset.id)} className="preset-delete-button" title="Delete preset">
-                  &times;
-                </button>
-              </div>
-            ))}
+            {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+ New Preset Session" to save.</p>}
+            {savedPresets.map((preset: SavedPreset) => {
+              const isDirty = preset.id === activePresetId && isCurrentStateDirtyForPreset(preset);
+              return (
+                <div key={preset.id} className="preset-item">
+                  <button onClick={() => loadPreset(preset.id)} className={`button-like preset-load-button ${preset.id === activePresetId && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
+                    {preset.name}
+                  </button>
+                  {isDirty && (
+                    <button onClick={() => handleUpdatePreset(preset.name)} className="button-like preset-update-button">
+                      Update
+                    </button>
+                  )}
+                  <button onClick={() => handleDeletePresetAndReset(preset.id)} className="preset-delete-button" title="Delete preset">&times;</button>
+                </div>
+              );
+            })}
           </div>
         </div>
         
-        {/* Column 3: Player Info & Scores */}
         <div className="card player-scores-card">
-           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
+          {/* Player Scores UI */}
+          <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
            <div className="player-scores-horizontal-layout">
               <div className="player-name-input-group">
                 <label htmlFor="hostNameInput">Player 1 (Host)</label>
-                <input
-                  id="hostNameInput"
-                  type="text"
-                  value={editableHostName}
-                  onChange={handleHostNameChange}
-                  onBlur={updateHostNameInStore}
-                  onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
-                  className="name-input"
-                />
+                <input id="hostNameInput" type="text" value={editableHostName} onChange={handleHostNameChange} onBlur={updateHostNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()} className="name-input"/>
               </div>
               <div className="score-controls-group">
                 <button onClick={() => decrementScore('host')} className="score-button button-like">-</button>
@@ -242,21 +172,14 @@ const TechnicalInterface = () => {
               </div>
               <div className="player-name-input-group">
                 <label htmlFor="guestNameInput">Player 2 (Guest)</label>
-                <input
-                  id="guestNameInput"
-                  type="text"
-                  value={editableGuestName}
-                  onChange={handleGuestNameChange}
-                  onBlur={updateGuestNameInStore}
-                  onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
-                  className="name-input"
-                />
+                <input id="guestNameInput" type="text" value={editableGuestName} onChange={handleGuestNameChange} onBlur={updateGuestNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()} className="name-input"/>
               </div>
            </div>
         </div>
       </div>
 
       <div className="drafts-section-grid">
+        {/* Civ Draft Display */}
         <div className="card draft-display-card civ-draft-card">
           <h2 className="section-title">Civilization Draft</h2>
           <div className="draft-header">
@@ -276,6 +199,7 @@ const TechnicalInterface = () => {
           </div>
         </div>
 
+        {/* Map Draft Display */}
         <div className="card draft-display-card map-draft-card">
           <h2 className="section-title">Map Draft</h2>
           <div className="draft-header">
@@ -303,17 +227,12 @@ const TechnicalInterface = () => {
           )}
         </div>
         
-        {/* New BoX Series Overview Card */}
+        {/* BoX Series Overview Card */}
         <div className="card box-series-card">
           <h2 className="section-title">BoX Series Overview</h2>
           <div className="box-format-selector">
             <label htmlFor="boxFormat">Series Format:</label>
-            <select 
-              id="boxFormat" 
-              value={boxSeriesFormat || ''} 
-              onChange={(e) => setBoxSeriesFormat(e.target.value as typeof boxSeriesFormat)}
-              className="button-like"
-            >
+            <select id="boxFormat" value={boxSeriesFormat || ''} onChange={(e) => setBoxSeriesFormat(e.target.value as typeof boxSeriesFormat)} className="button-like">
               <option value="">Select Format</option>
               <option value="bo1">Bo1</option>
               <option value="bo3">Bo3</option>
@@ -329,8 +248,7 @@ const TechnicalInterface = () => {
                   <h4 className="game-slot-title">Game {index + 1}</h4>
                   <div className="game-slot-selectors">
                     <div className="selector-group">
-                      <label htmlFor={`box-host-civ-${index}`} 
-                             className={game.winner === 'host' ? 'text-winner' : game.winner === 'guest' ? 'text-loser' : ''}>
+                      <label htmlFor={`box-host-civ-${index}`} className={game.winner === 'host' ? 'text-winner' : game.winner === 'guest' ? 'text-loser' : ''}>
                         {hostName} Civ:
                       </label>
                       <div className="civ-selection-group">
@@ -347,26 +265,18 @@ const TechnicalInterface = () => {
                           className={`win-button ${game.winner === 'host' ? 'active' : ''}`} 
                           onClick={() => setGameWinner(index, game.winner === 'host' ? null : 'host')}
                           title={`Mark ${hostName} as winner for Game ${index + 1}`}
-                        >
-                          W
-                        </button>
+                        >W</button>
                       </div>
                     </div>
                      <div className="selector-group map-selector-group">
                       <label htmlFor={`box-map-${index}`}>Map:</label>
-                      <select
-                        id={`box-map-${index}`}
-                        value={game.map || ''}
-                        onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)}
-                        className="button-like"
-                      >
+                      <select id={`box-map-${index}`} value={game.map || ''} onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)} className="button-like">
                         <option value="">- Select Map -</option>
                         {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
                       </select>
                     </div>
                     <div className="selector-group">
-                       <label htmlFor={`box-guest-civ-${index}`}
-                              className={game.winner === 'guest' ? 'text-winner' : game.winner === 'host' ? 'text-loser' : ''}>
+                       <label htmlFor={`box-guest-civ-${index}`} className={game.winner === 'guest' ? 'text-winner' : game.winner === 'host' ? 'text-loser' : ''}>
                         {guestName} Civ:
                       </label>
                       <div className="civ-selection-group">
@@ -383,9 +293,7 @@ const TechnicalInterface = () => {
                           className={`win-button ${game.winner === 'guest' ? 'active' : ''}`}
                           onClick={() => setGameWinner(index, game.winner === 'guest' ? null : 'guest')}
                           title={`Mark ${guestName} as winner for Game ${index + 1}`}
-                        >
-                          W
-                        </button>
+                        >W</button>
                       </div>
                     </div>
                   </div>
