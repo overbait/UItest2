@@ -301,3 +301,28 @@
   .technical-interface { padding: 10px; }
   .game-slot-selectors { grid-template-columns: 1fr; }
 }
+
+/* Styles for Active and Dirty Presets */
+.preset-load-button.active-preset {
+  border-color: var(--aoe-gold-accent);
+  box-shadow: 0 0 5px var(--aoe-gold-accent);
+  font-weight: bold;
+}
+
+.preset-load-button.dirty-preset {
+  /* Indicates that the active preset has unsaved changes */
+  /* You might want a different style, e.g., a small icon or different border */
+  border-left: 3px solid var(--aoe-yellow-warning); 
+}
+
+.preset-update-button {
+  background-color: var(--aoe-green-success) !important; /* Blue was requested, using green for now */
+  color: white !important;
+  border-color: var(--aoe-green-success) !important;
+  padding: 4px 8px !important;
+  font-size: 0.75em !important;
+  margin-left: 5px;
+}
+.preset-update-button:hover {
+  background-color: #3e8e41 !important; /* Darker green */
+}
