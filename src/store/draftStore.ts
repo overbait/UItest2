@@ -55,7 +55,7 @@ const initialScores = { host: 0, guest: 0 };
 const initialPlayerNameHost = 'Player 1';
 const initialPlayerNameGuest = 'Player 2';
 
-const initialCombinedState: CombinedDraftState = { /* ... as before ... */
+const initialCombinedState: CombinedDraftState = {
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
   scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
   mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
@@ -65,7 +65,7 @@ const initialCombinedState: CombinedDraftState = { /* ... as before ... */
   studioLayout: [], savedStudioLayouts: [], selectedElementId: null,
 };
 
-const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => { /* ... as before ... */
+const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
   const hostName = raw.nameHost || 'Host'; const guestName = raw.nameGuest || 'Guest';
   const output: Partial<SingleDraftData> = { id: raw.id || raw.draftId || 'unknown-id', hostName, guestName, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], };
   const getOptionNameById = (optionId: string): string => { const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId); if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name; return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; };
@@ -79,7 +79,6 @@ const useDraftStore = create<DraftStore>()(
     persist(
       (set, get) => ({
         ...initialCombinedState,
-        // ... (all other actions like _resetCurrentSessionState, _updateActivePresetIfNeeded, etc. as before)
         _resetCurrentSessionState: () => { set({ ...initialCombinedState, savedPresets: get().savedPresets, studioLayout: [], savedStudioLayouts: get().savedStudioLayouts, selectedElementId: null }); },
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
@@ -105,7 +104,8 @@ const useDraftStore = create<DraftStore>()(
               position: { x: 10, y: 10 + state.studioLayout.length * 50 }, size: { width: 250, height: 40 },
               fontFamily: 'Arial', showName: true, showScore: true,
               backgroundColor: 'transparent', borderColor: 'transparent',
-              scale: 1, // Initialize scale
+              scale: 1,
+              isPivotLocked: false, // Initialize new property
             };
             return { studioLayout: [...state.studioLayout, newElement] };
           });
@@ -123,7 +123,7 @@ const useDraftStore = create<DraftStore>()(
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
-        partialize: (state) => ({ /* ... as before ... */
+        partialize: (state) => ({
             hostName: state.hostName, guestName: state.guestName, scores: state.scores,
             savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,

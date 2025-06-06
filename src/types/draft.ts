@@ -19,13 +19,47 @@ export interface BoxSeriesGame {
   winner: 'host' | 'guest' | null;
 }
 
-export interface Aoe2cmRawDraftData { /* ... */ } // Assuming full content from previous state
+export interface Aoe2cmRawDraftData {
+  id?: string;
+  draftId?: string;
+  nameHost?: string;
+  nameGuest?: string;
+  preset?: {
+    name?: string;
+    turns?: Array<{ player: string; action: string }>;
+    draftOptions?: Array<{ id: string; name: string }>;
+  };
+  events?: Array<{
+    actionType?: string;
+    executingPlayer?: string;
+    chosenOptionId?: string;
+  }>;
+  nextAction?: number;
+  status?: string; // e.g., "COMPLETED", "IN_PROGRESS"
+  ongoing?: boolean;
+}
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-export interface SingleDraftData { /* ... */ } // Assuming full content from previous state
+export interface SingleDraftData {
+  id: string;
+  hostName: string;
+  guestName: string;
+  civPicksHost: string[];
+  civBansHost: string[];
+  civPicksGuest: string[];
+  civBansGuest: string[];
+  mapPicksHost: string[];
+  mapBansHost: string[];
+  mapPicksGuest: string[];
+  mapBansGuest: string[];
+  mapPicksGlobal: string[];
+  mapBansGlobal: string[];
+  status: 'inProgress' | 'completed' | 'unknown';
+  currentTurnPlayer?: string;
+  currentAction?: string;
+}
 
-// Updated Types for Studio Interface
 export interface StudioElement {
   id: string;
   type: string;
@@ -36,7 +70,8 @@ export interface StudioElement {
   showScore?: boolean;
   backgroundColor?: string;
   borderColor?: string;
-  scale?: number; // New property for scale
+  scale?: number;
+  isPivotLocked?: boolean; // New property for mirror/pivot functionality
   [key: string]: any;
 }
 
@@ -47,7 +82,6 @@ export interface SavedStudioLayout {
 }
 
 export interface CombinedDraftState {
-  /* ... existing fields ... */
   civDraftId: string | null; mapDraftId: string | null; hostName: string; guestName: string;
   scores: { host: number; guest: number }; civPicksHost: string[]; civBansHost: string[];
   civPicksGuest: string[]; civBansGuest: string[]; mapPicksHost: string[]; mapBansHost: string[];

@@ -29,10 +29,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
   const settingRowStyle: React.CSSProperties = { marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
   const labelStyle: React.CSSProperties = { fontSize: '0.9em', color: '#b0b0b0', marginRight: '10px', flexShrink: 0 };
   const inputStyle: React.CSSProperties = { width: '60%', padding: '6px 8px', backgroundColor: '#2c2c2c', border: '1px solid #555', color: 'white', borderRadius: '4px', fontSize: '0.9em' };
-  const checkboxStyle: React.CSSProperties = { transform: 'scale(1.1)', marginRight: '5px' }; // Keep for consistency if used elsewhere
-  const rangeInputStyle: React.CSSProperties = { width: '55%', flexGrow: 1 }; // For slider
+  const checkboxStyle: React.CSSProperties = { transform: 'scale(1.1)' };
+  const rangeInputStyle: React.CSSProperties = { width: '55%', flexGrow: 1 };
   const rangeValueStyle: React.CSSProperties = { fontSize: '0.8em', color: '#b0b0b0', marginLeft: '10px', minWidth: '30px', textAlign: 'right' };
-
+  const buttonStyle: React.CSSProperties = { padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'block', width: '100%', fontSize: '0.9em' };
+  const deleteButtonStyle: React.CSSProperties = { ...buttonStyle, backgroundColor: '#dc3545', color: 'white', marginTop: '20px' };
+  const closeButtonStyle: React.CSSProperties = { ...buttonStyle, backgroundColor: '#555', color: 'white', marginTop: '10px' };
 
   return (
     <div style={panelStyle}>
@@ -47,15 +49,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
           <div style={settingRowStyle}><label htmlFor="showScoreCheckbox" style={labelStyle}>Show Scores:</label><input type="checkbox" id="showScoreCheckbox" style={checkboxStyle} checked={selectedElement.showScore === undefined ? true : selectedElement.showScore} onChange={(e) => handleSettingChange('showScore', e.target.checked)}/></div>
           <div style={settingRowStyle}>
             <label htmlFor="scaleSlider" style={labelStyle}>Scale:</label>
-            <input
-              type="range"
-              id="scaleSlider"
-              style={rangeInputStyle}
-              min="0.5" max="3" step="0.05"
-              value={selectedElement.scale || 1}
-              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
-            />
+            <input type="range" id="scaleSlider" style={rangeInputStyle} min="0.5" max="3" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
             <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+          </div>
+          <div style={settingRowStyle}> {/* New Pivot Lock Setting */}
+            <label htmlFor="pivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+            <input
+              type="checkbox"
+              id="pivotLockCheckbox"
+              style={checkboxStyle}
+              checked={!!selectedElement.isPivotLocked}
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+            />
           </div>
         </>
       )}

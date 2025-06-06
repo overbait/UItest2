@@ -8,11 +8,11 @@ import 'react-resizable/css/styles.css';
 import SettingsPanel from '../components/studio/SettingsPanel';
 
 const StudioInterface: React.FC = () => {
-  const { /* ... all state and actions from useDraftStore ... */
+  const {
     studioLayout, savedStudioLayouts, selectedElementId, addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, saveCurrentStudioLayout,
     loadStudioLayout, deleteStudioLayout, setSelectedElementId
-  } = useDraftStore(state => state); // Get all for simplicity here
+  } = useDraftStore(state => state);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
   const selectedElement = useMemo(() => studioLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, studioLayout]);
@@ -20,10 +20,9 @@ const StudioInterface: React.FC = () => {
   const handleAddScoreDisplay = () => { addStudioElement("ScoreDisplay"); };
   const handleDragStop = (elementId: string, data: DraggableData) => { updateStudioElementPosition(elementId, { x: data.x, y: data.y }); };
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
-    // When scale is applied, the size reported by ResizableBox might be the visual size.
-    // We need to store the unscaled size.
     const currentElement = studioLayout.find(el => el.id === elementId);
     const currentScale = currentElement?.scale || 1;
+    // Ensure data.size contains width and height. ResizableBox's ResizeCallbackData provides size.
     updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
   };
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
@@ -57,34 +56,31 @@ const StudioInterface: React.FC = () => {
             if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
-            // ResizableBox dimensions should be the "unscaled" dimensions.
-            // The visual scaling is applied via transform.
             return (
               <Draggable key={element.id} handle=".drag-handle" position={{ x: element.position.x, y: element.position.y }} onStop={(e, data) => handleDragStop(element.id, data)} bounds="parent">
                 <ResizableBox
                     width={element.size.width}
                     height={element.size.height}
-                    onResizeStop={(e, data) => handleResizeStop(element.id, data)} // Pass full data
-                    minConstraints={[50 / currentScale, 30 / currentScale]} // Adjust constraints by scale
-                    maxConstraints={[800 / currentScale, 600 / currentScale]} // Adjust constraints by scale
+                    onResizeStop={(e, data) => handleResizeStop(element.id, data)}
+                    minConstraints={[50 / currentScale, 30 / currentScale]}
+                    maxConstraints={[800 / currentScale, 600 / currentScale]}
                     style={{
                         ...selectionStyle,
-                        // transformOrigin: '0 0' could be useful if scaling from top-left
                         transform: `scale(${currentScale})`,
-                        // The width/height here are visual, but ResizableBox's props are the logical ones
-                        // boxSizing: 'border-box', // Already on child
+                        transformOrigin: 'top left', // Added this line
                     }}
                     className="drag-handle">
                   <div onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
                        style={{
-                           width: '100%', // Child fills the unscaled ResizableBox dimensions
+                           width: '100%',
                            height: '100%',
                            overflow: 'hidden',
                            boxSizing: 'border-box',
                            border: `1px solid ${element.borderColor || 'transparent'}`,
                            background: element.backgroundColor || 'transparent',
                            cursor: 'move',
-                           // transformOrigin: '0 0', // If scale is applied here instead of ResizableBox
+                           // If transformOrigin was applied here, it would be relative to this div.
+                           // Applying to ResizableBox makes positioning simpler with Draggable.
                        }}>
                     {content}
                   </div>
