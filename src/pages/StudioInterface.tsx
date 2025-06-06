@@ -66,7 +66,7 @@ const StudioInterface: React.FC = () => {
                     maxConstraints={[800 / currentScale, 600 / currentScale]}
                     style={{
                         ...selectionStyle,
-                        transform: `scale(${currentScale})`,
+                        transform: 'scale(2.0)', // DEBUG: HARDCODED SCALE
                         transformOrigin: 'top left', // Added this line
                     }}
                     className="drag-handle">
