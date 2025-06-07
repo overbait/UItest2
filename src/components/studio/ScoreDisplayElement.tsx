@@ -27,7 +27,12 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const liveScores = useDraftStore((state) => state.scores);
 
   const textSpanStyle: React.CSSProperties = {
+    display: 'inline-block', // Or 'block' if it makes more sense in the flex layout
     whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%', // Crucial for ellipsis to work within its container
+    // verticalAlign: 'middle', // Might be useful depending on alignment with score
   };
   const scoreSpanStyle: React.CSSProperties = {
     ...textSpanStyle,
