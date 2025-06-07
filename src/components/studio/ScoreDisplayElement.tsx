@@ -78,6 +78,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     display: 'flex', // To lay out name and score spans
     alignItems: 'center',
     justifyContent: 'flex-end', // Align content to the right of this cell
+    overflow: 'hidden', // Added
     // paddingRight: '5px', // Optional: if space from cell edge to content is needed
   };
 
@@ -85,6 +86,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     display: 'flex', // To lay out score and name spans
     alignItems: 'center',
     justifyContent: 'flex-start', // Align content to the left of this cell
+    overflow: 'hidden', // Added
     // paddingLeft: '5px', // Optional: if space from cell edge to content is needed
   };
 
