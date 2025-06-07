@@ -72,6 +72,7 @@ export interface StudioElement {
   borderColor?: string;
   scale?: number;
   isPivotLocked?: boolean; // New property for mirror/pivot functionality
+  pivotInternalOffset?: number;
   [key: string]: any;
 }
 

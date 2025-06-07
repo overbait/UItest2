@@ -408,6 +408,7 @@ const useDraftStore = create<DraftStore>()(
               backgroundColor: 'transparent', borderColor: 'transparent',
               scale: 1,
               isPivotLocked: false, // Initialize new property
+              pivotInternalOffset: 0,
             };
             return { studioLayout: [...state.studioLayout, newElement] };
           });

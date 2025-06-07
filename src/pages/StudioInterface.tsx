@@ -26,33 +26,53 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-      let newX = element.position.x;
-      let newY = element.position.y + data.deltaY; // Vertical drag is always normal relative to last Y
-      let newWidth = element.size.width;
+    // Vertical drag is always normal relative to last Y
+    let newY = element.position.y + data.deltaY;
 
-      if (data.deltaX !== 0) { // Horizontal drag component
-        const deltaXFromDrag = data.deltaX; // How much the top-left corner was dragged by mouse since last event
+    const currentX = element.position.x;
+    const currentWidth = element.size.width;
+    const currentHeight = element.size.height; // Preserve current height
+    const currentScale = element.scale || 1;
+    const currentPivotOffset = element.pivotInternalOffset || 0;
 
-        newWidth = element.size.width + (2 * deltaXFromDrag);
-        if (newWidth < MIN_ELEMENT_WIDTH) {
-          newWidth = MIN_ELEMENT_WIDTH;
-          // If width is clamped, we need to adjust how much newX changes to prevent "sticking" on one side.
-          // The effective delta that caused clamping:
-          // MIN_ELEMENT_WIDTH = element.size.width + 2 * effectiveClampedDeltaX
-          // effectiveClampedDeltaX = (MIN_ELEMENT_WIDTH - element.size.width) / 2
-          // This effectiveClampedDeltaX should have the same sign as deltaXFromDrag
-          const effectiveClampedDeltaX = ( (MIN_ELEMENT_WIDTH - element.size.width) / 2 ) * Math.sign(deltaXFromDrag);
-          newX = element.position.x - effectiveClampedDeltaX;
+    let finalX = currentX;
+    let finalWidth = currentWidth;
+    let finalPivotOffset = currentPivotOffset;
 
+    // Only apply horizontal changes if there's horizontal mouse movement
+    if (data.deltaX !== 0) {
+        const effectiveUnscaledDrag = data.deltaX / currentScale;
+
+        // This is the width the element would have if there were no minimum width constraint.
+        let targetWidthUnconstrained = currentWidth - (2 * effectiveUnscaledDrag);
+
+        let actualUnscaledDragApplied;
+
+        if (targetWidthUnconstrained < MIN_ELEMENT_WIDTH) {
+            // The drag would make the element too narrow. Clamp the width to MIN_ELEMENT_WIDTH.
+            finalWidth = MIN_ELEMENT_WIDTH;
+            // Now, calculate what drag amount would result in this MIN_ELEMENT_WIDTH.
+            // finalWidth = currentWidth - 2 * actualUnscaledDragApplied
+            // 2 * actualUnscaledDragApplied = currentWidth - finalWidth
+            actualUnscaledDragApplied = (currentWidth - finalWidth) / 2;
         } else {
-          newX = element.position.x - deltaXFromDrag;
+            // No clamping needed for width. The drag is as intended.
+            finalWidth = targetWidthUnconstrained;
+            actualUnscaledDragApplied = effectiveUnscaledDrag;
         }
-      }
 
-      updateStudioElementSettings(elementId, {
-          position: { x: newX, y: newY },
-          size: { ...element.size, width: newWidth }
-      });
+        finalX = currentX + actualUnscaledDragApplied;
+        // finalWidth is already set above.
+        finalPivotOffset = currentPivotOffset - (2 * actualUnscaledDragApplied);
+    }
+    // If data.deltaX === 0, then finalX, finalWidth, and finalPivotOffset remain
+    // initialized to their current values (no horizontal change).
+
+    updateStudioElementSettings(elementId, {
+        position: { x: finalX, y: newY },
+        size: { width: finalWidth, height: currentHeight }, // Pass height explicitly
+        pivotInternalOffset: finalPivotOffset
+    });
 
     } else { // Pivot not locked - normal drag
       // data.x and data.y are the new absolute positions of the top-left corner from Draggable's perspective
