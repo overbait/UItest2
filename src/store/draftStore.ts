@@ -416,7 +416,45 @@ const useDraftStore = create<DraftStore>()(
         updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, position } : el), })); },
         updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, size } : el), })); },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
-        updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, ...settings } : el), })); },
+        updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
+          set(state => {
+            const newStudioLayout = state.studioLayout.map(el => {
+              if (el.id === elementId) {
+                let newSettings = { ...settings }; // Copy of incoming settings
+
+                // Check if scale is changing and pivot is locked
+                if (newSettings.scale !== undefined && el.isPivotLocked) {
+                  const oldScale = el.scale || 1; // Current scale of the element
+                  const newScaleValue = newSettings.scale;
+
+                  // Ensure scale is actually changing to avoid division by zero or unnecessary calculations if oldScale === newScaleValue
+                  if (oldScale !== newScaleValue) {
+                    const elementWidth = el.size.width; // Current width
+                    const elementHeight = el.size.height; // Current height
+                    const currentPositionX = el.position.x;
+                    const currentPositionY = el.position.y;
+
+                    // Calculate adjustment to keep pivot (center) stationary
+                    // newPosX = currentPosX + (width / 2) * (oldScale - newScale)
+                    // newPosY = currentPosY + (height / 2) * (oldScale - newScale)
+                    const deltaScale = oldScale - newScaleValue;
+                    const adjX = (elementWidth / 2) * deltaScale;
+                    const adjY = (elementHeight / 2) * deltaScale;
+
+                    const newPosX = currentPositionX + adjX;
+                    const newPosY = currentPositionY + adjY;
+
+                    // Add/overwrite position in newSettings
+                    newSettings.position = { x: newPosX, y: newPosY };
+                  }
+                }
+                return { ...el, ...newSettings }; // Apply original settings and potentially adjusted position
+              }
+              return el;
+            });
+            return { studioLayout: newStudioLayout };
+          });
+        },
         removeStudioElement: (elementId: string) => { set(state => ({ studioLayout: state.studioLayout.filter(el => el.id !== elementId), selectedElementId: state.selectedElementId === elementId ? null : state.selectedElementId, })); },
         saveCurrentStudioLayout: (name: string) => { set(state => { const newLayoutPreset: SavedStudioLayout = { id: Date.now().toString(), name, layout: JSON.parse(JSON.stringify(state.studioLayout)), }; return { savedStudioLayouts: [...state.savedStudioLayouts, newLayoutPreset] }; }); },
         loadStudioLayout: (layoutId: string) => { set(state => { const layoutToLoad = state.savedStudioLayouts.find(l => l.id === layoutId); if (layoutToLoad) return { studioLayout: JSON.parse(JSON.stringify(layoutToLoad.layout)), selectedElementId: null }; return state; }); },
