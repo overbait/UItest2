@@ -7,12 +7,12 @@ import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import SettingsPanel from '../components/studio/SettingsPanel';
 
-const MIN_ELEMENT_WIDTH = 50; // Minimum width for an element during pivot drag
+const MIN_ELEMENT_WIDTH = 50;
 
 const StudioInterface: React.FC = () => {
   const {
     studioLayout, savedStudioLayouts, selectedElementId, addStudioElement,
-    updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings, // Added updateStudioElementSettings
+    updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId
   } = useDraftStore(state => state);
 
@@ -25,46 +25,41 @@ const StudioInterface: React.FC = () => {
     const element = studioLayout.find(el => el.id === elementId);
     if (!element) return;
 
-    if (element.isPivotLocked && data.deltaX !== 0) { // Only apply special logic for horizontal drag with pivot locked
-      const currentCenterX = element.position.x + element.size.width / 2;
-      let deltaX = data.deltaX; // Actual change in element's left position by draggable
+    if (element.isPivotLocked) {
+      // If pivot is locked, horizontal drag changes width and adjusts X to keep center fixed.
+      // Vertical drag is normal.
+      let newX = element.position.x;
+      let newY = element.position.y + data.deltaY; // Normal vertical drag
+      let newWidth = element.size.width;
 
-      // Proposed new width based on the drag
-      let newWidth = element.size.width - (deltaX * 2);
+      if (data.deltaX !== 0) { // Horizontal drag component
+        const originalPositionX = element.position.x;
+        const originalWidth = element.size.width;
+        const originalCenterX = originalPositionX + originalWidth / 2;
 
-      // Clamp width and adjust deltaX if clamping occurs, to keep logic consistent
-      if (newWidth < MIN_ELEMENT_WIDTH) {
-        newWidth = MIN_ELEMENT_WIDTH;
-        // If newWidth was clamped, the effective "pull" or "push" (deltaX*2) was too large.
-        // Recalculate the deltaX that would result in MIN_ELEMENT_WIDTH
-        // element.size.width - (effective_deltaX * 2) = MIN_ELEMENT_WIDTH
-        // effective_deltaX * 2 = element.size.width - MIN_ELEMENT_WIDTH
-        // effective_deltaX = (element.size.width - MIN_ELEMENT_WIDTH) / 2
-        // The sign of deltaX matters. If deltaX was positive (shrinking), effective_deltaX should be positive.
-        // If deltaX was negative (expanding), effective_deltaX should be negative.
-        if (deltaX > 0) { // Was shrinking
-            deltaX = (element.size.width - MIN_ELEMENT_WIDTH) / 2;
-        } else { // Was expanding, but this case shouldn't be hit if MIN_ELEMENT_WIDTH is the floor.
-                 // This logic primarily handles shrinking beyond min width.
-                 // For expansion, it's typically not constrained by MIN_ELEMENT_WIDTH unless original width was already MIN.
-            // If original width is MIN_ELEMENT_WIDTH and deltaX is negative (trying to expand),
-            // then newWidth = MIN_ELEMENT_WIDTH - (-small_negative_delta * 2) = MIN_ELEMENT_WIDTH + positive_value
-            // This is fine. Clamping primarily affects shrinking.
+        // The amount one side of the content is effectively "pushed" or "pulled"
+        // If data.deltaX is positive (drag right), it means the left edge moved right.
+        // For mirrored, this means the left content moved right, right content moved left.
+        // Width decreases by 2 * deltaX.
+        newWidth = originalWidth - (data.deltaX * 2);
+
+        if (newWidth < MIN_ELEMENT_WIDTH) {
+          newWidth = MIN_ELEMENT_WIDTH;
+          // Adjust newX based on clamped width to keep original center
+          // This means one "edge" effectively hit a wall.
+          // The side being dragged can't move further than what MIN_ELEMENT_WIDTH allows from center.
         }
+        newX = originalCenterX - newWidth / 2;
       }
 
-      // New X position to keep the center stationary
-      const newX = currentCenterX - newWidth / 2;
-
+      // Use updateStudioElementSettings to update position and size together if width changed.
+      // Or use specific updaters if preferred.
       updateStudioElementSettings(elementId, {
-        position: { x: newX, y: element.position.y + data.deltaY }, // Keep vertical drag normal
-        size: { ...element.size, width: newWidth }
+          position: { x: newX, y: newY },
+          size: { ...element.size, width: newWidth }
       });
 
-    } else if (element.isPivotLocked && data.deltaY !== 0) { // Normal vertical drag if pivot is locked
-        updateStudioElementPosition(elementId, { x: element.position.x, y: element.position.y + data.deltaY });
-    }
-    else { // Pivot not locked or no horizontal movement
+    } else { // Pivot not locked - normal drag
       updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
@@ -72,7 +67,6 @@ const StudioInterface: React.FC = () => {
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
     const currentElement = studioLayout.find(el => el.id === elementId);
     const currentScale = currentElement?.scale || 1;
-    // ResizableBox gives dimensions of its own box, which is unscaled.
     updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
   };
 
@@ -115,7 +109,8 @@ const StudioInterface: React.FC = () => {
                   handle=".drag-handle"
                   position={{ x: element.position.x, y: element.position.y }}
                   onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
-                  bounds="parent">
+                  // Removed bounds="parent"
+                  >
                 <ResizableBox
                     width={element.size.width}
                     height={element.size.height}
