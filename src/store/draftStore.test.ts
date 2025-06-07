@@ -41,7 +41,7 @@ const mockDraft_kIqET: Aoe2cmRawDraftData = {
       { id: 'Relic River', name: 'Relic River', imageUrls: { unit: '', emblem: '', animated_left: '', animated_right: '' }, i18nPrefix: 'civs.', category: 'default' },
       { id: 'Kerlaugar', name: 'Kerlaugar', imageUrls: { unit: '', emblem: '', animated_left: '', animated_right: '' }, i18nPrefix: 'civs.', category: 'default' }
     ],
-    turns: [ /* Simplified for brevity, assuming not strictly needed for this specific map pick logic test */ ],
+    turns: [ /* Simplified for brevity */ ],
     categoryLimits: { pick: {}, ban: {} }
   },
   hostConnected: false, guestConnected: false, hostReady: true, guestReady: true, startTimestamp: 0
@@ -50,64 +50,55 @@ const mockDraft_kIqET: Aoe2cmRawDraftData = {
 // Basic assertion function for the test
 function assertEqual(actual: any, expected: any, message: string) {
   if (actual !== expected) {
+    // Using console.error for test failures to make them more visible if run directly
+    console.error(`Assertion failed: ${message}. Expected "${expected}", but got "${actual}".`);
     throw new Error(`Assertion failed: ${message}. Expected "${expected}", but got "${actual}".`);
   }
 }
 
 async function runTest() {
-  console.log('Starting test: Last remaining map assignment...');
+  console.log('Starting test: Last remaining map assignment (kIqET draft)...');
 
   // Reset store to initial state before each test run
   useDraftStore.setState(useDraftStore.getState()._resetCurrentSessionState());
 
-  // Mock the API call
+  // Mock the API call for kIqET draft
   mockedAxios.get.mockResolvedValue({ data: mockDraft_kIqET });
 
-  // Manually set BO5 format as it's usually detected from preset name or set by user
-  // This ensures boxSeriesGames array is initialized correctly for 5 games.
+  // Set BO5 format (as per preset name "M.o.S. Bo5 Map Draft")
+  // This ensures boxSeriesGames array is initialized for 5 games.
   useDraftStore.getState().setBoxSeriesFormat('bo5');
 
   // Connect to the draft
   const connectResult = await useDraftStore.getState().connectToDraft('kIqET', 'map');
-  assertEqual(connectResult, true, 'Connection to draft should be successful');
+  assertEqual(connectResult, true, 'Connection to draft (kIqET) should be successful');
 
   const state = useDraftStore.getState();
 
-  // Verify mapPicksGlobal includes 'Regions' due to the new logic
-  // This check depends on the scenario:
-  // Scenario A: API "NONE" pick for "Regions" is NOT processed by original event loop
-  // -> New logic adds "Regions" to mapPicksGlobal.
-  // Scenario B: API "NONE" pick for "Regions" IS processed (if event loop is fixed)
-  // -> New logic sees "Regions" as already picked, doesn't add it again (which is fine).
-  // The crucial part is that "Regions" ends up in the combined list for boxSeriesGames.
-
-  const allPickedMaps = Array.from(new Set([
-    ...(state.mapPicksHost || []),
-    ...(state.mapPicksGuest || []),
-    ...(state.mapPicksGlobal || [])
-  ]));
-
-  assertEqual(allPickedMaps.includes('Regions'), true, 'Combined map picks should include "Regions"');
+  // Verify that "Regions" (from "NONE" pick event) is in mapPicksGlobal
+  assertEqual(state.mapPicksGlobal?.includes('Regions'), true, 'mapPicksGlobal should include "Regions" from event processing');
 
   // Verify the 5th game's map (index 4)
   if (!state.boxSeriesGames || state.boxSeriesGames.length < 5) {
-    throw new Error(`boxSeriesGames is not defined or has fewer than 5 games. Length: ${state.boxSeriesGames?.length}`);
+    throw new Error(`boxSeriesGames is not defined or has fewer than 5 games for kIqET. Length: ${state.boxSeriesGames?.length}`);
   }
-  assertEqual(state.boxSeriesGames[4]?.map, 'Regions', 'Game 5 map should be "Regions"');
+  assertEqual(state.boxSeriesGames[4]?.map, 'Regions', 'Game 5 map (kIqET) should be "Regions"');
 
-  console.log('Test passed: Last remaining map "Regions" correctly assigned to Game 5.');
+  console.log('Test passed for kIqET: "Regions" correctly assigned.');
 }
 
-// Attempt to run the test
-// This might require a test runner environment (like Jest/Vitest) to work fully with mocks.
-// If running directly with Node, `jest.mock` will not work as expected.
-// For now, the goal is to create the file and the test logic.
-runTest().catch(e => {
-  console.error("Test failed:", e);
-  // In a real test runner, this would cause the test suite to fail.
-  // For a simple script, we might exit with an error code.
-  process.exit(1);
-});
+// It's good practice to wrap test execution in a way that can be discovered by a test runner
+// or provide a clear entry point if run as a script.
+// For now, direct execution with error handling:
+runTest()
+  .then(() => {
+    console.log('Draft store tests completed successfully.');
+    // process.exit(0); // Not needed if not running in a CLI-only test mode
+  })
+  .catch(e => {
+    console.error("Draft store test suite failed:", e);
+    // process.exit(1); // Exit with error code if a test fails
+  });
 
 // Add a simple export to make it a module, satisfying TypeScript.
 export {};

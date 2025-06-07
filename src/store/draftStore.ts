@@ -69,9 +69,82 @@ const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ
   const hostName = raw.nameHost || 'Host'; const guestName = raw.nameGuest || 'Guest';
   const output: Partial<SingleDraftData> = { id: raw.id || raw.draftId || 'unknown-id', hostName, guestName, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], };
   const getOptionNameById = (optionId: string): string => { const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId); if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name; return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; };
-  raw.events?.forEach(event => { const action = event.actionType?.toLowerCase() || ''; const executingPlayer = event.executingPlayer; const chosenOptionId = event.chosenOptionId; if (!chosenOptionId) return; const optionName = getOptionNameById(chosenOptionId); const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.'); const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.'); if (action === 'pick') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civPicksHost!.includes(optionName)) output.civPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civPicksGuest!.includes(optionName)) output.civPicksGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName); } } else if (action === 'ban') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); } } else if (action === 'snipe') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); } } });
+  raw.events?.forEach(event => {
+    const action = event.actionType?.toLowerCase() || '';
+    const executingPlayer = event.executingPlayer;
+    const chosenOptionId = event.chosenOptionId;
+    if (!chosenOptionId) return;
+    const optionName = getOptionNameById(chosenOptionId);
+    const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.');
+    const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.');
 
-  // New logic for auto-picking the last map
+    if (action === 'pick') {
+      if (isCivAction && draftType === 'civ') {
+        if (executingPlayer === 'HOST') {
+          if (!output.civPicksHost) output.civPicksHost = [];
+          if (!output.civPicksHost.includes(optionName)) output.civPicksHost.push(optionName);
+        } else if (executingPlayer === 'GUEST') {
+          if (!output.civPicksGuest) output.civPicksGuest = [];
+          if (!output.civPicksGuest.includes(optionName)) output.civPicksGuest.push(optionName);
+        }
+        // CIV 'NONE' picks are not explicitly handled for output.civPicksGlobal here, as they are not standard.
+      } else if (isMapAction && draftType === 'map') {
+        if (executingPlayer === 'HOST') {
+          if (!output.mapPicksHost) output.mapPicksHost = [];
+          if (!output.mapPicksHost.includes(optionName)) output.mapPicksHost.push(optionName);
+        } else if (executingPlayer === 'GUEST') {
+          if (!output.mapPicksGuest) output.mapPicksGuest = [];
+          if (!output.mapPicksGuest.includes(optionName)) output.mapPicksGuest.push(optionName);
+        } else if (executingPlayer === 'NONE') { // Handle 'NONE' for global map picks
+          if (!output.mapPicksGlobal) output.mapPicksGlobal = [];
+          if (!output.mapPicksGlobal.includes(optionName)) output.mapPicksGlobal.push(optionName);
+        }
+      }
+    } else if (action === 'ban') {
+      if (isCivAction && draftType === 'civ') {
+        if (executingPlayer === 'HOST') {
+          if (!output.civBansHost) output.civBansHost = [];
+          if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName);
+        } else if (executingPlayer === 'GUEST') {
+          if (!output.civBansGuest) output.civBansGuest = [];
+          if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName);
+        }
+        // CIV 'NONE' bans are not standard.
+      } else if (isMapAction && draftType === 'map') {
+        if (executingPlayer === 'HOST') {
+          if (!output.mapBansHost) output.mapBansHost = [];
+          if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName);
+        } else if (executingPlayer === 'GUEST') {
+          if (!output.mapBansGuest) output.mapBansGuest = [];
+          if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName);
+        } else if (executingPlayer === 'NONE') { // Handle 'NONE' for global map bans
+          if (!output.mapBansGlobal) output.mapBansGlobal = [];
+          if (!output.mapBansGlobal.includes(optionName)) output.mapBansGlobal.push(optionName);
+        }
+      }
+    } else if (action === 'snipe') {
+      if (isCivAction && draftType === 'civ') {
+        if (executingPlayer === 'HOST') { // Host snipes Guest's civ
+          if (!output.civBansGuest) output.civBansGuest = [];
+          if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName);
+        } else if (executingPlayer === 'GUEST') { // Guest snipes Host's civ
+          if (!output.civBansHost) output.civBansHost = [];
+          if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName);
+        }
+      } else if (isMapAction && draftType === 'map') {
+        if (executingPlayer === 'HOST') { // Host snipes Guest's map
+          if (!output.mapBansGuest) output.mapBansGuest = [];
+          if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName);
+        } else if (executingPlayer === 'GUEST') { // Guest snipes Host's map
+          if (!output.mapBansHost) output.mapBansHost = [];
+          if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName);
+        }
+        // SNIPE 'NONE' is not standard.
+      }
+    }
+  });
+
+  // New logic for auto-picking the last map (This was added in a previous subtask and should be preserved after the forEach loop)
   if (draftType === 'map' && raw.preset?.draftOptions) {
     const allMapOptions = raw.preset.draftOptions
       .filter(opt => !opt.id.startsWith('aoe4.')) // Filter out civ options using opt.id
