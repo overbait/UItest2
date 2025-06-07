@@ -26,34 +26,29 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-      // If pivot is locked, horizontal drag changes width and adjusts X to keep center fixed.
-      // Vertical drag is normal.
       let newX = element.position.x;
-      let newY = element.position.y + data.deltaY; // Normal vertical drag
+      let newY = data.y; // Use Draggable's proposed new Y for vertical component
       let newWidth = element.size.width;
 
-      if (data.deltaX !== 0) { // Horizontal drag component
+      if (data.deltaX !== 0) { // Horizontal component of drag exists
+        // actualDeltaX is how much the left edge of the element *would* move if not for pivot logic
+        const actualDeltaX = data.x - element.position.x;
+
         const originalPositionX = element.position.x;
         const originalWidth = element.size.width;
         const originalCenterX = originalPositionX + originalWidth / 2;
 
-        // The amount one side of the content is effectively "pushed" or "pulled"
-        // If data.deltaX is positive (drag right), it means the left edge moved right.
-        // For mirrored, this means the left content moved right, right content moved left.
-        // Width decreases by 2 * deltaX.
-        newWidth = originalWidth - (data.deltaX * 2);
+        newWidth = originalWidth - (actualDeltaX * 2);
 
         if (newWidth < MIN_ELEMENT_WIDTH) {
           newWidth = MIN_ELEMENT_WIDTH;
-          // Adjust newX based on clamped width to keep original center
-          // This means one "edge" effectively hit a wall.
-          // The side being dragged can't move further than what MIN_ELEMENT_WIDTH allows from center.
+          // If width is clamped, the element effectively resists further squashing/stretching from one side.
+          // The newX must be calculated based on this clamped newWidth and originalCenterX.
         }
         newX = originalCenterX - newWidth / 2;
       }
 
-      // Use updateStudioElementSettings to update position and size together if width changed.
-      // Or use specific updaters if preferred.
+      // Apply updates
       updateStudioElementSettings(elementId, {
           position: { x: newX, y: newY },
           size: { ...element.size, width: newWidth }
@@ -74,7 +69,7 @@ const StudioInterface: React.FC = () => {
   const handleElementClick = (elementId: string) => { setSelectedElementId(elementId); };
   const handleCloseSettingsPanel = () => { setSelectedElementId(null); };
 
-  // Styles (shortened for brevity)
+  // Styles (assuming complete from previous versions)
   const toolboxSectionStyle: React.CSSProperties = { marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #444',};
   const toolboxHeaderStyle: React.CSSProperties = { fontSize: '1em', color: '#ccc', marginBottom: '8px',};
   const inputStyle: React.CSSProperties = { width: 'calc(100% - 22px)', padding: '8px 10px', marginBottom: '10px', backgroundColor: '#2c2c2c', border: '1px solid #555', color: 'white', borderRadius: '4px',};
@@ -83,10 +78,10 @@ const StudioInterface: React.FC = () => {
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
 
+
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
-        {/* Toolbox content */}
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Elements</h3><button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button></div>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Save Current Layout</h3><input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/><button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button></div>
@@ -109,7 +104,7 @@ const StudioInterface: React.FC = () => {
                   handle=".drag-handle"
                   position={{ x: element.position.x, y: element.position.y }}
                   onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
-                  // Removed bounds="parent"
+                  // No bounds="parent"
                   >
                 <ResizableBox
                     width={element.size.width}
