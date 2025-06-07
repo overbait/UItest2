@@ -84,7 +84,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const rightSectionStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     paddingLeft: `${halfPivotPadding}px`,
     flexShrink: 0, // Added
   };

@@ -422,8 +422,8 @@ const useDraftStore = create<DraftStore>()(
               if (el.id === elementId) {
                 let newSettings = { ...settings }; // Copy of incoming settings
 
-                // Check if scale is changing and pivot is locked
-                if (newSettings.scale !== undefined && el.isPivotLocked) {
+                // Check if scale is changing
+                if (newSettings.scale !== undefined) {
                   const oldScale = el.scale || 1; // Current scale of the element
                   const newScaleValue = newSettings.scale;
 

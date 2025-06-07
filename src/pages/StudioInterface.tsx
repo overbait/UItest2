@@ -26,50 +26,49 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-    // This part is outside the data.deltaX check
-    let newY = element.position.y + data.deltaY; // Vertical drag is screen pixels
+    // Vertical drag part (screen coordinates)
+    let newY_screen = element.position.y + data.deltaY;
 
-    const currentX = element.position.x;
-    const currentWidth = element.size.width;
-    const currentHeight = element.size.height; // Preserve current height
+    // Current state values
+    const currentX_screen = element.position.x;
+    const currentUnscaledWidth = element.size.width;
+    const currentUnscaledHeight = element.size.height; // Preserve height
     const currentScale = element.scale || 1;
-    const currentPivotOffset = element.pivotInternalOffset || 0;
+    const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
 
-    // Initialize final values to current values, in case data.deltaX === 0
-    let finalX = currentX;
-    let finalWidth = currentWidth;
-    let finalPivotOffset = currentPivotOffset;
+    // Initialize final values to current state for the case data.deltaX === 0
+    let finalX_screen = currentX_screen;
+    let finalUnscaledWidth = currentUnscaledWidth;
+    let finalPivotOffset_unscaled = currentPivotOffset_unscaled;
 
-    if (data.deltaX !== 0) { // Only if there's horizontal mouse movement
-        const effectiveUnscaledDrag = data.deltaX / currentScale; // Mouse drag in element's unscaled coords
+    if (data.deltaX !== 0) { // Horizontal drag occurred
+        // Calculate the fixed screen X-coordinate of the pivot (element's center)
+        // This uses the state *before* the current drag delta.
+        const pivotScreenX_fixed = currentX_screen + (currentUnscaledWidth / 2) * currentScale;
 
-        // Calculate the width the element would have if there were no minimum width constraint.
-        let targetUnconstrainedWidth = currentWidth - (2 * effectiveUnscaledDrag);
+        // Convert screen drag delta to an equivalent unscaled drag for one edge
+        const effectiveUnscaledDrag = data.deltaX / currentScale;
 
-        let actualDragAppliedToEdge;
+        // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH
+        const targetUnconstrainedWidth = currentUnscaledWidth - (2 * effectiveUnscaledDrag);
+        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, targetUnconstrainedWidth);
 
-        if (targetUnconstrainedWidth < MIN_ELEMENT_WIDTH) {
-            // Width needs to be clamped to MIN_ELEMENT_WIDTH.
-            finalWidth = MIN_ELEMENT_WIDTH;
-            // Calculate the drag amount (for one edge) that would result in this clamped width.
-            // finalWidth = currentWidth - 2 * actualDragAppliedToEdge
-            // 2 * actualDragAppliedToEdge = currentWidth - finalWidth
-            actualDragAppliedToEdge = (currentWidth - finalWidth) / 2;
-        } else {
-            // No clamping needed for width.
-            finalWidth = targetUnconstrainedWidth;
-            actualDragAppliedToEdge = effectiveUnscaledDrag;
-        }
+        // Calculate the actual change applied to one edge in unscaled units
+        // This is based on the difference between current width and the (potentially clamped) final width.
+        const actualUnscaledDragAppliedToEdge = (currentUnscaledWidth - finalUnscaledWidth) / 2;
 
-        finalX = currentX + actualDragAppliedToEdge;
-        // finalWidth is already set.
-        finalPivotOffset = currentPivotOffset - (2 * actualDragAppliedToEdge);
+        // Calculate the new top-left X screen coordinate to keep the pivotScreenX_fixed stationary
+        finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
+
+        // Calculate the new unscaled pivot offset
+        finalPivotOffset_unscaled = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge);
     }
 
+    // Update the element's state
     updateStudioElementSettings(elementId, {
-        position: { x: finalX, y: newY },
-        size: { width: finalWidth, height: currentHeight }, // Pass height explicitly
-        pivotInternalOffset: finalPivotOffset
+        position: { x: finalX_screen, y: newY_screen },
+        size: { width: finalUnscaledWidth, height: currentUnscaledHeight },
+        pivotInternalOffset: finalPivotOffset_unscaled
     });
 
     } else { // Pivot not locked - normal drag
