@@ -25,49 +25,46 @@ const StudioInterface: React.FC = () => {
     const element = studioLayout.find(el => el.id === elementId);
     if (!element) return;
 
-    if (element.isPivotLocked) {
-      // Calculate the visual center of the element before this drag operation
-      // This center should remain fixed relative to the parent during mirrored drag.
-      // However, react-draggable moves the whole element. We need to counteract this.
-      // data.deltaX is the change in the element's top-left corner by react-draggable's default action.
+    if (element.isPivotLocked && data.deltaX !== 0) { // Only apply special logic for horizontal drag with pivot locked
+      const currentCenterX = element.position.x + element.size.width / 2;
+      let deltaX = data.deltaX; // Actual change in element's left position by draggable
 
-      let newWidth = element.size.width - (data.deltaX * 2); // Times 2 because one side moves in, other out
+      // Proposed new width based on the drag
+      let newWidth = element.size.width - (deltaX * 2);
+
+      // Clamp width and adjust deltaX if clamping occurs, to keep logic consistent
       if (newWidth < MIN_ELEMENT_WIDTH) {
         newWidth = MIN_ELEMENT_WIDTH;
+        // If newWidth was clamped, the effective "pull" or "push" (deltaX*2) was too large.
+        // Recalculate the deltaX that would result in MIN_ELEMENT_WIDTH
+        // element.size.width - (effective_deltaX * 2) = MIN_ELEMENT_WIDTH
+        // effective_deltaX * 2 = element.size.width - MIN_ELEMENT_WIDTH
+        // effective_deltaX = (element.size.width - MIN_ELEMENT_WIDTH) / 2
+        // The sign of deltaX matters. If deltaX was positive (shrinking), effective_deltaX should be positive.
+        // If deltaX was negative (expanding), effective_deltaX should be negative.
+        if (deltaX > 0) { // Was shrinking
+            deltaX = (element.size.width - MIN_ELEMENT_WIDTH) / 2;
+        } else { // Was expanding, but this case shouldn't be hit if MIN_ELEMENT_WIDTH is the floor.
+                 // This logic primarily handles shrinking beyond min width.
+                 // For expansion, it's typically not constrained by MIN_ELEMENT_WIDTH unless original width was already MIN.
+            // If original width is MIN_ELEMENT_WIDTH and deltaX is negative (trying to expand),
+            // then newWidth = MIN_ELEMENT_WIDTH - (-small_negative_delta * 2) = MIN_ELEMENT_WIDTH + positive_value
+            // This is fine. Clamping primarily affects shrinking.
+        }
       }
 
-      // To keep center fixed: if left edge moves by deltaX, and width changes by -2*deltaX,
-      // the new X must be element.position.x + deltaX. Draggable already does this.
-      // We only need to update the width.
-      // The position update will be handled by react-draggable's default behavior if not fully controlled,
-      // or by setting its position prop.
-      // Let's try updating width and let Draggable handle its position update based on 'position' prop.
-      // The change in X (data.x) is the new absolute position.
-      // The deltaX is how much it moved from the last onDrag event.
+      // New X position to keep the center stationary
+      const newX = currentCenterX - newWidth / 2;
 
-      // For a fixed pivot, if we drag the left edge by deltaX_edge:
-      // new_pos_x = pos_x + deltaX_edge
-      // new_width = width - 2 * deltaX_edge
-      // react-draggable's data.deltaX is the delta of the top-left corner. So this is deltaX_edge.
-
-      const newX = element.position.x + data.deltaX; // This is where Draggable wants to move it
-                                                    // For pivot, we want center to be "stable"
-                                                    // This means if left side is dragged by data.deltaX,
-                                                    // right side also moves by data.deltaX effectively.
-
-      // If we are adjusting width to keep center, the element's own X might not need complex adjustment
-      // if Draggable's 'position' is controlled.
-      // Let's try: new position is data.x, data.y (from Draggable)
-      // and adjust width based on data.deltaX (change from last drag event for the element's origin)
-
-      // Store the new width
       updateStudioElementSettings(elementId, {
-        position: { x: data.x, y: data.y }, // Let draggable report the new position
+        position: { x: newX, y: element.position.y + data.deltaY }, // Keep vertical drag normal
         size: { ...element.size, width: newWidth }
       });
 
-    } else {
-      // Standard drag: update position based on where Draggable moved the element
+    } else if (element.isPivotLocked && data.deltaY !== 0) { // Normal vertical drag if pivot is locked
+        updateStudioElementPosition(elementId, { x: element.position.x, y: element.position.y + data.deltaY });
+    }
+    else { // Pivot not locked or no horizontal movement
       updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
@@ -75,13 +72,15 @@ const StudioInterface: React.FC = () => {
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
     const currentElement = studioLayout.find(el => el.id === elementId);
     const currentScale = currentElement?.scale || 1;
+    // ResizableBox gives dimensions of its own box, which is unscaled.
     updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
   };
+
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
   const handleElementClick = (elementId: string) => { setSelectedElementId(elementId); };
   const handleCloseSettingsPanel = () => { setSelectedElementId(null); };
 
-  // Styles (shortened for brevity, assuming they are complete as before)
+  // Styles (shortened for brevity)
   const toolboxSectionStyle: React.CSSProperties = { marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #444',};
   const toolboxHeaderStyle: React.CSSProperties = { fontSize: '1em', color: '#ccc', marginBottom: '8px',};
   const inputStyle: React.CSSProperties = { width: 'calc(100% - 22px)', padding: '8px 10px', marginBottom: '10px', backgroundColor: '#2c2c2c', border: '1px solid #555', color: 'white', borderRadius: '4px',};
@@ -89,7 +88,6 @@ const StudioInterface: React.FC = () => {
   const listItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 5px', borderBottom: '1px solid #2a2a2a', fontSize: '0.85em',};
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
-
 
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -106,7 +104,7 @@ const StudioInterface: React.FC = () => {
           {studioLayout.map((element: StudioElement) => {
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
-            const selectionStyle: React.CSSProperties = isSelected ? { outline: '2px solid #007bff', outlineOffset: '2px', zIndex: 1 } : { zIndex: 0 };
+            const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
             let content = null;
             if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
@@ -116,15 +114,14 @@ const StudioInterface: React.FC = () => {
                   key={element.id}
                   handle=".drag-handle"
                   position={{ x: element.position.x, y: element.position.y }}
-                  onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)} // Changed to onDrag
-                  // onStop is removed for now, or can be used for final position update if needed.
+                  onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
                   bounds="parent">
                 <ResizableBox
                     width={element.size.width}
                     height={element.size.height}
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
-                    minConstraints={[MIN_ELEMENT_WIDTH, 30]} // Use MIN_ELEMENT_WIDTH
-                    maxConstraints={[800, 600]}
+                    minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
+                    maxConstraints={[800 / currentScale, 600 / currentScale]}
                     style={{ ...selectionStyle }}
                     className="drag-handle">
                   <div
