@@ -9,8 +9,8 @@ interface ScoreDisplayElementProps {
 const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) => {
   const {
     fontFamily,
-    showName, // Use element.showName directly for conditions
-    showScore, // Use element.showScore directly for conditions
+    showName,
+    showScore,
     backgroundColor,
     borderColor,
     isPivotLocked,
@@ -20,6 +20,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const currentFontFamily = fontFamily || 'Arial';
   const currentBackgroundColor = backgroundColor || 'transparent';
   const currentBorderColor = borderColor || 'transparent';
+  const currentPivotOffset = pivotInternalOffset || 0; // Used for grid template
 
   const liveHostName = useDraftStore((state) => state.hostName);
   const liveGuestName = useDraftStore((state) => state.guestName);
@@ -40,18 +41,18 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
 
   const pivotLineStyle: React.CSSProperties = {
     position: 'absolute',
-    left: '50%',
-    top: '10%',
+    left: '50%', // This will align with the center of the middle grid column if parent padding is 0
+    top: '10%',  // Or, if parent has padding, it aligns relative to the padding box.
     bottom: '10%',
     width: '1px',
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    transform: 'translateX(-50%)',
-    zIndex: 1, // Should be above the spacer but below any interactive elements if they existed
+    transform: 'translateX(-50%)', // Ensures the line itself is centered on the 50% mark
+    zIndex: 1,
   };
 
   const baseDivStyle: React.CSSProperties = {
     border: `1px solid ${currentBorderColor}`,
-    padding: '10px', // This padding is around the entire flex container
+    padding: '10px', // Padding around the grid
     borderRadius: '5px',
     backgroundColor: currentBackgroundColor,
     color: 'white',
@@ -60,28 +61,28 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     width: '100%',
     height: '100%',
     boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    // justifyContent removed, direct spacer will handle central spacing
+    display: 'grid', // Changed to grid
+    gridTemplateColumns: `auto ${currentPivotOffset}px auto`, // Grid layout
+    alignItems: 'center', // Vertical alignment for grid items
     overflow: 'hidden',
-    position: 'relative',
+    position: 'relative', // For pivot line and fallback text
   };
 
+  // Styles for the content within grid cells
   const actualLeftContentStyle: React.CSSProperties = {
-    display: 'flex',
+    display: 'flex', // To lay out name and score spans
     alignItems: 'center',
-    flexShrink: 0,
-    paddingRight: '5px',
+    justifyContent: 'flex-end', // Align content to the right of this cell
+    // paddingRight: '5px', // Optional: if space from cell edge to content is needed
   };
 
   const actualRightContentStyle: React.CSSProperties = {
-    display: 'flex',
+    display: 'flex', // To lay out score and name spans
     alignItems: 'center',
-    flexShrink: 0,
-    paddingRight: '5px', // As requested, paddingRight for right section as well
+    justifyContent: 'flex-start', // Align content to the left of this cell
+    // paddingLeft: '5px', // Optional: if space from cell edge to content is needed
   };
 
-  // Use element.showName and element.showScore for conditions
   const currentShowName = typeof element.showName === 'boolean' ? element.showName : true;
   const currentShowScore = typeof element.showScore === 'boolean' ? element.showScore : true;
 
@@ -89,27 +90,28 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const showRightContent = (currentShowName && liveGuestName) || (currentShowScore && liveScores.guest !== undefined);
   const nothingToShow = !currentShowName && !currentShowScore;
 
-
   return (
     <div style={baseDivStyle}>
-      {showLeftContent && (
+      {/* Left Content Cell */}
+      {showLeftContent ? (
         <div style={actualLeftContentStyle}>
           {currentShowName && hostNameDisplay}
           {currentShowName && currentShowScore && liveHostName && liveScores.host !== undefined && <span style={{ margin: '0 4px' }}></span>}
           {currentShowScore && hostScoreDisplay}
         </div>
-      )}
+      ) : ( <div></div> ) /* Empty div to occupy the grid cell if no content */}
 
-      {/* Spacer Div using pivotInternalOffset */}
-      <div style={{ flexShrink: 0, width: `${pivotInternalOffset || 0}px`, height: '100%' /* take full height to ensure separation */ }}></div>
+      {/* Middle Spacer Cell (implicitly sized by gridTemplateColumns) */}
+      <div></div>
 
-      {showRightContent && (
+      {/* Right Content Cell */}
+      {showRightContent ? (
         <div style={actualRightContentStyle}>
           {currentShowScore && guestScoreDisplay}
           {currentShowName && currentShowScore && liveGuestName && liveScores.guest !== undefined && <span style={{ margin: '0 4px' }}></span>}
           {currentShowName && guestNameDisplay}
         </div>
-      )}
+      ) : ( <div></div> ) /* Empty div to occupy the grid cell if no content */}
 
       {isPivotLocked && <div style={pivotLineStyle}></div>}
 
