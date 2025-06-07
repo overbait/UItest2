@@ -9,8 +9,8 @@ interface ScoreDisplayElementProps {
 const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) => {
   const {
     fontFamily,
-    showName,
-    showScore,
+    showName, // Use element.showName directly for conditions
+    showScore, // Use element.showScore directly for conditions
     backgroundColor,
     borderColor,
     isPivotLocked,
@@ -18,8 +18,6 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   } = element;
 
   const currentFontFamily = fontFamily || 'Arial';
-  const currentShowName = typeof showName === 'boolean' ? showName : true;
-  const currentShowScore = typeof showScore === 'boolean' ? showScore : true;
   const currentBackgroundColor = backgroundColor || 'transparent';
   const currentBorderColor = borderColor || 'transparent';
 
@@ -27,10 +25,8 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const liveGuestName = useDraftStore((state) => state.guestName);
   const liveScores = useDraftStore((state) => state.scores);
 
-  // Define styles for the text spans
   const textSpanStyle: React.CSSProperties = {
     whiteSpace: 'nowrap',
-    // overflow: 'visible', // Removed as per subtask
   };
   const scoreSpanStyle: React.CSSProperties = {
     ...textSpanStyle,
@@ -50,14 +46,12 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     width: '1px',
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
     transform: 'translateX(-50%)',
-    zIndex: 1,
+    zIndex: 1, // Should be above the spacer but below any interactive elements if they existed
   };
-
-  const halfPivotPadding = (pivotInternalOffset || 0) / 2;
 
   const baseDivStyle: React.CSSProperties = {
     border: `1px solid ${currentBorderColor}`,
-    padding: '10px',
+    padding: '10px', // This padding is around the entire flex container
     borderRadius: '5px',
     backgroundColor: currentBackgroundColor,
     color: 'white',
@@ -67,54 +61,58 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     height: '100%',
     boxSizing: 'border-box',
     display: 'flex',
-    justifyContent: 'space-between', // Verified
     alignItems: 'center',
-    overflow: 'hidden', // Verified
+    // justifyContent removed, direct spacer will handle central spacing
+    overflow: 'hidden',
     position: 'relative',
   };
 
-  const leftSectionStyle: React.CSSProperties = {
+  const actualLeftContentStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingRight: `${halfPivotPadding}px`,
-    flexShrink: 0, // Added
+    flexShrink: 0,
   };
 
-  const rightSectionStyle: React.CSSProperties = {
+  const actualRightContentStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingLeft: `${halfPivotPadding}px`,
-    flexShrink: 0, // Added
+    flexShrink: 0,
   };
 
-  const nothingToShow = !currentShowName && !currentShowScore;
+  // Use element.showName and element.showScore for conditions
+  const currentShowName = typeof element.showName === 'boolean' ? element.showName : true;
+  const currentShowScore = typeof element.showScore === 'boolean' ? element.showScore : true;
+
   const showLeftContent = (currentShowName && liveHostName) || (currentShowScore && liveScores.host !== undefined);
   const showRightContent = (currentShowName && liveGuestName) || (currentShowScore && liveScores.guest !== undefined);
+  const nothingToShow = !currentShowName && !currentShowScore;
+
 
   return (
     <div style={baseDivStyle}>
       {showLeftContent && (
-        <div style={leftSectionStyle}>
+        <div style={actualLeftContentStyle}>
           {currentShowName && hostNameDisplay}
           {currentShowName && currentShowScore && liveHostName && liveScores.host !== undefined && <span style={{ margin: '0 4px' }}></span>}
           {currentShowScore && hostScoreDisplay}
         </div>
       )}
 
-      {isPivotLocked && <div style={pivotLineStyle}></div>}
+      {/* Spacer Div using pivotInternalOffset */}
+      <div style={{ flexShrink: 0, width: `${pivotInternalOffset || 0}px`, height: '100%' /* take full height to ensure separation */ }}></div>
 
       {showRightContent && (
-        <div style={rightSectionStyle}>
+        <div style={actualRightContentStyle}>
           {currentShowScore && guestScoreDisplay}
           {currentShowName && currentShowScore && liveGuestName && liveScores.guest !== undefined && <span style={{ margin: '0 4px' }}></span>}
           {currentShowName && guestNameDisplay}
         </div>
       )}
 
+      {isPivotLocked && <div style={pivotLineStyle}></div>}
+
       {nothingToShow && (
-          <span style={{fontSize: '0.8em', opacity: 0.7, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}}>(Content Hidden)</span>
+          <span style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.8em', opacity: 0.7}}>(Content Hidden)</span>
       )}
     </div>
   );
