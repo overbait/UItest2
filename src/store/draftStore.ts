@@ -22,6 +22,7 @@ interface DraftStore extends CombinedDraftState {
 
   setHostName: (name: string) => void;
   setGuestName: (name: string) => void;
+  switchPlayerSides: () => void;
   incrementScore: (player: 'host' | 'guest') => void;
   decrementScore: (player: 'host' | 'guest') => void;
   
@@ -340,6 +341,54 @@ const useDraftStore = create<DraftStore>()(
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
+        switchPlayerSides: () => {
+          const {
+            hostName, guestName, scores,
+            civPicksHost, civBansHost, civPicksGuest, civBansGuest,
+            mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest,
+            boxSeriesGames
+          } = get(); // Assuming 'get' is from Zustand store setup
+
+          // Temporary variables to hold original values for swapping
+          const tempHostName = hostName;
+          const tempGuestName = guestName;
+          const tempScoresHost = scores.host;
+          const tempScoresGuest = scores.guest;
+          const tempCivPicksHost = [...civPicksHost];
+          const tempCivBansHost = [...civBansHost];
+          const tempCivPicksGuest = [...civPicksGuest];
+          const tempCivBansGuest = [...civBansGuest];
+          const tempMapPicksHost = [...mapPicksHost];
+          const tempMapBansHost = [...mapBansHost];
+          const tempMapPicksGuest = [...mapPicksGuest];
+          const tempMapBansGuest = [...mapBansGuest];
+
+          const newBoxSeriesGames = boxSeriesGames.map(game => ({
+            ...game,
+            hostCiv: game.guestCiv,
+            guestCiv: game.hostCiv,
+            winner: game.winner === 'host' ? 'guest' : game.winner === 'guest' ? 'host' : game.winner,
+          }));
+
+          set({
+            hostName: tempGuestName,
+            guestName: tempHostName,
+            scores: {
+              host: tempScoresGuest,
+              guest: tempScoresHost,
+            },
+            civPicksHost: tempCivPicksGuest,
+            civBansHost: tempCivBansGuest,
+            civPicksGuest: tempCivPicksHost,
+            civBansGuest: tempCivBansHost,
+            mapPicksHost: tempMapPicksGuest,
+            mapBansHost: tempMapBansGuest,
+            mapPicksGuest: tempMapPicksHost,
+            mapBansGuest: tempMapBansHost,
+            boxSeriesGames: newBoxSeriesGames,
+          });
+          get()._updateActivePresetIfNeeded(); // Crucial for saving to presets
+        },
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
         saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },

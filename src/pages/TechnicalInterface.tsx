@@ -31,7 +31,7 @@ const TechnicalInterface = () => {
     // isPresetDirty, // This state is implicitly handled by activePresetId === null when changes occur
     connectToDraft,
     setHostName, setGuestName,
-    incrementScore, decrementScore,
+    incrementScore, decrementScore, switchPlayerSides,
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
@@ -199,7 +199,15 @@ const TechnicalInterface = () => {
                 <span className="score-display">{scores.host}</span>
                 <button onClick={() => incrementScore('host')} className="score-button button-like">+</button>
               </div>
-               {/* Swap Scores button removed */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexGrow: 0.5 /* Adjust as needed */ }}>
+                <button
+                  onClick={switchPlayerSides}
+                  className="button-like" // Or your preferred button styling class
+                  style={{ padding: '8px 12px', whiteSpace: 'nowrap' }} // Example styling
+                >
+                  Switch Sides
+                </button>
+              </div>
               <div className="score-controls-group">
                 <button onClick={() => decrementScore('guest')} className="score-button button-like">-</button>
                 <span className="score-display">{scores.guest}</span>
