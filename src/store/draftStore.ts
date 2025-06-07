@@ -190,7 +190,152 @@ const useDraftStore = create<DraftStore>()(
         _resetCurrentSessionState: () => { set({ ...initialCombinedState, savedPresets: get().savedPresets, studioLayout: [], savedStudioLayouts: get().savedStudioLayouts, selectedElementId: null }); },
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
-        connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => { if (draftType === 'civ') set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null }); else set({ isLoadingMapDraft: true, mapDraftStatus: 'connecting', mapDraftError: null }); const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl); if (!extractedId) { const errorMsg = 'Invalid Draft ID or URL provided.'; if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMsg }); else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMsg }); return false; } const currentActivePresetId = get().activePresetId; const savedPresetsArray = get().savedPresets; const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null; if (activePreset) { if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) || (draftType === 'map' && activePreset.mapDraftId !== extractedId)) set({ activePresetId: null }); } else set({ activePresetId: null }); if (draftType === 'civ') set({ civDraftId: extractedId }); else set({ mapDraftId: extractedId }); const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`; try { const response = await axios.get<Aoe2cmRawDraftData>(apiUrl); if (!response.data || typeof response.data !== 'object') throw new Error('Received invalid or empty data structure from the API.'); const rawDraftData = response.data; if (!rawDraftData.preset || !rawDraftData.preset.draftOptions) throw new Error('Preset data or draftOptions missing in API response.'); const processedData = transformRawDataToSingleDraft(rawDraftData, draftType); const presetName = rawDraftData.preset.name?.toLowerCase() || ''; let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; if (get().activePresetId === null && !get().boxSeriesFormat) { if (presetName.includes('bo1')) detectedFormat = 'bo1'; else if (presetName.includes('bo3')) detectedFormat = 'bo3'; else if (presetName.includes('bo5')) detectedFormat = 'bo5'; else if (presetName.includes('bo7')) detectedFormat = 'bo7'; } if (detectedFormat && get().boxSeriesFormat !== detectedFormat) get().setBoxSeriesFormat(detectedFormat); if (draftType === 'civ') { set(state => ({ hostName: processedData.hostName || state.hostName, guestName: processedData.guestName || state.guestName, civPicksHost: processedData.civPicksHost || [], civBansHost: processedData.civBansHost || [], civPicksGuest: processedData.civPicksGuest || [], civBansGuest: processedData.civBansGuest || [], civDraftStatus: 'connected', isLoadingCivDraft: false, civDraftError: null, boxSeriesGames: state.boxSeriesFormat ? state.boxSeriesGames.map((game, index) => ({ ...game, hostCiv: processedData.civPicksHost?.[index] || game.hostCiv || null, guestCiv: processedData.civPicksGuest?.[index] || game.guestCiv || null, })) : [], })); } else { set(state => { const combinedMapPicks = Array.from(new Set([...(processedData.mapPicksHost || []), ...(processedData.mapPicksGuest || []), ...(processedData.mapPicksGlobal || []) ])); return { hostName: state.hostName === initialPlayerNameHost ? (processedData.hostName || state.hostName) : state.hostName, guestName: state.guestName === initialPlayerNameGuest ? (processedData.guestName || state.guestName) : state.guestName, mapPicksHost: processedData.mapPicksHost || [], mapBansHost: processedData.mapBansHost || [], mapPicksGuest: processedData.mapPicksGuest || [], mapBansGuest: processedData.mapBansGuest || [], mapPicksGlobal: processedData.mapPicksGlobal || [], mapBansGlobal: processedData.mapBansGlobal || [], mapDraftStatus: 'connected', isLoadingMapDraft: false, mapDraftError: null, boxSeriesGames: state.boxSeriesFormat ? state.boxSeriesGames.map((game, index) => ({ ...game, map: combinedMapPicks[index] || game.map || null, })) : [], }; }); } get()._updateActivePresetIfNeeded(); return true; } catch (error) { let errorMessage = `Failed to fetch or process ${draftType} draft data.`; if (axios.isAxiosError(error)) errorMessage += ` Server: ${error.response?.status || 'N/A'}: ${error.message}`; else errorMessage += ` Error: ${(error as Error).message}`; if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMessage, activePresetId: null }); else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMessage, activePresetId: null }); return false; } },
+        connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
+          if (draftType === 'civ') set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null });
+          else set({ isLoadingMapDraft: true, mapDraftStatus: 'connecting', mapDraftError: null });
+
+          const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl);
+          if (!extractedId) {
+            const errorMsg = 'Invalid Draft ID or URL provided.';
+            if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMsg });
+            else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMsg });
+            return false;
+          }
+
+          const currentActivePresetId = get().activePresetId;
+          const savedPresetsArray = get().savedPresets;
+          const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
+          if (activePreset) {
+            if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) || (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
+              set({ activePresetId: null });
+            }
+          } else {
+            set({ activePresetId: null });
+          }
+
+          if (draftType === 'civ') set({ civDraftId: extractedId });
+          else set({ mapDraftId: extractedId });
+
+          const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
+          try {
+            const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
+            if (!response.data || typeof response.data !== 'object') throw new Error('Received invalid or empty data structure from the API.');
+            const rawDraftData = response.data;
+            if (!rawDraftData.preset || !rawDraftData.preset.draftOptions) throw new Error('Preset data or draftOptions missing in API response.');
+
+            const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
+
+            // Determine new player names
+            let newHostName = get().hostName;
+            let newGuestName = get().guestName;
+            if (draftType === 'civ') {
+              newHostName = processedData.hostName || get().hostName;
+              newGuestName = processedData.guestName || get().guestName;
+            } else { // map draft
+              newHostName = get().hostName === initialPlayerNameHost ? (processedData.hostName || get().hostName) : get().hostName;
+              newGuestName = get().guestName === initialPlayerNameGuest ? (processedData.guestName || get().guestName) : get().guestName;
+            }
+
+            // Prepare pick/ban lists from processedData
+            const newCivPicksHost = draftType === 'civ' ? (processedData.civPicksHost || []) : get().civPicksHost;
+            const newCivBansHost = draftType === 'civ' ? (processedData.civBansHost || []) : get().civBansHost;
+            const newCivPicksGuest = draftType === 'civ' ? (processedData.civPicksGuest || []) : get().civPicksGuest;
+            const newCivBansGuest = draftType === 'civ' ? (processedData.civBansGuest || []) : get().civBansGuest;
+
+            const newMapPicksHost = draftType === 'map' ? (processedData.mapPicksHost || []) : get().mapPicksHost;
+            const newMapBansHost = draftType === 'map' ? (processedData.mapBansHost || []) : get().mapBansHost;
+            const newMapPicksGuest = draftType === 'map' ? (processedData.mapPicksGuest || []) : get().mapPicksGuest;
+            const newMapBansGuest = draftType === 'map' ? (processedData.mapBansGuest || []) : get().mapBansGuest;
+            const newMapPicksGlobal = draftType === 'map' ? (processedData.mapPicksGlobal || []) : get().mapPicksGlobal;
+            const newMapBansGlobal = draftType === 'map' ? (processedData.mapBansGlobal || []) : get().mapBansGlobal;
+
+            // ***** First (Immediate) Set Call *****
+            set(state => ({
+              ...state,
+              hostName: newHostName,
+              guestName: newGuestName,
+              civPicksHost: newCivPicksHost,
+              civBansHost: newCivBansHost,
+              civPicksGuest: newCivPicksGuest,
+              civBansGuest: newCivBansGuest,
+              mapPicksHost: newMapPicksHost,
+              mapBansHost: newMapBansHost,
+              mapPicksGuest: newMapPicksGuest,
+              mapBansGuest: newMapBansGuest,
+              mapPicksGlobal: newMapPicksGlobal,
+              mapBansGlobal: newMapBansGlobal,
+            }));
+
+            // Series Format Detection Logic (after initial data update)
+            const presetName = rawDraftData.preset.name?.toLowerCase() || '';
+            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat; // Use current format as default
+            // Only try to detect format if activePresetId is null (meaning not loading a saved preset)
+            // AND boxSeriesFormat is not already set by the user.
+            if (get().activePresetId === null && !get().boxSeriesFormat) {
+              if (presetName.includes('bo1')) detectedFormat = 'bo1';
+              else if (presetName.includes('bo3')) detectedFormat = 'bo3';
+              else if (presetName.includes('bo5')) detectedFormat = 'bo5';
+              else if (presetName.includes('bo7')) detectedFormat = 'bo7';
+            }
+
+            // If detected format is different from current, or if current is null and detected is not
+            if (detectedFormat && get().boxSeriesFormat !== detectedFormat) {
+              get().setBoxSeriesFormat(detectedFormat); // This will use the new pick lists from the set call above
+            }
+
+            // ***** Final Set Call for Status and boxSeriesGames Alignment *****
+            set(state => {
+              let finalBoxSeriesGames = state.boxSeriesGames;
+              if (state.boxSeriesFormat) {
+                  // Re-fetch current pick lists from state (which are now fresh)
+                  const currentMapPicksH = state.mapPicksHost;
+                  const currentMapPicksG = state.mapPicksGuest;
+                  const currentMapPicksGl = state.mapPicksGlobal;
+                  const currentCivPicksH = state.civPicksHost;
+                  const currentCivPicksG = state.civPicksGuest;
+
+                  const combinedMapPicks = Array.from(new Set([...currentMapPicksH, ...currentMapPicksG, ...currentMapPicksGl]));
+
+                  finalBoxSeriesGames = state.boxSeriesGames.map((game, index) => ({
+                      ...game,
+                      map: draftType === 'map' ? (combinedMapPicks[index] !== undefined ? combinedMapPicks[index] : game.map) : game.map,
+                      hostCiv: draftType === 'civ' ? (currentCivPicksH[index] !== undefined ? currentCivPicksH[index] : game.hostCiv) : game.hostCiv,
+                      guestCiv: draftType === 'civ' ? (currentCivPicksG[index] !== undefined ? currentCivPicksG[index] : game.guestCiv) : game.guestCiv,
+                  }));
+              } else {
+                  finalBoxSeriesGames = []; // No format, no games
+              }
+
+              if (draftType === 'civ') {
+                return {
+                  ...state,
+                  civDraftStatus: 'connected',
+                  isLoadingCivDraft: false,
+                  civDraftError: null,
+                  boxSeriesGames: finalBoxSeriesGames,
+                };
+              } else { // map draft
+                return {
+                  ...state,
+                  mapDraftStatus: 'connected',
+                  isLoadingMapDraft: false,
+                  mapDraftError: null,
+                  boxSeriesGames: finalBoxSeriesGames,
+                };
+              }
+            });
+
+            get()._updateActivePresetIfNeeded();
+            return true;
+          } catch (error) {
+            let errorMessage = `Failed to fetch or process ${draftType} draft data.`;
+            if (axios.isAxiosError(error)) errorMessage += ` Server: ${error.response?.status || 'N/A'}: ${error.message}`;
+            else errorMessage += ` Error: ${(error as Error).message}`;
+            if (draftType === 'civ') set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMessage, activePresetId: null });
+            else set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: errorMessage, activePresetId: null });
+            return false;
+          }
+        },
         disconnectDraft: (draftType: 'civ' | 'map') => { if (draftType === 'civ') { set({ civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest, boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })), activePresetId: null, }); } else { set({ mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })), activePresetId: null, }); } if (!get().civDraftId && !get().mapDraftId) set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null }); },
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
