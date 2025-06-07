@@ -71,12 +71,14 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     display: 'flex',
     alignItems: 'center',
     flexShrink: 0,
+    paddingRight: '5px',
   };
 
   const actualRightContentStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     flexShrink: 0,
+    paddingRight: '5px', // As requested, paddingRight for right section as well
   };
 
   // Use element.showName and element.showScore for conditions
