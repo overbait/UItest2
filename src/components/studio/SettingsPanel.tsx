@@ -50,7 +50,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
           <div style={settingRowStyle}><label htmlFor="showScoreCheckbox" style={labelStyle}>Show Scores:</label><input type="checkbox" id="showScoreCheckbox" style={checkboxStyle} checked={selectedElement.showScore === undefined ? true : selectedElement.showScore} onChange={(e) => handleSettingChange('showScore', e.target.checked)}/></div>
           <div style={settingRowStyle}>
             <label htmlFor="scaleSlider" style={labelStyle}>Scale:</label>
-            <input type="range" id="scaleSlider" style={rangeInputStyle} min="0.5" max="3" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+            <input type="range" id="scaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
             <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
           </div>
           <div style={settingRowStyle}> {/* New Pivot Lock Setting */}

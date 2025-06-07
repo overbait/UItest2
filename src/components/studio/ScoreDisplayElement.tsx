@@ -12,7 +12,8 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
     showName,
     showScore,
     backgroundColor,
-    borderColor
+    borderColor,
+    isPivotLocked // Added for visualization
   } = element;
 
   const currentFontFamily = fontFamily || 'Arial';
@@ -29,7 +30,18 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
   const guestScoreDisplay = <span style={{ fontWeight: 'bold' }}>{liveScores.guest}</span>;
   const hostNameDisplay = <span>{liveHostName}</span>;
   const guestNameDisplay = <span>{liveGuestName}</span>;
-  const scoreSeparator = <span style={{ margin: '0 8px' }}> </span>; // Using space for score separation
+  const scoreSeparator = <span style={{ margin: '0 8px' }}> </span>;
+
+  const pivotLineStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '50%',
+    top: '10%', // Start a bit down from the top
+    bottom: '10%', // End a bit up from the bottom
+    width: '1px',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)', // Semi-transparent white
+    transform: 'translateX(-50%)', // Center the line precisely
+    zIndex: 1, // Ensure it's visible but doesn't interfere with text too much
+  };
 
   return (
     <div style={{
@@ -45,23 +57,21 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
       boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-around', // Use space-around for better distribution
+      justifyContent: 'space-around',
       overflow: 'hidden',
-      textAlign: 'center', // Ensure text within spans is centered if spans are blocky
+      textAlign: 'center',
+      position: 'relative', // Needed for absolute positioning of the pivot line
     }}>
       {currentShowName && hostNameDisplay}
-
-      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>} {/* Minimal spacer */}
-
+      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>}
       {currentShowScore && hostScoreDisplay}
       {currentShowScore && scoreSeparator}
       {currentShowScore && guestScoreDisplay}
-
-      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>} {/* Minimal spacer */}
-
+      {currentShowName && currentShowScore && <span style={{ margin: '0 4px' }}></span>}
       {currentShowName && guestNameDisplay}
-
       {!currentShowName && !currentShowScore && <span style={{fontSize: '0.8em', opacity: 0.7}}>(Content Hidden)</span>}
+
+      {isPivotLocked && <div style={pivotLineStyle}></div>}
     </div>
   );
 };
