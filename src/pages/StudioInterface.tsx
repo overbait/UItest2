@@ -26,8 +26,8 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-    // Vertical drag is always normal relative to last Y
-    let newY = element.position.y + data.deltaY;
+    // This part is outside the data.deltaX check
+    let newY = element.position.y + data.deltaY; // Vertical drag is screen pixels
 
     const currentX = element.position.x;
     const currentWidth = element.size.width;
@@ -35,38 +35,36 @@ const StudioInterface: React.FC = () => {
     const currentScale = element.scale || 1;
     const currentPivotOffset = element.pivotInternalOffset || 0;
 
+    // Initialize final values to current values, in case data.deltaX === 0
     let finalX = currentX;
     let finalWidth = currentWidth;
     let finalPivotOffset = currentPivotOffset;
 
-    // Only apply horizontal changes if there's horizontal mouse movement
-    if (data.deltaX !== 0) {
-        const effectiveUnscaledDrag = data.deltaX / currentScale;
+    if (data.deltaX !== 0) { // Only if there's horizontal mouse movement
+        const effectiveUnscaledDrag = data.deltaX / currentScale; // Mouse drag in element's unscaled coords
 
-        // This is the width the element would have if there were no minimum width constraint.
-        let targetWidthUnconstrained = currentWidth - (2 * effectiveUnscaledDrag);
+        // Calculate the width the element would have if there were no minimum width constraint.
+        let targetUnconstrainedWidth = currentWidth - (2 * effectiveUnscaledDrag);
 
-        let actualUnscaledDragApplied;
+        let actualDragAppliedToEdge;
 
-        if (targetWidthUnconstrained < MIN_ELEMENT_WIDTH) {
-            // The drag would make the element too narrow. Clamp the width to MIN_ELEMENT_WIDTH.
+        if (targetUnconstrainedWidth < MIN_ELEMENT_WIDTH) {
+            // Width needs to be clamped to MIN_ELEMENT_WIDTH.
             finalWidth = MIN_ELEMENT_WIDTH;
-            // Now, calculate what drag amount would result in this MIN_ELEMENT_WIDTH.
-            // finalWidth = currentWidth - 2 * actualUnscaledDragApplied
-            // 2 * actualUnscaledDragApplied = currentWidth - finalWidth
-            actualUnscaledDragApplied = (currentWidth - finalWidth) / 2;
+            // Calculate the drag amount (for one edge) that would result in this clamped width.
+            // finalWidth = currentWidth - 2 * actualDragAppliedToEdge
+            // 2 * actualDragAppliedToEdge = currentWidth - finalWidth
+            actualDragAppliedToEdge = (currentWidth - finalWidth) / 2;
         } else {
-            // No clamping needed for width. The drag is as intended.
-            finalWidth = targetWidthUnconstrained;
-            actualUnscaledDragApplied = effectiveUnscaledDrag;
+            // No clamping needed for width.
+            finalWidth = targetUnconstrainedWidth;
+            actualDragAppliedToEdge = effectiveUnscaledDrag;
         }
 
-        finalX = currentX + actualUnscaledDragApplied;
-        // finalWidth is already set above.
-        finalPivotOffset = currentPivotOffset - (2 * actualUnscaledDragApplied);
+        finalX = currentX + actualDragAppliedToEdge;
+        // finalWidth is already set.
+        finalPivotOffset = currentPivotOffset - (2 * actualDragAppliedToEdge);
     }
-    // If data.deltaX === 0, then finalX, finalWidth, and finalPivotOffset remain
-    // initialized to their current values (no horizontal change).
 
     updateStudioElementSettings(elementId, {
         position: { x: finalX, y: newY },
