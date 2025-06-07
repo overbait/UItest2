@@ -27,34 +27,35 @@ const StudioInterface: React.FC = () => {
 
     if (element.isPivotLocked) {
       let newX = element.position.x;
-      let newY = data.y; // Use Draggable's proposed new Y for vertical component
+      let newY = element.position.y + data.deltaY; // Vertical drag is always normal relative to last Y
       let newWidth = element.size.width;
 
-      if (data.deltaX !== 0) { // Horizontal component of drag exists
-        // actualDeltaX is how much the left edge of the element *would* move if not for pivot logic
-        const actualDeltaX = data.x - element.position.x;
+      if (data.deltaX !== 0) { // Horizontal drag component
+        const deltaXFromDrag = data.deltaX; // How much the top-left corner was dragged by mouse since last event
 
-        const originalPositionX = element.position.x;
-        const originalWidth = element.size.width;
-        const originalCenterX = originalPositionX + originalWidth / 2;
-
-        newWidth = originalWidth - (actualDeltaX * 2);
-
+        newWidth = element.size.width + (2 * deltaXFromDrag);
         if (newWidth < MIN_ELEMENT_WIDTH) {
           newWidth = MIN_ELEMENT_WIDTH;
-          // If width is clamped, the element effectively resists further squashing/stretching from one side.
-          // The newX must be calculated based on this clamped newWidth and originalCenterX.
+          // If width is clamped, we need to adjust how much newX changes to prevent "sticking" on one side.
+          // The effective delta that caused clamping:
+          // MIN_ELEMENT_WIDTH = element.size.width + 2 * effectiveClampedDeltaX
+          // effectiveClampedDeltaX = (MIN_ELEMENT_WIDTH - element.size.width) / 2
+          // This effectiveClampedDeltaX should have the same sign as deltaXFromDrag
+          const effectiveClampedDeltaX = ( (MIN_ELEMENT_WIDTH - element.size.width) / 2 ) * Math.sign(deltaXFromDrag);
+          newX = element.position.x - effectiveClampedDeltaX;
+
+        } else {
+          newX = element.position.x - deltaXFromDrag;
         }
-        newX = originalCenterX - newWidth / 2;
       }
 
-      // Apply updates
       updateStudioElementSettings(elementId, {
           position: { x: newX, y: newY },
           size: { ...element.size, width: newWidth }
       });
 
     } else { // Pivot not locked - normal drag
+      // data.x and data.y are the new absolute positions of the top-left corner from Draggable's perspective
       updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
@@ -77,7 +78,6 @@ const StudioInterface: React.FC = () => {
   const listItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 5px', borderBottom: '1px solid #2a2a2a', fontSize: '0.85em',};
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
-
 
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
