@@ -70,6 +70,41 @@ const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ
   const output: Partial<SingleDraftData> = { id: raw.id || raw.draftId || 'unknown-id', hostName, guestName, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], };
   const getOptionNameById = (optionId: string): string => { const option = raw.preset?.draftOptions?.find(opt => opt.id === optionId); if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name; return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; };
   raw.events?.forEach(event => { const action = event.actionType?.toLowerCase() || ''; const executingPlayer = event.executingPlayer; const chosenOptionId = event.chosenOptionId; if (!chosenOptionId) return; const optionName = getOptionNameById(chosenOptionId); const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.'); const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.'); if (action === 'pick') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civPicksHost!.includes(optionName)) output.civPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civPicksGuest!.includes(optionName)) output.civPicksGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapPicksHost!.includes(optionName)) output.mapPicksHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapPicksGuest!.includes(optionName)) output.mapPicksGuest!.push(optionName); } } else if (action === 'ban') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); } } else if (action === 'snipe') { if (isCivAction && draftType === 'civ') { if (executingPlayer === 'HOST' && !output.civBansGuest!.includes(optionName)) output.civBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.civBansHost!.includes(optionName)) output.civBansHost!.push(optionName); } else if (isMapAction && draftType === 'map') { if (executingPlayer === 'HOST' && !output.mapBansGuest!.includes(optionName)) output.mapBansGuest!.push(optionName); else if (executingPlayer === 'GUEST' && !output.mapBansHost!.includes(optionName)) output.mapBansHost!.push(optionName); } } });
+
+  // New logic for auto-picking the last map
+  if (draftType === 'map' && raw.preset?.draftOptions) {
+    const allMapOptions = raw.preset.draftOptions
+      .filter(opt => !opt.id.startsWith('aoe4.')) // Filter out civ options using opt.id
+      .map(opt => getOptionNameById(opt.id));
+
+    const pickedOrBannedMaps = new Set<string>([
+      ...(output.mapPicksHost || []),
+      ...(output.mapPicksGuest || []),
+      ...(output.mapPicksGlobal || []),
+      ...(output.mapBansHost || []),
+      ...(output.mapBansGuest || []),
+      ...(output.mapBansGlobal || []),
+    ]);
+
+    const remainingMaps: string[] = [];
+    for (const mapName of allMapOptions) {
+      if (!pickedOrBannedMaps.has(mapName)) {
+        remainingMaps.push(mapName);
+      }
+    }
+
+    if (remainingMaps.length === 1) {
+      if (!output.mapPicksGlobal) {
+        output.mapPicksGlobal = [];
+      }
+      // Ensure the map isn't already somehow globally picked
+      if (!output.mapPicksGlobal.includes(remainingMaps[0])) {
+        output.mapPicksGlobal.push(remainingMaps[0]);
+      }
+    }
+  }
+  // End of new logic
+
   let currentTurnPlayerDisplay: string | undefined = 'none'; let currentActionDisplay: string | undefined = 'unknown'; let draftStatus: SingleDraftData['status'] = 'unknown'; if (raw.preset?.turns && typeof raw.nextAction === 'number') { if (raw.nextAction >= raw.preset.turns.length) draftStatus = 'completed'; else { draftStatus = 'inProgress'; const currentTurnInfo = raw.preset.turns[raw.nextAction]; if (currentTurnInfo) { currentTurnPlayerDisplay = currentTurnInfo.player === 'HOST' ? hostName : currentTurnInfo.player === 'GUEST' ? guestName : 'None'; currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', ''); } } } else if (raw.status) draftStatus = raw.status.toLowerCase() as SingleDraftData['status']; else if (raw.ongoing === false) draftStatus = 'completed'; else if (raw.ongoing === true) draftStatus = 'inProgress';
   output.status = draftStatus; output.currentTurnPlayer = currentTurnPlayerDisplay; output.currentAction = currentActionDisplay; return output;
 };
