@@ -19,12 +19,18 @@ const StudioInterface: React.FC = () => {
 
   const handleAddScoreDisplay = () => { addStudioElement("ScoreDisplay"); };
   const handleDragStop = (elementId: string, data: DraggableData) => { updateStudioElementPosition(elementId, { x: data.x, y: data.y }); };
+
+  // handleResizeStop should still use currentScale to correctly interpret ResizableBox's reported size
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
     const currentElement = studioLayout.find(el => el.id === elementId);
     const currentScale = currentElement?.scale || 1;
-    // Ensure data.size contains width and height. ResizableBox's ResizeCallbackData provides size.
-    updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
+    // ResizableBox gives dimensions of its own box, which is unscaled.
+    // So, if we scale the child, ResizableBox dimensions are the ones we store.
+    // The previous division by currentScale was needed if ResizableBox itself was scaled.
+    // Now that only the child is scaled, ResizableBox's size IS the logical size.
+    updateStudioElementSize(elementId, { width: data.size.width, height: data.size.height });
   };
+
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
   const handleElementClick = (elementId: string) => { setSelectedElementId(elementId); };
   const handleCloseSettingsPanel = () => { setSelectedElementId(null); };
@@ -40,6 +46,7 @@ const StudioInterface: React.FC = () => {
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
+        {/* Toolbox content as before */}
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Elements</h3><button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button></div>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Save Current Layout</h3><input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/><button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button></div>
@@ -51,6 +58,7 @@ const StudioInterface: React.FC = () => {
           {studioLayout.map((element: StudioElement) => {
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
+            // console.log(`Rendering element ${element.id} type: ${element.type}, scale: ${currentScale}`); // DEBUG LOG
             const selectionStyle: React.CSSProperties = isSelected ? { outline: '2px solid #007bff', outlineOffset: '2px', zIndex: 1 } : { zIndex: 0 };
             let content = null;
             if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
@@ -62,15 +70,16 @@ const StudioInterface: React.FC = () => {
                     width={element.size.width}
                     height={element.size.height}
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
-                    minConstraints={[50 / currentScale, 30 / currentScale]}
-                    maxConstraints={[800 / currentScale, 600 / currentScale]}
+                    // Constraints are on the unscaled box.
+                    minConstraints={[50, 30]}
+                    maxConstraints={[800, 600]}
                     style={{
                         ...selectionStyle,
-                        transform: 'scale(2.0)', // DEBUG: HARDCODED SCALE
-                        transformOrigin: 'top left', // Added this line
+                        // No transform here on ResizableBox itself
                     }}
                     className="drag-handle">
-                  <div onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
+                  <div
+                       onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
                        style={{
                            width: '100%',
                            height: '100%',
@@ -79,8 +88,8 @@ const StudioInterface: React.FC = () => {
                            border: `1px solid ${element.borderColor || 'transparent'}`,
                            background: element.backgroundColor || 'transparent',
                            cursor: 'move',
-                           // If transformOrigin was applied here, it would be relative to this div.
-                           // Applying to ResizableBox makes positioning simpler with Draggable.
+                           transform: `scale(${currentScale})`, // Apply scale to this inner div
+                           transformOrigin: 'top left',
                        }}>
                     {content}
                   </div>

@@ -15,6 +15,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
 
   const handleSettingChange = (settingName: keyof StudioElement, value: any) => {
     if (selectedElement) {
+      if (settingName === 'scale') console.log('SettingsPanel: Updating scale to:', value);
       updateStudioElementSettings(selectedElement.id, { [settingName]: value });
     }
   };
