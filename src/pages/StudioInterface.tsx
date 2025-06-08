@@ -67,59 +67,75 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-    // Element positions and sizes are stored normalized to REF_WIDTH/REF_HEIGHT.
-    // Draggable and ResizableBox work with display pixels.
-    // We need to convert back and forth.
+      // Convert normalized element data to current display pixels for the original pivot logic
+      const displayElementX = (element.position.x / REF_WIDTH) * studioCanvasDimensions.width;
+      const displayElementY = (element.position.y / REF_HEIGHT) * studioCanvasDimensions.height;
+      const displayElementWidth = (element.size.width / REF_WIDTH) * studioCanvasDimensions.width;
+      const displayElementHeight = (element.size.height / REF_HEIGHT) * studioCanvasDimensions.height; // For consistency, though height is preserved
 
-    // For pivot lock, calculations are complex. Adapt existing logic by:
-    // 1. Converting current element's normalized pos/size to display pixels.
-    // 2. Running existing pivot logic which uses display pixel deltas (data.deltaX/Y).
-    // 3. Normalizing the resulting display pixel pos/size back to store.
+      // Original pivot logic using display pixel values:
+      // data.deltaX and data.deltaY are already in display pixels.
 
-    const displayX = (element.position.x / REF_WIDTH) * studioCanvasDimensions.width;
-    const displayY = (element.position.y / REF_HEIGHT) * studioCanvasDimensions.height;
-    const displayWidth = (element.size.width / REF_WIDTH) * studioCanvasDimensions.width;
-    const displayHeight = (element.size.height / REF_HEIGHT) * studioCanvasDimensions.height; // For consistency, though current pivot logic preserves height
+      let newY_display = displayElementY + data.deltaY; // new Y position in display pixels
 
-    let newY_screen_display = displayY + data.deltaY; // Start with display pixels
+      // Current state values IN DISPLAY PIXELS for the logic below
+      const currentX_display = displayElementX;
+      const currentUnscaledWidth_display = displayElementWidth; // This is 'unscaled' by element.scale, but it's in display pixels
+      const currentUnscaledHeight_display = displayElementHeight; // This is 'unscaled' by element.scale, in display pixels
+      const currentScale = element.scale || 1; // This scale is correct
 
-    const currentX_screen_display = displayX;
-    const currentUnscaledWidth_display = displayWidth;
-    // const currentUnscaledHeight_display = displayHeight; // This is the normalized height scaled to display
+      // finalPivotOffset_unscaled is independent of normalization as it's an internal ratio/offset
+      const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
 
-    const currentScale = element.scale || 1;
-    const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
+      let finalX_display = currentX_display;
+      let finalUnscaledWidth_display = currentUnscaledWidth_display;
+      let finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled; // Keep separate from element.pivotInternalOffset
 
-    let finalX_screen_display = currentX_screen_display;
-    let finalUnscaledWidth_display = currentUnscaledWidth_display;
-    let finalPivotOffset_unscaled = currentPivotOffset_unscaled;
+      if (data.deltaX !== 0) { // Horizontal drag occurred
+          // Calculate the fixed screen X-coordinate of the pivot (element's center)
+          // This uses the state *before* the current drag delta.
+          const pivotScreenX_fixed_display = currentX_display + (currentUnscaledWidth_display / 2) * currentScale;
 
+          // Convert screen drag delta to an equivalent unscaled drag for one edge
+          // This deltaX is a display pixel delta. The effect on unscaled width needs to consider the current element scale.
+          const effectiveUnscaledDrag_display = data.deltaX / currentScale;
 
-    if (data.deltaX !== 0) {
-        const pivotScreenX_fixed_display = currentX_screen_display + (currentUnscaledWidth_display / 2) * currentScale;
-        const effectiveUnscaledDrag_display = data.deltaX / currentScale;
+          // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH_NORMALIZED (converted to display pixels)
+          const minDisplayWidth = (MIN_ELEMENT_WIDTH_NORMALIZED / REF_WIDTH) * studioCanvasDimensions.width;
 
-        const displayMinElementWidth = (MIN_ELEMENT_WIDTH_NORMALIZED / REF_WIDTH) * studioCanvasDimensions.width;
-        const targetUnconstrainedWidth_display = currentUnscaledWidth_display - (2 * effectiveUnscaledDrag_display);
-        finalUnscaledWidth_display = Math.max(displayMinElementWidth, targetUnconstrainedWidth_display);
+          const targetUnconstrainedWidth_display = currentUnscaledWidth_display - (2 * effectiveUnscaledDrag_display);
+          finalUnscaledWidth_display = Math.max(minDisplayWidth, targetUnconstrainedWidth_display);
 
-        const actualUnscaledDragAppliedToEdge_display = (currentUnscaledWidth_display - finalUnscaledWidth_display) / 2;
-        finalX_screen_display = pivotScreenX_fixed_display - (finalUnscaledWidth_display / 2) * currentScale;
-        finalPivotOffset_unscaled = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge_display); // Assuming pivot offset is independent of overall scale/normalization
-    }
+          // Calculate the actual change applied to one edge in unscaled (but display pixel unit) units
+          const actualUnscaledDragAppliedToEdge_display = (currentUnscaledWidth_display - finalUnscaledWidth_display) / 2;
 
-    const normalizedX = (finalX_screen_display / studioCanvasDimensions.width) * REF_WIDTH;
-    const normalizedY = (newY_screen_display / studioCanvasDimensions.height) * REF_HEIGHT;
-    const normalizedWidth = (finalUnscaledWidth_display / studioCanvasDimensions.width) * REF_WIDTH;
-    // Height is preserved from element.size.height which is already normalized.
+          // Calculate the new top-left X screen coordinate to keep the pivotScreenX_fixed_display stationary
+          finalX_display = pivotScreenX_fixed_display - (finalUnscaledWidth_display / 2) * currentScale;
 
-    updateStudioElementSettings(elementId, {
-        position: { x: normalizedX, y: normalizedY },
-        size: { width: normalizedWidth, height: element.size.height }, // height is already normalized
-        pivotInternalOffset: finalPivotOffset_unscaled
-    });
+          // Calculate the new unscaled pivot offset
+          finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge_display);
+      }
 
-    } else { // Pivot not locked - normal drag
+      // For this reversion step, send these DISPLAY PIXEL values to the store.
+      // This means position.x and size.width for pivot-dragged elements will be temporarily unnormalized in the store.
+      // element.size.height (which is element.size.height from store) remains normalized.
+      // newY_display is also a display pixel value.
+
+      // Normalize the calculated display values before sending to store
+      const normalizedPositionX = (finalX_display / studioCanvasDimensions.width) * REF_WIDTH;
+      const normalizedPositionY = (newY_display / studioCanvasDimensions.height) * REF_HEIGHT;
+      const normalizedSizeWidth = (finalUnscaledWidth_display / studioCanvasDimensions.width) * REF_WIDTH;
+
+      updateStudioElementSettings(elementId, {
+          position: { x: normalizedPositionX, y: normalizedPositionY },
+          size: {
+              width: normalizedSizeWidth,
+              height: element.size.height // This is already normalized from the store
+          },
+          pivotInternalOffset: finalPivotOffset_unscaled_calculated
+      });
+
+    } else { // Pivot not locked - this part uses normalization correctly
       const normalizedX = (data.x / studioCanvasDimensions.width) * REF_WIDTH;
       const normalizedY = (data.y / studioCanvasDimensions.height) * REF_HEIGHT;
       updateStudioElementPosition(elementId, { x: normalizedX, y: normalizedY });

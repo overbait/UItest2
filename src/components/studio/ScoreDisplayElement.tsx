@@ -15,8 +15,19 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element, isBr
     backgroundColor,
     borderColor,
     isPivotLocked,
-    pivotInternalOffset
+    pivotInternalOffset,
+    size // Destructure size from element
   } = element;
+
+  // Define a reference normalized height that corresponds to a baseline font size
+  const REFERENCE_NORMALIZED_HEIGHT_FOR_FONT = 40; // e.g., default element height
+  const BASELINE_FONT_SIZE_PX = 18; // Font size for that reference height
+
+  // Calculate dynamic font size.
+  // This makes font size proportional to the element's unscaled, normalized height.
+  // element.scale will then scale this visually along with the rest of the element.
+  const dynamicFontSize = Math.max(8, (size.height / REFERENCE_NORMALIZED_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
+  // Ensure a minimum font size, e.g., 8px.
 
   const currentFontFamily = fontFamily || 'Arial';
   const currentBackgroundColor = backgroundColor || 'transparent';
@@ -63,7 +74,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element, isBr
     backgroundColor: currentBackgroundColor,
     color: 'white',
     fontFamily: currentFontFamily,
-    fontSize: '18px',
+    fontSize: `${dynamicFontSize}px`, // Apply dynamic font size
     width: '100%',
     height: '100%',
     boxSizing: 'border-box',
