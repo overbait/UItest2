@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
@@ -7,54 +7,25 @@ import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import SettingsPanel from '../components/studio/SettingsPanel';
 
-const MIN_ELEMENT_WIDTH_PERCENT = 50 / 1920;
-const MIN_ELEMENT_HEIGHT_PERCENT = 30 / 1080;
-// REF_WIDTH and REF_HEIGHT are removed as direct constants here, percentages are used.
-// For clarity, where 1920/1080 are used in calculations, they refer to the reference resolution for percentages.
+const MIN_ELEMENT_WIDTH = 50;
 
 const StudioInterface: React.FC = () => {
   const {
-    // studioLayout, // REMOVE THIS
-    currentCanvases,    // ADD
-    activeCanvasId,     // ADD
-    activeStudioLayoutId,     // ADD
-    setActiveStudioLayoutId,  // ADD
-    updateStudioLayoutName, // ADD
+    currentCanvases,
+    activeCanvasId,
+    activeStudioLayoutId,
+    setActiveStudioLayoutId,
+    updateStudioLayoutName,
     savedStudioLayouts, selectedElementId,
     addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
-    addCanvas,          // ADD
-    setActiveCanvas,    // ADD
-    removeCanvas        // ADD
+    addCanvas,
+    setActiveCanvas,
+    removeCanvas
   } = useDraftStore(state => state);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
-  const [studioCanvasDimensions, setStudioCanvasDimensions] = useState({ width: 1920, height: 1080 });
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = canvasContainerRef.current;
-    if (!container) return;
-
-    const resizeObserver = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        setStudioCanvasDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-      }
-    });
-
-    resizeObserver.observe(container);
-    // Initial set
-    setStudioCanvasDimensions({
-        width: container.offsetWidth,
-        height: container.offsetHeight,
-    });
-
-    return () => resizeObserver.unobserve(container);
-  }, []); // Empty dependency array, runs once on mount
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -67,77 +38,67 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-      // Convert stored percentage-based pos/size to current display pixels for pivot logic
-      const displayElementX = element.position.x * studioCanvasDimensions.width;
-      const displayElementY = element.position.y * studioCanvasDimensions.height;
-      const displayElementWidth = element.size.width * studioCanvasDimensions.width;
-      // const displayElementHeight = element.size.height * studioCanvasDimensions.height; // Height is preserved in this logic
+    // Vertical drag part (screen coordinates)
+    let newY_screen = element.position.y + data.deltaY;
 
-      let newY_display = displayElementY + data.deltaY; // new Y position in display pixels
+    // Current state values
+    const currentX_screen = element.position.x;
+    const currentUnscaledWidth = element.size.width;
+    const currentUnscaledHeight = element.size.height; // Preserve height
+    const currentScale = element.scale || 1;
+    const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
 
-      const currentX_display = displayElementX;
-      const currentUnscaledWidth_display = displayElementWidth;
-      const currentScale = element.scale || 1;
-      const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
+    // Initialize final values to current state for the case data.deltaX === 0
+    let finalX_screen = currentX_screen;
+    let finalUnscaledWidth = currentUnscaledWidth;
+    let finalPivotOffset_unscaled = currentPivotOffset_unscaled;
 
-      let finalX_display = currentX_display;
-      let finalUnscaledWidth_display = currentUnscaledWidth_display;
-      // finalPivotOffset_unscaled_calculated is not used to update store, so its calculation can remain as is or be removed if not otherwise needed.
-      // let finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled;
+    if (data.deltaX !== 0) { // Horizontal drag occurred
+        // Calculate the fixed screen X-coordinate of the pivot (element's center)
+        // This uses the state *before* the current drag delta.
+        const pivotScreenX_fixed = currentX_screen + (currentUnscaledWidth / 2) * currentScale;
 
-      if (data.deltaX !== 0) {
-          const pivotScreenX_fixed_display = currentX_display + (currentUnscaledWidth_display / 2) * currentScale;
-          const effectiveUnscaledDrag_display = data.deltaX / currentScale;
+        // Convert screen drag delta to an equivalent unscaled drag for one edge
+        const effectiveUnscaledDrag = data.deltaX / currentScale;
 
-          const minDisplayWidth = MIN_ELEMENT_WIDTH_PERCENT * studioCanvasDimensions.width;
+        // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH
+        const targetUnconstrainedWidth = currentUnscaledWidth - (2 * effectiveUnscaledDrag);
+        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, targetUnconstrainedWidth);
 
-          const targetUnconstrainedWidth_display = currentUnscaledWidth_display - (2 * effectiveUnscaledDrag_display);
-          finalUnscaledWidth_display = Math.max(minDisplayWidth, targetUnconstrainedWidth_display);
+        // Calculate the actual change applied to one edge in unscaled units
+        // This is based on the difference between current width and the (potentially clamped) final width.
+        const actualUnscaledDragAppliedToEdge = (currentUnscaledWidth - finalUnscaledWidth) / 2;
 
-          // const actualUnscaledDragAppliedToEdge_display = (currentUnscaledWidth_display - finalUnscaledWidth_display) / 2;
-          finalX_display = pivotScreenX_fixed_display - (finalUnscaledWidth_display / 2) * currentScale;
-          // finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge_display);
-      }
+        // Calculate the new top-left X screen coordinate to keep the pivotScreenX_fixed stationary
+        finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
 
-      // Convert calculated display values back to percentages for storing
-      const percentPositionX = finalX_display / studioCanvasDimensions.width;
-      const percentPositionY = newY_display / studioCanvasDimensions.height;
-      const percentSizeWidth = finalUnscaledWidth_display / studioCanvasDimensions.width;
+        // Calculate the new unscaled pivot offset
+        finalPivotOffset_unscaled = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge);
+    }
 
-      updateStudioElementSettings(elementId, {
-          position: { x: percentPositionX, y: percentPositionY },
-          size: {
-              width: percentSizeWidth,
-              height: element.size.height // This is already a percentage
-          },
-          pivotInternalOffset: element.pivotInternalOffset // Remains unchanged
-      });
+    // Update the element's state
+    updateStudioElementSettings(elementId, {
+        position: { x: finalX_screen, y: newY_screen },
+        size: { width: finalUnscaledWidth, height: currentUnscaledHeight },
+        pivotInternalOffset: finalPivotOffset_unscaled
+    });
 
-    } else { // Pivot not locked
-      const percentX = data.x / studioCanvasDimensions.width;
-      const percentY = data.y / studioCanvasDimensions.height;
-      updateStudioElementPosition(elementId, { x: percentX, y: percentY });
+    } else { // Pivot not locked - normal drag
+      // data.x and data.y are the new absolute positions of the top-left corner from Draggable's perspective
+      updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
 
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
     const currentElement = activeLayout.find(el => el.id === elementId);
-    if (!currentElement) return;
-    const currentScale = currentElement.scale || 1;
-
-    const newDisplayWidthUnscaled = data.size.width / currentScale;
-    const newDisplayHeightUnscaled = data.size.height / currentScale;
-
-    const percentWidth = newDisplayWidthUnscaled / studioCanvasDimensions.width;
-    const percentHeight = newDisplayHeightUnscaled / studioCanvasDimensions.height;
-    updateStudioElementSize(elementId, { width: percentWidth, height: percentHeight });
+    const currentScale = currentElement?.scale || 1;
+    updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
   };
 
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
   const handleElementClick = (elementId: string) => { setSelectedElementId(elementId); };
   const handleCloseSettingsPanel = () => { setSelectedElementId(null); };
 
-  // Styles (assuming complete from previous versions)
   const toolboxSectionStyle: React.CSSProperties = { marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #444',};
   const toolboxHeaderStyle: React.CSSProperties = { fontSize: '1em', color: '#ccc', marginBottom: '8px',};
   const inputStyle: React.CSSProperties = { width: 'calc(100% - 22px)', padding: '8px 10px', marginBottom: '10px', backgroundColor: '#2c2c2c', border: '1px solid #555', color: 'white', borderRadius: '4px',};
@@ -157,7 +118,7 @@ const StudioInterface: React.FC = () => {
             key={layout.id}
             style={{
               ...listItemStyle,
-              backgroundColor: layout.id === activeStudioLayoutId ? '#2a2a4a' : (listItemStyle.backgroundColor || 'transparent'), // Subtle highlight
+              backgroundColor: layout.id === activeStudioLayoutId ? '#2a2a4a' : (listItemStyle.backgroundColor || 'transparent'),
               borderLeft: layout.id === activeStudioLayoutId ? '3px solid #00dd00' : (listItemStyle.borderLeft || 'none'),
               paddingLeft: layout.id === activeStudioLayoutId ? '12px' : (listItemStyle.paddingLeft || '5px'),
             }}
@@ -212,7 +173,7 @@ const StudioInterface: React.FC = () => {
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' /* For scrollbar space if needed */ }}> {/* Container for tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' }}>
             {currentCanvases.map(canvas => (
               <button
                 key={canvas.id}
@@ -226,13 +187,12 @@ const StudioInterface: React.FC = () => {
                 }}
                 title={canvas.name}
               >
-                {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name} {/* Truncate long names */}
+                {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
                 <span
                   title="Open canvas in new window (placeholder)"
                   onClick={(e) => {
                     e.stopPropagation();
                     const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`;
-                    // Open in a new tab without specific window features, letting the browser decide size/appearance.
                     window.open(broadcastUrl, '_blank');
                     console.log('Attempting to open broadcast view in new tab for canvas ID:', canvas.id, 'at URL:', broadcastUrl);
                   }}
@@ -263,7 +223,7 @@ const StudioInterface: React.FC = () => {
           </div>
           <button
             onClick={() => {
-              addCanvas(); // Call addCanvas without a name argument
+              addCanvas();
             }}
             style={{
               backgroundColor: '#28a745', color: 'white', border: 'none',
@@ -277,116 +237,57 @@ const StudioInterface: React.FC = () => {
         </div>
         {/* Tab Bar End */}
         <div
-          ref={canvasContainerRef}
           style={{
             position: 'relative',
             border: '1px dashed #444',
             overflow: 'hidden',
             backgroundColor: '#0d0d0d',
-
-            // Aspect ratio logic:
-            width: '100%', // Take full width of <main>'s content box
+            width: '100%',
             aspectRatio: '16 / 9',
-
-            maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px)', // This was the explicit height before
-
-            margin: 'auto', // This will center it if it's constrained by maxHeight and becomes narrower.
+            maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px)',
+            margin: 'auto',
           }}
         >
           {activeLayout.map((element: StudioElement) => {
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
+            let content = null;
+            if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
+            else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
-            // Convert percentage-based stored values to display pixels for rendering
-            const displayX = element.position.x * studioCanvasDimensions.width;
-            const displayY = element.position.y * studioCanvasDimensions.height;
-            const unscaledDisplayWidth = element.size.width * studioCanvasDimensions.width;
-            const unscaledDisplayHeight = element.size.height * studioCanvasDimensions.height;
-
-            // Constraints for ResizableBox
-            const minDisplayConstraintWidth = MIN_ELEMENT_WIDTH_PERCENT * studioCanvasDimensions.width;
-            const minDisplayConstraintHeight = MIN_ELEMENT_HEIGHT_PERCENT * studioCanvasDimensions.height;
-            const maxDisplayConstraintWidth = studioCanvasDimensions.width; // 100% of canvas display width
-            const maxDisplayConstraintHeight = studioCanvasDimensions.height; // 100% of canvas display height
-
-            // The declarations below were duplicated. Removed the second set.
-            // Variables like displayX, displayY, unscaledDisplayWidth, unscaledDisplayHeight, and currentScale
-            // are already defined above this point from the "Convert percentage-based stored values..." block.
-            // const isSelected = element.id === selectedElementId;
-            // const currentScale = element.scale || 1;
-            // const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
-
-            // Simplified rendering:
             return (
-              <div
-                key={element.id} // Stable key is important
-                style={{
-                  position: 'absolute',
-                  left: `${displayX}px`,
-                  top: `${displayY}px`,
-                  width: `${unscaledDisplayWidth}px`, // Set unscaled width
-                  height: `${unscaledDisplayHeight}px`, // Set unscaled height
-                  transform: `scale(${currentScale})`,
-                  transformOrigin: 'center center',
-                  backgroundColor: element.backgroundColor || 'rgba(100, 100, 255, 0.7)', // Default visible color
-                  border: `1px solid ${element.borderColor || 'blue'}`,
-                  boxSizing: 'border-box',
-                }}
-                onClick={(e) => { e.stopPropagation(); handleElementClick(element.id); }} // Keep selection for SettingsPanel
-              >
-                {/* Minimal content for testing visibility and type */}
-                <div style={{width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-                    <span style={{fontSize: '12px', color: 'white', textShadow: '1px 1px 2px black'}}>ID: {element.id.substring(0,4)}</span>
-                    <span style={{fontSize: '10px', color: 'white', textShadow: '1px 1px 2px black'}}>Scale: {currentScale.toFixed(1)}</span>
-                    {/* {element.type === "ScoreDisplay" && <ScoreDisplayElement element={element} isBroadcast={false} />} */}
-                </div>
-              </div>
+              <Draggable
+                  key={element.id}
+                  handle=".drag-handle"
+                  position={{ x: element.position.x, y: element.position.y }}
+                  onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
+                  >
+                <ResizableBox
+                    width={element.size.width}
+                    height={element.size.height}
+                    onResizeStop={(e, data) => handleResizeStop(element.id, data)}
+                    minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
+                    maxConstraints={[800 / currentScale, 600 / currentScale]}
+                    style={{ ...selectionStyle }}
+                    className="drag-handle">
+                  <div
+                       onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
+                       style={{
+                           width: '100%', height: '100%', overflow: 'hidden',
+                           boxSizing: 'border-box',
+                           border: `1px solid ${element.borderColor || 'transparent'}`,
+                           background: element.backgroundColor || 'transparent',
+                           cursor: 'move',
+                           transform: `scale(${currentScale})`,
+                           transformOrigin: 'top left',
+                       }}>
+                    {content}
+                  </div>
+                </ResizableBox>
+              </Draggable>
             );
           })}
-          {/* Debug Overlay for StudioInterface Canvas Start */}
-          {/* Border for conceptual 1920x1080 within the responsive canvas */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '0%',
-              top: '0%',
-              width: '100%', // 100% of the 16:9 container
-              height: '100%', // 100% of the 16:9 container
-              border: '1px dashed red', // Dashed to differentiate from BroadcastView's solid if needed, or keep solid
-              boxSizing: 'border-box',
-              pointerEvents: 'none',
-            }}
-          ></div>
-
-          {/* Horizontal center line (50% of container height) */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '0%',
-              top: '50%',
-              width: '100%',
-              height: '1px',
-              backgroundColor: 'rgba(255, 0, 0, 0.5)', // Slightly transparent red
-              transform: 'translateY(-0.5px)', // Center 1px line
-              pointerEvents: 'none',
-            }}
-          ></div>
-
-          {/* Vertical center line (50% of container width) */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '0%',
-              width: '1px',
-              height: '100%',
-              backgroundColor: 'rgba(255, 0, 0, 0.5)', // Slightly transparent red
-              transform: 'translateX(-0.5px)', // Center 1px line
-              pointerEvents: 'none',
-            }}
-          ></div>
-          {/* Debug Overlay for StudioInterface Canvas End */}
         </div>
       </main>
       <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />

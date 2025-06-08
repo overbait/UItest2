@@ -19,15 +19,12 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element, isBr
     size // Destructure size from element
   } = element;
 
-  // Define a reference normalized height that corresponds to a baseline font size
-  const REFERENCE_HEIGHT_PERCENT_FOR_FONT = (40 / 1080); // Default height of 40px on 1080px canvas, as a percentage
-  const BASELINE_FONT_SIZE_PX = 18; // Font size for that reference height
+  const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40; // Reference height in pixels (e.g., default element height)
+  const BASELINE_FONT_SIZE_PX = 18;          // Font size intended for that reference pixel height
 
-  // Calculate dynamic font size.
-  // size.height is now a percentage (e.g., 0.1 for 10% of canvas height).
-  // This makes font size proportional to the element's percentage height.
-  // element.scale will then scale this visually along with the rest of the element.
-  const dynamicFontSize = Math.max(8, (size.height / REFERENCE_HEIGHT_PERCENT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
+  // Calculate dynamic font size based on the element's current pixel height.
+  // element.scale will then visually scale this along with the rest of the element.
+  const dynamicFontSize = Math.max(8, (size.height / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
   // Ensure a minimum font size, e.g., 8px.
 
   const currentFontFamily = fontFamily || 'Arial';
