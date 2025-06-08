@@ -25,25 +25,40 @@ export const customLocalStorageWithBroadcast: StateStorage = {
     console.log('[CustomStorage] getItem:', { name, value: parsedValue, rawValue: value, timestamp: new Date().toISOString() });
     return value;
   },
-  setItem: (name: string, value: string): void => {
-    let parsedValue = null;
-    try {
-      parsedValue = JSON.parse(value);
-    } catch (e) {
-      console.error('[CustomStorage] Failed to parse setItem value:', { name, value, error: e });
+  setItem: (name: string, value: any): void => {
+    let valueToStore: string;
+    let valueForLogging: any = value; // Default to actual value for logging if it's already an object
+
+    if (typeof value === 'string') {
+        valueToStore = value;
+        try {
+            // If it's a string, try to parse it for structured logging
+            valueForLogging = JSON.parse(value);
+        } catch (e) {
+            // If parsing fails, valueForLogging remains the original string.
+            // This is not an error for setItem itself, as it can store any string.
+            // console.warn(`[CustomStorage] setItem received a string value that is not valid JSON (this is okay, just for logging): ${name}`, e);
+        }
+    } else if (typeof value === 'object' && value !== null) {
+        console.warn(`[CustomStorage] setItem received an object directly. Stringifying. This may indicate an issue upstream (e.g., persist middleware). Name: ${name}`, value);
+        try {
+            valueToStore = JSON.stringify(value);
+            // valueForLogging is already the object, which is good for logging.
+        } catch (e) {
+            console.error(`[CustomStorage] CRITICAL: Failed to stringify object in setItem. Cannot save. Name: ${name}`, e, 'Value:', value);
+            return;
+        }
+    } else {
+        console.error(`[CustomStorage] CRITICAL: setItem received unexpected value type: ${typeof value}. Cannot save. Name: ${name}`, 'Value:', value);
+        return;
     }
-    console.log('[CustomStorage] Studio tab saving state:', { name, value: parsedValue, rawValue: value, timestamp: new Date().toISOString() });
+
+    // The previous rawValue in log was 'value' itself, now it's 'valueToStore'
+    console.log('[CustomStorage] Studio tab saving state:', { name, loggedValue: valueForLogging, rawValueToStore: valueToStore, timestamp: new Date().toISOString() });
+
     isOriginTab = true;
+    localStorage.setItem(name, valueToStore);
 
-    // Defensive check to prevent writing literal "[object Object]"
-    if (value === "[object Object]") {
-      console.error(`[CustomStorage] CRITICAL: Attempted to save literal string "[object Object]" to localStorage for key '${name}'. Preventing corruption. Value was:`, value);
-      // Optionally, could throw an error here or just return to prevent saving.
-      // For now, just preventing the save and logging.
-      return;
-    }
-
-    localStorage.setItem(name, value);
     if (channel) {
       try {
         console.log('[CustomStorage] Posting to BroadcastChannel:', { name, type: 'zustand_store_update', timestamp: new Date().toISOString() });
