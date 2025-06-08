@@ -18,29 +18,17 @@ let isOriginTab = false;
 
 export const customLocalStorageWithBroadcast: StateStorage = {
   getItem: (name: string): string | null => {
-    const value = localStorage.getItem(name);
-    console.log('[CustomStorage] getItem:', {
-      name,
-      value: value ? JSON.parse(value) : null, // Parse for readable logging
-      timestamp: new Date().toISOString(),
-    });
-    return value;
+    // console.log('[CustomStorage] getItem:', name);
+    return localStorage.getItem(name);
   },
   setItem: (name: string, value: string): void => {
-    console.log('[CustomStorage] Studio tab saving state:', {
-      name,
-      value: JSON.parse(value), // Parse for readable logging
-      timestamp: new Date().toISOString(),
-    });
+    // console.log('[CustomStorage] setItem:', name, 'value length:', value.length);
     isOriginTab = true; // Mark this tab as the originator
     localStorage.setItem(name, value);
     if (channel) {
       try {
-        console.log('[CustomStorage] Posting to BroadcastChannel:', {
-          name,
-          type: 'zustand_store_update',
-          timestamp: new Date().toISOString(),
-        });
+        // Send a simple update notification, not the whole state
+        // console.log('[CustomStorage] Posting to BroadcastChannel:', name);
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
       } catch (e) {
         console.error('Failed to post message to BroadcastChannel:', e);
@@ -50,10 +38,7 @@ export const customLocalStorageWithBroadcast: StateStorage = {
     setTimeout(() => { isOriginTab = false; }, 50);
   },
   removeItem: (name: string): void => {
-    console.log('[CustomStorage] removeItem:', {
-      name,
-      timestamp: new Date().toISOString(),
-    });
+    // console.log('[CustomStorage] removeItem:', name);
     isOriginTab = true;
     localStorage.removeItem(name);
     if (channel) {
@@ -69,31 +54,25 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 
 if (channel) {
   channel.onmessage = async (event: MessageEvent) => {
-    console.log('[CustomStorage] BroadcastView tab receiving state:', {
-      eventData: event.data,
-      storeKey: event.data.storeKey,
-      type: event.data.type,
-      timestamp: new Date().toISOString(),
-    });
+    // console.log('[CustomStorage] Received from BroadcastChannel:', event.data);
     if (isOriginTab) {
-      console.log('[CustomStorage] Ignoring self-originated BroadcastChannel message.');
+      // console.log('[CustomStorage] Ignoring self-originated BroadcastChannel message.');
       return; // Don't rehydrate if this tab caused the change
     }
 
     const { storeKey, type } = event.data;
     if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
-      console.log('[CustomStorage] Received store update notification from BroadcastChannel. Rehydrating.');
+      // console.log('[CustomStorage] Received store update notification from BroadcastChannel. Rehydrating.');
       try {
-        // Log the state after rehydration
+        // Access the persist API and call rehydrate
+        // This assumes `useDraftStore.persist.rehydrate` is available and works as expected.
+        // Zustand's persist middleware typically exposes this.
         await (useDraftStore.persist as any).rehydrate();
-        console.log('[CustomStorage] Store rehydrated successfully:', {
-          state: useDraftStore.getState(), // Log the current store state
-          timestamp: new Date().toISOString(),
-        });
+        // console.log('[CustomStorage] Store rehydrated successfully.');
       } catch (e) {
         console.error('[CustomStorage] Error during manual rehydration:', e);
       }
     }
   };
-  console.log('[CustomStorage] BroadcastChannel listener attached for rehydration.');
+  // console.log('[CustomStorage] BroadcastChannel listener attached for rehydration.');
 }
