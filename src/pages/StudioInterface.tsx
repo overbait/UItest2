@@ -310,41 +310,42 @@ const StudioInterface: React.FC = () => {
             const maxDisplayConstraintWidth = studioCanvasDimensions.width; // 100% of canvas display width
             const maxDisplayConstraintHeight = studioCanvasDimensions.height; // 100% of canvas display height
 
-            let content = null;
-            if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
-            else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
+            // const isSelected = element.id === selectedElementId; // Keep for potential onClick
+            // const currentScale = element.scale || 1; // Keep for potential onClick and debug text
+            // const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 }; // Not strictly needed for basic div
 
+            // Original calculations for display values (percentages to pixels):
+            const displayX = element.position.x * studioCanvasDimensions.width;
+            const displayY = element.position.y * studioCanvasDimensions.height;
+            const unscaledDisplayWidth = element.size.width * studioCanvasDimensions.width;
+            const unscaledDisplayHeight = element.size.height * studioCanvasDimensions.height;
+            const currentScale = element.scale || 1;
+
+            // Simplified rendering:
             return (
-              <Draggable
-                  key={element.id}
-                  handle=".drag-handle"
-                  position={{ x: displayX, y: displayY }}
-                  onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
-                  // No bounds="parent"
-                  >
-                <ResizableBox
-                    width={unscaledDisplayWidth * currentScale}
-                    height={unscaledDisplayHeight * currentScale}
-                    onResizeStop={(e, data) => handleResizeStop(element.id, data)}
-                    minConstraints={[minDisplayConstraintWidth / currentScale, minDisplayConstraintHeight / currentScale]}
-                    maxConstraints={[maxDisplayConstraintWidth / currentScale, maxDisplayConstraintHeight / currentScale]}
-                    style={{ ...selectionStyle }}
-                    className="drag-handle">
-                  <div
-                       onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
-                       style={{
-                           width: '100%', height: '100%', overflow: 'hidden',
-                           boxSizing: 'border-box',
-                           border: `1px solid ${element.borderColor || 'transparent'}`,
-                           background: element.backgroundColor || 'transparent',
-                           cursor: 'move',
-                           transform: `scale(${currentScale})`,
-                           transformOrigin: 'center center', // Changed from 'top left'
-                       }}>
-                    {content}
-                  </div>
-                </ResizableBox>
-              </Draggable>
+              <div
+                key={element.id} // Stable key is important
+                style={{
+                  position: 'absolute',
+                  left: `${displayX}px`,
+                  top: `${displayY}px`,
+                  width: `${unscaledDisplayWidth}px`, // Set unscaled width
+                  height: `${unscaledDisplayHeight}px`, // Set unscaled height
+                  transform: `scale(${currentScale})`,
+                  transformOrigin: 'center center',
+                  backgroundColor: element.backgroundColor || 'rgba(100, 100, 255, 0.7)', // Default visible color
+                  border: `1px solid ${element.borderColor || 'blue'}`,
+                  boxSizing: 'border-box',
+                }}
+                onClick={(e) => { e.stopPropagation(); handleElementClick(element.id); }} // Keep selection for SettingsPanel
+              >
+                {/* Minimal content for testing visibility and type */}
+                <div style={{width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+                    <span style={{fontSize: '12px', color: 'white', textShadow: '1px 1px 2px black'}}>ID: {element.id.substring(0,4)}</span>
+                    <span style={{fontSize: '10px', color: 'white', textShadow: '1px 1px 2px black'}}>Scale: {currentScale.toFixed(1)}</span>
+                    {/* {element.type === "ScoreDisplay" && <ScoreDisplayElement element={element} isBroadcast={false} />} */}
+                </div>
+              </div>
             );
           })}
           {/* Debug Overlay for StudioInterface Canvas Start */}
