@@ -78,7 +78,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       })}
       {/* Debug Overlay Start */}
       {/*
-      {/* Border for 1920x1080 canvas */}
       <div
         style={{
           position: 'absolute',
@@ -92,7 +91,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         }}
       ></div>
 
-      {/* Horizontal center line */}
       <div
         style={{
           position: 'absolute',
@@ -105,7 +103,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         }}
       ></div>
 
-      {/* Vertical center line */}
       <div
         style={{
           position: 'absolute',
