@@ -98,6 +98,7 @@ export interface CombinedDraftState {
   savedStudioLayouts: SavedStudioLayout[]; // This should already exist
   selectedElementId: string | null; // This should already exist
   activeStudioLayoutId: string | null;
+  layoutLastUpdated?: number;
 }
 
 // Define StudioCanvas type

@@ -51,11 +51,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       }}
     >
       {canvasToRender.layout.map((element: StudioElement) => {
-        // Inside the .map() callback, for each element:
-        console.log('BroadcastView - Processing element (raw data):', JSON.parse(JSON.stringify(element)));
-
         const currentScale = element.scale || 1;
-        console.log('BroadcastView - Element currentScale:', currentScale);
 
         const outerDivStyle = {
           position: 'absolute',
@@ -65,7 +61,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           height: `${element.size.height * currentScale}px`,
           boxSizing: 'border-box',
         };
-        console.log('BroadcastView - Outer div style:', outerDivStyle);
 
         const innerDivStyle = {
           width: `${element.size.width}px`,
@@ -75,12 +70,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           overflow: 'hidden',
           boxSizing: 'border-box',
         };
-        console.log('BroadcastView - Inner div style:', innerDivStyle);
-
-        // Add this conditional log if you have specific checks for element types:
-        if (element.type === "ScoreDisplay") {
-          console.log('BroadcastView - ScoreDisplayElement props:', { element: JSON.parse(JSON.stringify(element)), isBroadcast: true });
-        }
 
         let content = null;
         if (element.type === "ScoreDisplay") {

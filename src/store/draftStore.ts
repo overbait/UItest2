@@ -82,6 +82,7 @@ const initialCombinedState: CombinedDraftState = {
   savedStudioLayouts: [],
   selectedElementId: null,
   activeStudioLayoutId: null,
+  layoutLastUpdated: null,
 };
 
 const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
@@ -467,7 +468,11 @@ const useDraftStore = create<DraftStore>()(
                 ? { ...canvas, layout: [...canvas.layout, newElement] }
                 : canvas
             );
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+            return {
+              ...state,
+              currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)),
+              layoutLastUpdated: Date.now()
+            };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
@@ -478,7 +483,11 @@ const useDraftStore = create<DraftStore>()(
                 ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, position } : el) }
                 : canvas
             );
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+            return {
+              ...state,
+              currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)),
+              layoutLastUpdated: Date.now()
+            };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
@@ -489,7 +498,11 @@ const useDraftStore = create<DraftStore>()(
                 ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, size } : el) }
                 : canvas
             );
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+            return {
+              ...state,
+              currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)),
+              layoutLastUpdated: Date.now()
+            };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
@@ -511,7 +524,11 @@ const useDraftStore = create<DraftStore>()(
               }
               return canvas;
             });
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+            return {
+              ...state,
+              currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)),
+              layoutLastUpdated: Date.now()
+            };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
@@ -528,7 +545,12 @@ const useDraftStore = create<DraftStore>()(
               }
               return canvas;
             });
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), selectedElementId: newSelectedElementId };
+            return {
+              ...state,
+              currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)),
+              selectedElementId: newSelectedElementId,
+              layoutLastUpdated: Date.now()
+            };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
@@ -702,6 +724,7 @@ const useDraftStore = create<DraftStore>()(
             savedStudioLayouts: state.savedStudioLayouts,
             selectedElementId: state.selectedElementId,
             activeStudioLayoutId: state.activeStudioLayoutId,
+            layoutLastUpdated: state.layoutLastUpdated,
         }),
         storage: customLocalStorageWithBroadcast, // <-- Add this line
       }
