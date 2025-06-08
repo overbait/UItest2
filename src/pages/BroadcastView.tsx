@@ -38,6 +38,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     );
   }
 
+  console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout);
   return (
     <div
       style={{
