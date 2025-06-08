@@ -35,6 +35,10 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     );
   }
 
+  if (canvasToRender) { // Ensure canvasToRender is not null before logging its properties
+    console.log('BroadcastView - canvasToRender:', JSON.parse(JSON.stringify(canvasToRender))); // Log a deep clone for cleaner inspection
+    console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
+  }
   return (
     <div
       style={{
@@ -47,6 +51,37 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       }}
     >
       {canvasToRender.layout.map((element: StudioElement) => {
+        // Inside the .map() callback, for each element:
+        console.log('BroadcastView - Processing element (raw data):', JSON.parse(JSON.stringify(element)));
+
+        const currentScale = element.scale || 1;
+        console.log('BroadcastView - Element currentScale:', currentScale);
+
+        const outerDivStyle = {
+          position: 'absolute',
+          left: `${element.position.x}px`,
+          top: `${element.position.y}px`,
+          width: `${element.size.width * currentScale}px`,
+          height: `${element.size.height * currentScale}px`,
+          boxSizing: 'border-box',
+        };
+        console.log('BroadcastView - Outer div style:', outerDivStyle);
+
+        const innerDivStyle = {
+          width: `${element.size.width}px`,
+          height: `${element.size.height}px`,
+          transform: `scale(${currentScale})`,
+          transformOrigin: 'top left',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+        };
+        console.log('BroadcastView - Inner div style:', innerDivStyle);
+
+        // Add this conditional log if you have specific checks for element types:
+        if (element.type === "ScoreDisplay") {
+          console.log('BroadcastView - ScoreDisplayElement props:', { element: JSON.parse(JSON.stringify(element)), isBroadcast: true });
+        }
+
         let content = null;
         if (element.type === "ScoreDisplay") {
           content = <ScoreDisplayElement element={element} isBroadcast={true} />;
@@ -58,30 +93,14 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           );
         }
 
-        const currentScale = element.scale || 1;
+        // const currentScale = element.scale || 1; // Moved up
 
         return (
           <div
             key={element.id}
-            style={{
-              position: 'absolute',
-              left: `${element.position.x}px`,
-              top: `${element.position.y}px`,
-              width: `${element.size.width * currentScale}px`, // Apply scale to size for outer box
-              height: `${element.size.height * currentScale}px`, // Apply scale to size for outer box
-              boxSizing: 'border-box',
-            }}
+            style={outerDivStyle} // Use the logged style object
           >
-            <div style={{
-                width: `${element.size.width}px`, // Original unscaled width for content
-                height: `${element.size.height}px`, // Original unscaled height for content
-                transform: `scale(${currentScale})`,
-                transformOrigin: 'top left',
-                overflow: 'hidden',
-                // backgroundColor: element.backgroundColor || 'transparent', // Removed
-                // border: `1px solid ${element.borderColor || 'transparent'}`, // Removed
-                boxSizing: 'border-box',
-            }}>
+            <div style={innerDivStyle}> {/* Use the logged style object */}
                {content}
             </div>
           </div>
