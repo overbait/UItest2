@@ -34,6 +34,15 @@ export const customLocalStorageWithBroadcast: StateStorage = {
     }
     console.log('[CustomStorage] Studio tab saving state:', { name, value: parsedValue, rawValue: value, timestamp: new Date().toISOString() });
     isOriginTab = true;
+
+    // Defensive check to prevent writing literal "[object Object]"
+    if (value === "[object Object]") {
+      console.error(`[CustomStorage] CRITICAL: Attempted to save literal string "[object Object]" to localStorage for key '${name}'. Preventing corruption. Value was:`, value);
+      // Optionally, could throw an error here or just return to prevent saving.
+      // For now, just preventing the save and logging.
+      return;
+    }
+
     localStorage.setItem(name, value);
     if (channel) {
       try {

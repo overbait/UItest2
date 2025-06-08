@@ -10,38 +10,10 @@ import {
   SavedPreset,
   StudioElement,
   SavedStudioLayout,
-  StudioCanvas, // <-- Add this
-  // Ensure SavedPreset and SavedStudioLayout are imported if not already
-  // SavedPreset,
-  // SavedStudioLayout,
+  StudioCanvas // <-- Add this
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
-
-// Helper function to load persisted state defaults
-const loadPersistedStateDefaults = (): { savedPresets: SavedPreset[], savedStudioLayouts: SavedStudioLayout[] } => {
-  try {
-    // Check if window and localStorage are available (SSR safety)
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const persistedStoreKey = 'aoe2-draft-overlay-combined-storage-v1';
-      const rawState = window.localStorage.getItem(persistedStoreKey);
-      if (rawState) {
-        const parsedState = JSON.parse(rawState);
-        // Zustand's persist middleware stores the actual state under a 'state' key
-        // and version under 'version'. We need to access parsedState.state.
-        const savedPresets = parsedState?.state?.savedPresets || [];
-        const savedStudioLayouts = parsedState?.state?.savedStudioLayouts || [];
-        return { savedPresets, savedStudioLayouts };
-      }
-    }
-  } catch (error) {
-    // It's good practice to log errors, but avoid breaking the app
-    console.error('Error loading persisted state defaults from localStorage:', error);
-  }
-  // Return default empty arrays if localStorage is not available,
-  // or if any step in the try block fails.
-  return { savedPresets: [], savedStudioLayouts: [] };
-};
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
 
@@ -97,21 +69,17 @@ const initialPlayerNameGuest = 'Player 2';
 const initialDefaultCanvasId = `default-${Date.now()}`;
 const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
 
-// Call the helper to get pre-loaded defaults
-const persistedDefaults = loadPersistedStateDefaults();
-
 const initialCombinedState: CombinedDraftState = {
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
   scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
   mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
   civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
   mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
-  savedPresets: persistedDefaults.savedPresets, // Use pre-loaded value
-  activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
+  savedPresets: [], activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
 
   currentCanvases: initialCanvases,
   activeCanvasId: initialDefaultCanvasId,
-  savedStudioLayouts: persistedDefaults.savedStudioLayouts, // Use pre-loaded value
+  savedStudioLayouts: [],
   selectedElementId: null,
   activeStudioLayoutId: null,
   layoutLastUpdated: null,
