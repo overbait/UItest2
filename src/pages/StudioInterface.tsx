@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
@@ -106,6 +106,42 @@ const StudioInterface: React.FC = () => {
   const listItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 5px', borderBottom: '1px solid #2a2a2a', fontSize: '0.85em',};
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
+
+  useEffect(() => {
+    const { activePresetId, savedPresets, loadPreset, hostName, scores } = useDraftStore.getState();
+
+    // Log current state for debugging
+    console.log('[StudioInterface Mount] Initial state from store:', { activePresetId, savedPresetsCount: savedPresets.length, hostName });
+
+    if (activePresetId && savedPresets && savedPresets.length > 0) {
+      const presetToLoad = savedPresets.find(p => p.id === activePresetId);
+
+      if (presetToLoad) {
+        console.log('[StudioInterface Mount] Found active preset to load:', presetToLoad);
+        // Check if preset data seems to be already applied to avoid redundant loads.
+        // This check might need to be more robust depending on what `loadPreset` exactly does.
+        // For example, if loadPreset also fetches fresh draft data, this check might be too simple.
+        const isAlreadyLoaded = hostName === presetToLoad.hostName &&
+                              JSON.stringify(scores) === JSON.stringify(presetToLoad.scores) &&
+                              useDraftStore.getState().civDraftId === presetToLoad.civDraftId &&
+                              useDraftStore.getState().mapDraftId === presetToLoad.mapDraftId;
+
+
+        if (!isAlreadyLoaded) {
+          console.log('[StudioInterface Mount] Active preset data not yet fully applied to current state. Calling loadPreset.');
+          loadPreset(activePresetId);
+        } else {
+          console.log('[StudioInterface Mount] Active preset data seems to be already applied. Skipping loadPreset.');
+        }
+      } else {
+        console.log('[StudioInterface Mount] Active preset ID found, but corresponding preset not in savedPresets. ID:', activePresetId);
+        // Optionally, clear the invalid activePresetId from the store here
+        // useDraftStore.setState({ activePresetId: null });
+      }
+    } else {
+      console.log('[StudioInterface Mount] No activePresetId found or no savedPresets. Skipping auto-load.');
+    }
+  }, []); // Empty dependency array ensures this runs once on mount
 
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
