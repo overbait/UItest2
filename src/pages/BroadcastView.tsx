@@ -76,6 +76,47 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           </div>
         );
       })}
+      {/* Debug Overlay Start */}
+      {/* Border for 1920x1080 canvas */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '0px',
+          top: '0px',
+          width: '1920px',
+          height: '1080px',
+          border: '1px solid red',
+          boxSizing: 'border-box', // Ensures border is within the dimensions
+          pointerEvents: 'none', // So it doesn't interfere with any (future) interaction
+        }}
+      ></div>
+
+      {/* Horizontal center line */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '0px',
+          top: '539.5px', // 1080 / 2 - (1/2) = 540 - 0.5 (for 1px line centering)
+          width: '1920px',
+          height: '1px',
+          backgroundColor: 'red',
+          pointerEvents: 'none',
+        }}
+      ></div>
+
+      {/* Vertical center line */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '959.5px', // 1920 / 2 - (1/2) = 960 - 0.5 (for 1px line centering)
+          top: '0px',
+          width: '1px',
+          height: '1080px',
+          backgroundColor: 'red',
+          pointerEvents: 'none',
+        }}
+      ></div>
+      {/* Debug Overlay End */}
     </div>
   );
 };

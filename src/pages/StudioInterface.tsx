@@ -16,6 +16,7 @@ const StudioInterface: React.FC = () => {
     activeCanvasId,     // ADD
     activeStudioLayoutId,     // ADD
     setActiveStudioLayoutId,  // ADD
+    updateStudioLayoutName, // ADD
     savedStudioLayouts, selectedElementId,
     addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
@@ -135,6 +136,24 @@ const StudioInterface: React.FC = () => {
             </span>
             <div>
               <button onClick={() => loadStudioLayout(layout.id)} style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}} title="Load">Load</button>
+              {layout.name !== "(auto)" && (
+                <button
+                  onClick={() => {
+                    const currentName = layout.name;
+                    const newName = prompt("Enter new name for layout:", currentName);
+                    if (newName && newName.trim() !== "" && newName.trim() !== currentName) {
+                      updateStudioLayoutName(layout.id, newName.trim());
+                    }
+                  }}
+                  style={{
+                    ...actionButtonStyle,
+                    backgroundColor: '#6c757d',
+                  }}
+                  title="Rename layout"
+                >
+                  Rename
+                </button>
+              )}
               <button onClick={() => { if(confirm('Delete?')) deleteStudioLayout(layout.id)}} style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}} title="Delete">Del</button>
               {layout.id === activeStudioLayoutId && layout.name !== "(auto)" && (
                 <button
@@ -155,7 +174,7 @@ const StudioInterface: React.FC = () => {
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', borderBottom: '1px solid #333', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' /* For scrollbar space if needed */ }}> {/* Container for tabs */}
             {currentCanvases.map(canvas => (
               <button
@@ -176,8 +195,9 @@ const StudioInterface: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`;
-                    window.open(broadcastUrl, `_blank_broadcast_${canvas.id}`, 'width=1920,height=1080,resizable=yes,scrollbars=yes');
-                    console.log('Attempting to open broadcast view for canvas ID:', canvas.id, 'at URL:', broadcastUrl);
+                    // Open in a new tab without specific window features, letting the browser decide size/appearance.
+                    window.open(broadcastUrl, '_blank');
+                    console.log('Attempting to open broadcast view in new tab for canvas ID:', canvas.id, 'at URL:', broadcastUrl);
                   }}
                   style={{
                     width: '10px', height: '10px', backgroundColor: 'white',
@@ -206,8 +226,7 @@ const StudioInterface: React.FC = () => {
           </div>
           <button
             onClick={() => {
-              const newName = prompt("Enter name for new canvas:", `Canvas ${currentCanvases.length + 1}`);
-              if (newName && newName.trim() !== "") addCanvas(newName.trim());
+              addCanvas(); // Call addCanvas without a name argument
             }}
             style={{
               backgroundColor: '#28a745', color: 'white', border: 'none',
@@ -220,7 +239,6 @@ const StudioInterface: React.FC = () => {
           </button>
         </div>
         {/* Tab Bar End */}
-        <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', textAlign: 'center', fontSize: '1.1em' }}>Canvas</h2>
         <div
           style={{
             position: 'relative',
