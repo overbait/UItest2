@@ -310,16 +310,12 @@ const StudioInterface: React.FC = () => {
             const maxDisplayConstraintWidth = studioCanvasDimensions.width; // 100% of canvas display width
             const maxDisplayConstraintHeight = studioCanvasDimensions.height; // 100% of canvas display height
 
-            // const isSelected = element.id === selectedElementId; // Keep for potential onClick
-            // const currentScale = element.scale || 1; // Keep for potential onClick and debug text
-            // const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 }; // Not strictly needed for basic div
-
-            // Original calculations for display values (percentages to pixels):
-            const displayX = element.position.x * studioCanvasDimensions.width;
-            const displayY = element.position.y * studioCanvasDimensions.height;
-            const unscaledDisplayWidth = element.size.width * studioCanvasDimensions.width;
-            const unscaledDisplayHeight = element.size.height * studioCanvasDimensions.height;
-            const currentScale = element.scale || 1;
+            // The declarations below were duplicated. Removed the second set.
+            // Variables like displayX, displayY, unscaledDisplayWidth, unscaledDisplayHeight, and currentScale
+            // are already defined above this point from the "Convert percentage-based stored values..." block.
+            // const isSelected = element.id === selectedElementId;
+            // const currentScale = element.scale || 1;
+            // const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
 
             // Simplified rendering:
             return (
