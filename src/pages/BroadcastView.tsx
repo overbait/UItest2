@@ -67,8 +67,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
                 transform: `scale(${currentScale})`,
                 transformOrigin: 'top left',
                 overflow: 'hidden',
-                backgroundColor: element.backgroundColor || 'transparent',
-                border: `1px solid ${element.borderColor || 'transparent'}`,
+                // backgroundColor: element.backgroundColor || 'transparent', // Removed
+                // border: `1px solid ${element.borderColor || 'transparent'}`, // Removed
                 boxSizing: 'border-box',
             }}>
                {content}
@@ -77,6 +77,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         );
       })}
       {/* Debug Overlay Start */}
+      {/*
       {/* Border for 1920x1080 canvas */}
       <div
         style={{
@@ -116,6 +117,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           pointerEvents: 'none',
         }}
       ></div>
+      */}
       {/* Debug Overlay End */}
     </div>
   );

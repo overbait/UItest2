@@ -440,23 +440,23 @@ const useDraftStore = create<DraftStore>()(
               return state;
             }
 
-            const REF_WIDTH_CONST = 1920;
-            const REF_HEIGHT_CONST = 1080;
+            // const REF_WIDTH_CONST = 1920; // Removed
+            // const REF_HEIGHT_CONST = 1080; // Removed
 
-            const initialX_px = 10; // desired initial pixel offset X
-            const initialY_px = 10 + (activeCanvas.layout.length * 20); // desired initial pixel offset Y
+            const initialX_px = 10;
+            const initialY_px = 10 + (activeCanvas.layout.length * 20); // Stagger new elements
             const initialWidth_px = 250;
             const initialHeight_px = 40;
 
             const newElement: StudioElement = {
               id: Date.now().toString(), type: elementType,
               position: {
-                x: initialX_px / REF_WIDTH_CONST,
-                y: initialY_px / REF_HEIGHT_CONST
+                x: initialX_px,
+                y: initialY_px
               },
               size: {
-                width: initialWidth_px / REF_WIDTH_CONST,
-                height: initialHeight_px / REF_HEIGHT_CONST
+                width: initialWidth_px,
+                height: initialHeight_px
               },
               fontFamily: 'Arial', showName: true, showScore: true,
               backgroundColor: 'transparent', borderColor: 'transparent',

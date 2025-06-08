@@ -264,8 +264,8 @@ const StudioInterface: React.FC = () => {
                   onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
                   >
                 <ResizableBox
-                    width={element.size.width}
-                    height={element.size.height}
+                    width={element.size.width * currentScale}
+                    height={element.size.height * currentScale}
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
                     minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
                     maxConstraints={[800 / currentScale, 600 / currentScale]}
@@ -274,7 +274,7 @@ const StudioInterface: React.FC = () => {
                   <div
                        onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
                        style={{
-                           width: '100%', height: '100%', overflow: 'hidden',
+                           width: element.size.width + 'px', height: element.size.height + 'px', overflow: 'hidden',
                            boxSizing: 'border-box',
                            border: `1px solid ${element.borderColor || 'transparent'}`,
                            background: element.backgroundColor || 'transparent',
