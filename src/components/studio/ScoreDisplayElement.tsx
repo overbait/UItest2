@@ -4,9 +4,10 @@ import { StudioElement } from '../../types/draft';
 
 interface ScoreDisplayElementProps {
   element: StudioElement;
+  isBroadcast?: boolean; // Add this line
 }
 
-const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) => {
+const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element, isBroadcast }) => {
   const {
     fontFamily,
     showName,
@@ -122,7 +123,7 @@ const ScoreDisplayElement: React.FC<ScoreDisplayElementProps> = ({ element }) =>
 
       {isPivotLocked && <div style={pivotLineStyle}></div>}
 
-      {nothingToShow && (
+      {nothingToShow && !isBroadcast && (
           <span style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.8em', opacity: 0.7}}>(Content Hidden)</span>
       )}
     </div>
