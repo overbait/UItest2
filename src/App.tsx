@@ -43,6 +43,8 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+import BroadcastView from './pages/BroadcastView';   // Import the new view
+
 // Loading component
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen bg-aoe-dark">
@@ -79,6 +81,20 @@ const Navigation = () => {
 };
 
 const App: React.FC = () => {
+  const queryParams = new URLSearchParams(window.location.search);
+  const viewType = queryParams.get('view');
+  const canvasId = queryParams.get('canvasId');
+
+  if (viewType === 'broadcast' && canvasId) {
+    // For Suspense to work with BroadcastView if it were lazy-loaded (it's not currently, but good practice)
+    // Or if BroadcastView itself uses Suspense internally.
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <BroadcastView targetCanvasId={canvasId} />
+      </Suspense>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="flex flex-col min-h-screen">

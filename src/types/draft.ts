@@ -79,7 +79,8 @@ export interface StudioElement {
 export interface SavedStudioLayout {
   id: string;
   name: string;
-  layout: StudioElement[];
+  canvases: StudioCanvas[]; // Replaces 'layout'
+  activeCanvasId: string | null; // Stores the last active canvas ID for this layout
 }
 
 export interface CombinedDraftState {
@@ -91,7 +92,17 @@ export interface CombinedDraftState {
   mapDraftStatus: ConnectionStatus; mapDraftError: string | null; isLoadingMapDraft: boolean;
   savedPresets: SavedPreset[]; activePresetId: string | null;
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
-  studioLayout: StudioElement[];
-  savedStudioLayouts: SavedStudioLayout[];
-  selectedElementId?: string | null;
+  // studioLayout: StudioElement[]; // This line is removed
+  currentCanvases: StudioCanvas[];
+  activeCanvasId: string | null;
+  savedStudioLayouts: SavedStudioLayout[]; // This should already exist
+  selectedElementId: string | null; // This should already exist
+  activeStudioLayoutId: string | null;
+}
+
+// Define StudioCanvas type
+export interface StudioCanvas {
+  id: string; // Unique identifier for the canvas
+  name: string; // User-friendly name for the tab, e.g., "Scene 1" or "Default"
+  layout: StudioElement[]; // Array of elements on this canvas
 }

@@ -11,18 +11,30 @@ const MIN_ELEMENT_WIDTH = 50;
 
 const StudioInterface: React.FC = () => {
   const {
-    studioLayout, savedStudioLayouts, selectedElementId, addStudioElement,
+    // studioLayout, // REMOVE THIS
+    currentCanvases,    // ADD
+    activeCanvasId,     // ADD
+    activeStudioLayoutId,     // ADD
+    setActiveStudioLayoutId,  // ADD
+    savedStudioLayouts, selectedElementId,
+    addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
-    saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId
+    saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
+    addCanvas,          // ADD
+    setActiveCanvas,    // ADD
+    removeCanvas        // ADD
   } = useDraftStore(state => state);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
-  const selectedElement = useMemo(() => studioLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, studioLayout]);
+
+  const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
+  const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
+  const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
 
   const handleAddScoreDisplay = () => { addStudioElement("ScoreDisplay"); };
 
   const handleDrag = (elementId: string, data: DraggableData) => {
-    const element = studioLayout.find(el => el.id === elementId);
+    const element = activeLayout.find(el => el.id === elementId);
     if (!element) return;
 
     if (element.isPivotLocked) {
@@ -78,7 +90,7 @@ const StudioInterface: React.FC = () => {
   };
 
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
-    const currentElement = studioLayout.find(el => el.id === elementId);
+    const currentElement = activeLayout.find(el => el.id === elementId);
     const currentScale = currentElement?.scale || 1;
     updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
   };
@@ -102,12 +114,130 @@ const StudioInterface: React.FC = () => {
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Elements</h3><button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button></div>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Save Current Layout</h3><input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/><button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button></div>
-        <div style={{flexGrow: 1, overflowY: 'auto'}}><h3 style={toolboxHeaderStyle}>Saved Layouts</h3>{savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (<li key={layout.id} style={listItemStyle}><span style={layoutNameStyle} title={layout.name}>{layout.name}</span><div><button onClick={() => loadStudioLayout(layout.id)} style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}} title="Load">Load</button><button onClick={() => { if(confirm('Delete?')) deleteStudioLayout(layout.id)}} style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}} title="Delete">Del</button></div></li>))}</ul></div>
+        <div style={{flexGrow: 1, overflowY: 'auto'}}><h3 style={toolboxHeaderStyle}>Saved Layouts</h3>{savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (
+          <li
+            key={layout.id}
+            style={{
+              ...listItemStyle,
+              backgroundColor: layout.id === activeStudioLayoutId ? '#2a2a4a' : (listItemStyle.backgroundColor || 'transparent'), // Subtle highlight
+              borderLeft: layout.id === activeStudioLayoutId ? '3px solid #00dd00' : (listItemStyle.borderLeft || 'none'),
+              paddingLeft: layout.id === activeStudioLayoutId ? '12px' : (listItemStyle.paddingLeft || '5px'),
+            }}
+          >
+            <span
+              style={{
+                ...layoutNameStyle,
+                fontWeight: layout.id === activeStudioLayoutId ? 'bold' : (layoutNameStyle.fontWeight || 'normal')
+              }}
+              title={layout.name}
+            >
+              {layout.name} {layout.id === activeStudioLayoutId && <em style={{fontSize: '0.9em', color: '#00dd00'}}> (auto-saving)</em>}
+            </span>
+            <div>
+              <button onClick={() => loadStudioLayout(layout.id)} style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}} title="Load">Load</button>
+              <button onClick={() => { if(confirm('Delete?')) deleteStudioLayout(layout.id)}} style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}} title="Delete">Del</button>
+              {layout.id === activeStudioLayoutId && layout.name !== "(auto)" && (
+                <button
+                  onClick={() => setActiveStudioLayoutId(null)}
+                  style={{
+                    ...actionButtonStyle,
+                    backgroundColor: '#ffc107',
+                    color: 'black',
+                  }}
+                  title="Stop auto-saving to this layout (will use/create '(auto)' next)"
+                >
+                  Detach
+                </button>
+              )}
+            </div>
+          </li>
+        ))}</ul></div>
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
+        {/* Tab Bar Start */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', borderBottom: '1px solid #333', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' /* For scrollbar space if needed */ }}> {/* Container for tabs */}
+            {currentCanvases.map(canvas => (
+              <button
+                key={canvas.id}
+                onClick={() => setActiveCanvas(canvas.id)}
+                style={{
+                  backgroundColor: canvas.id === activeCanvasId ? '#007bff' : '#3c3c3c',
+                  color: canvas.id === activeCanvasId ? 'white' : '#ccc',
+                  border: `1px solid ${canvas.id === activeCanvasId ? '#007bff' : '#555'}`,
+                  padding: '6px 12px', marginRight: '6px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em',
+                  display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0
+                }}
+                title={canvas.name}
+              >
+                {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name} {/* Truncate long names */}
+                <span
+                  title="Open canvas in new window (placeholder)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`;
+                    window.open(broadcastUrl, `_blank_broadcast_${canvas.id}`, 'width=1920,height=1080,resizable=yes,scrollbars=yes');
+                    console.log('Attempting to open broadcast view for canvas ID:', canvas.id, 'at URL:', broadcastUrl);
+                  }}
+                  style={{
+                    width: '10px', height: '10px', backgroundColor: 'white',
+                    border: '1px solid #666', marginLeft: '8px', cursor: 'pointer',
+                    display: 'inline-block'
+                  }}
+                ></span>
+                {currentCanvases.length > 1 && (
+                  <button
+                    title="Remove canvas"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id);
+                    }}
+                    style={{
+                      background: 'transparent', border: 'none', color: '#aaa',
+                      marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em',
+                      padding: '0 3px', lineHeight: '1', fontWeight: 'bold'
+                    }}
+                  >
+                    &times;
+                  </button>
+                )}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const newName = prompt("Enter name for new canvas:", `Canvas ${currentCanvases.length + 1}`);
+              if (newName && newName.trim() !== "") addCanvas(newName.trim());
+            }}
+            style={{
+              backgroundColor: '#28a745', color: 'white', border: 'none',
+              padding: '6px 10px', borderRadius: '4px', cursor: 'pointer',
+              fontSize: '0.9em', marginLeft: '10px', flexShrink: 0
+            }}
+            title="Add new canvas"
+          >
+            +
+          </button>
+        </div>
+        {/* Tab Bar End */}
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', textAlign: 'center', fontSize: '1.1em' }}>Canvas</h2>
-        <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 60px - 2rem - 30px)', border: '1px dashed #444', overflow: 'hidden', backgroundColor: '#0d0d0d' }}>
-          {studioLayout.map((element: StudioElement) => {
+        <div
+          style={{
+            position: 'relative',
+            border: '1px dashed #444',
+            overflow: 'hidden',
+            backgroundColor: '#0d0d0d',
+
+            // Aspect ratio logic:
+            width: '100%', // Take full width of <main>'s content box
+            aspectRatio: '16 / 9',
+
+            maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px)', // This was the explicit height before
+
+            margin: 'auto', // This will center it if it's constrained by maxHeight and becomes narrower.
+          }}
+        >
+          {activeLayout.map((element: StudioElement) => {
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };

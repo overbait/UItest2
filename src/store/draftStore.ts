@@ -9,7 +9,8 @@ import {
   SingleDraftData,
   SavedPreset,
   StudioElement,
-  SavedStudioLayout
+  SavedStudioLayout,
+  StudioCanvas // <-- Add this
 } from '../types/draft';
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
@@ -50,11 +51,21 @@ interface DraftStore extends CombinedDraftState {
   loadStudioLayout: (layoutId: string) => void;
   deleteStudioLayout: (layoutId: string) => void;
   updateStudioLayoutName: (layoutId: string, newName: string) => void;
+
+  // Add new action signatures for canvas management
+  setActiveCanvas: (canvasId: string) => void;
+  addCanvas: (name?: string) => void;
+  removeCanvas: (canvasId: string) => void;
+  updateCanvasName: (canvasId: string, newName: string) => void;
+  setActiveStudioLayoutId: (layoutId: string | null) => void;
 }
 
 const initialScores = { host: 0, guest: 0 };
 const initialPlayerNameHost = 'Player 1';
 const initialPlayerNameGuest = 'Player 2';
+
+const initialDefaultCanvasId = `default-${Date.now()}`;
+const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
 
 const initialCombinedState: CombinedDraftState = {
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
@@ -63,7 +74,12 @@ const initialCombinedState: CombinedDraftState = {
   civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
   mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
   savedPresets: [], activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
-  studioLayout: [], savedStudioLayouts: [], selectedElementId: null,
+
+  currentCanvases: initialCanvases,
+  activeCanvasId: initialDefaultCanvasId,
+  savedStudioLayouts: [],
+  selectedElementId: null,
+  activeStudioLayoutId: null,
 };
 
 const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
@@ -188,7 +204,22 @@ const useDraftStore = create<DraftStore>()(
     persist(
       (set, get) => ({
         ...initialCombinedState,
-        _resetCurrentSessionState: () => { set({ ...initialCombinedState, savedPresets: get().savedPresets, studioLayout: [], savedStudioLayouts: get().savedStudioLayouts, selectedElementId: null }); },
+        _resetCurrentSessionState: () => {
+          const newDefaultCanvasId = `default-rst-${Date.now()}`;
+          const defaultCanvases: StudioCanvas[] = [{ id: newDefaultCanvasId, name: 'Default', layout: [] }];
+          const currentSavedPresets = get().savedPresets;
+          const currentSavedStudioLayouts = get().savedStudioLayouts;
+
+          set({
+            ...initialCombinedState,
+            savedPresets: currentSavedPresets,
+            savedStudioLayouts: currentSavedStudioLayouts,
+            currentCanvases: defaultCanvases,
+            activeCanvasId: newDefaultCanvasId,
+            selectedElementId: null,
+            activeStudioLayoutId: null,
+          });
+        },
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
@@ -392,7 +423,7 @@ const useDraftStore = create<DraftStore>()(
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
         saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
-        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], studioLayout: [], selectedElementId: null }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
+        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
         setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
@@ -401,66 +432,261 @@ const useDraftStore = create<DraftStore>()(
 
         addStudioElement: (elementType: string) => {
           set(state => {
+            const activeCanvas = state.currentCanvases.find(c => c.id === state.activeCanvasId);
+            if (!activeCanvas) {
+              console.error("No active canvas found for addStudioElement!");
+              return state;
+            }
             const newElement: StudioElement = {
               id: Date.now().toString(), type: elementType,
-              position: { x: 10, y: 10 + state.studioLayout.length * 50 }, size: { width: 250, height: 40 },
+              position: { x: 10, y: 10 + (activeCanvas.layout.length * 20) },
+              size: { width: 250, height: 40 },
               fontFamily: 'Arial', showName: true, showScore: true,
               backgroundColor: 'transparent', borderColor: 'transparent',
-              scale: 1,
-              isPivotLocked: false, // Initialize new property
-              pivotInternalOffset: 0,
+              scale: 1, isPivotLocked: false, pivotInternalOffset: 0,
             };
-            return { studioLayout: [...state.studioLayout, newElement] };
+            const updatedCanvases = state.currentCanvases.map(canvas =>
+              canvas.id === state.activeCanvasId
+                ? { ...canvas, layout: [...canvas.layout, newElement] }
+                : canvas
+            );
+            return { ...state, currentCanvases: updatedCanvases };
           });
+          get()._autoSaveOrUpdateActiveStudioLayout();
         },
-        updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, position } : el), })); },
-        updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => { set(state => ({ studioLayout: state.studioLayout.map(el => el.id === elementId ? { ...el, size } : el), })); },
+        updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas =>
+              canvas.id === state.activeCanvasId
+                ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, position } : el) }
+                : canvas
+            ),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas =>
+              canvas.id === state.activeCanvasId
+                ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, size } : el) }
+                : canvas
+            ),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
         updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
-          set(state => {
-            const newStudioLayout = state.studioLayout.map(el => {
-              if (el.id === elementId) {
-                let newSettings = { ...settings }; // Copy of incoming settings
-
-                // Check if scale is changing
-                if (newSettings.scale !== undefined) {
-                  const oldScale = el.scale || 1; // Current scale of the element
-                  const newScaleValue = newSettings.scale;
-
-                  // Ensure scale is actually changing to avoid division by zero or unnecessary calculations if oldScale === newScaleValue
-                  if (oldScale !== newScaleValue) {
-                    const elementWidth = el.size.width; // Current width
-                    const elementHeight = el.size.height; // Current height
-                    const currentPositionX = el.position.x;
-                    const currentPositionY = el.position.y;
-
-                    // Calculate adjustment to keep pivot (center) stationary
-                    // newPosX = currentPosX + (width / 2) * (oldScale - newScale)
-                    // newPosY = currentPosY + (height / 2) * (oldScale - newScale)
-                    const deltaScale = oldScale - newScaleValue;
-                    const adjX = (elementWidth / 2) * deltaScale;
-                    const adjY = (elementHeight / 2) * deltaScale;
-
-                    const newPosX = currentPositionX + adjX;
-                    const newPosY = currentPositionY + adjY;
-
-                    // Add/overwrite position in newSettings
-                    newSettings.position = { x: newPosX, y: newPosY };
-                  }
-                }
-                return { ...el, ...newSettings }; // Apply original settings and potentially adjusted position
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas => {
+              if (canvas.id === state.activeCanvasId) {
+                return {
+                  ...canvas,
+                  layout: canvas.layout.map(el => {
+                    if (el.id === elementId) {
+                      let newSettings = { ...settings };
+                      if (newSettings.scale !== undefined) {
+                        const oldScale = el.scale || 1;
+                        const newScaleValue = newSettings.scale;
+                        if (oldScale !== newScaleValue) {
+                          const elementWidth = el.size.width;
+                          const elementHeight = el.size.height;
+                          const currentPositionX = el.position.x;
+                          const currentPositionY = el.position.y;
+                          const deltaScale = oldScale - newScaleValue;
+                          const adjX = (elementWidth / 2) * deltaScale;
+                          const adjY = (elementHeight / 2) * deltaScale;
+                          const newPosX = currentPositionX + adjX;
+                          const newPosY = currentPositionY + adjY;
+                          newSettings.position = { x: newPosX, y: newPosY };
+                        }
+                      }
+                      return { ...el, ...newSettings };
+                    }
+                    return el;
+                  }),
+                };
               }
-              return el;
+              return canvas;
+            }),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        removeStudioElement: (elementId: string) => {
+          set(state => {
+            let newSelectedElementId = state.selectedElementId;
+            const updatedCanvases = state.currentCanvases.map(canvas => {
+              if (canvas.id === state.activeCanvasId) {
+                const newLayout = canvas.layout.filter(el => el.id !== elementId);
+                if (newLayout.length < canvas.layout.length && state.selectedElementId === elementId) {
+                  newSelectedElementId = null;
+                }
+                return { ...canvas, layout: newLayout };
+              }
+              return canvas;
             });
-            return { studioLayout: newStudioLayout };
+            return { ...state, currentCanvases: updatedCanvases, selectedElementId: newSelectedElementId };
+          });
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        saveCurrentStudioLayout: (name: string) => {
+          set(state => {
+            const newLayoutId = `studiolayout-${Date.now()}`;
+            const newLayoutPreset: SavedStudioLayout = {
+              id: newLayoutId,
+              name,
+              canvases: JSON.parse(JSON.stringify(state.currentCanvases)),
+              activeCanvasId: state.activeCanvasId,
+            };
+            return {
+              ...state,
+              savedStudioLayouts: [...state.savedStudioLayouts, newLayoutPreset],
+              activeStudioLayoutId: newLayoutId,
+            };
           });
         },
-        removeStudioElement: (elementId: string) => { set(state => ({ studioLayout: state.studioLayout.filter(el => el.id !== elementId), selectedElementId: state.selectedElementId === elementId ? null : state.selectedElementId, })); },
-        saveCurrentStudioLayout: (name: string) => { set(state => { const newLayoutPreset: SavedStudioLayout = { id: Date.now().toString(), name, layout: JSON.parse(JSON.stringify(state.studioLayout)), }; return { savedStudioLayouts: [...state.savedStudioLayouts, newLayoutPreset] }; }); },
-        loadStudioLayout: (layoutId: string) => { set(state => { const layoutToLoad = state.savedStudioLayouts.find(l => l.id === layoutId); if (layoutToLoad) return { studioLayout: JSON.parse(JSON.stringify(layoutToLoad.layout)), selectedElementId: null }; return state; }); },
-        deleteStudioLayout: (layoutId: string) => { set(state => ({ savedStudioLayouts: state.savedStudioLayouts.filter(l => l.id !== layoutId) })); },
+        loadStudioLayout: (layoutId: string) => {
+          set(state => {
+            const layoutToLoad = state.savedStudioLayouts.find(l => l.id === layoutId);
+            if (layoutToLoad) {
+              const canvasesToLoad = Array.isArray(layoutToLoad.canvases) && layoutToLoad.canvases.length > 0
+                ? layoutToLoad.canvases
+                : [{ id: `default-load-${Date.now()}`, name: 'Default', layout: [] }];
+
+              let newActiveCanvasId = layoutToLoad.activeCanvasId;
+              if (!newActiveCanvasId || !canvasesToLoad.find(c => c.id === newActiveCanvasId)) {
+                newActiveCanvasId = canvasesToLoad[0].id;
+              }
+
+              return {
+                ...state,
+                currentCanvases: JSON.parse(JSON.stringify(canvasesToLoad)),
+                activeCanvasId: newActiveCanvasId,
+                selectedElementId: null,
+                activeStudioLayoutId: layoutId,
+              };
+            }
+            return state;
+          });
+        },
+        deleteStudioLayout: (layoutId: string) => {
+          set(state => {
+            const newSavedLayouts = state.savedStudioLayouts.filter(l => l.id !== layoutId);
+            let newActiveStudioLayoutId = state.activeStudioLayoutId;
+            if (state.activeStudioLayoutId === layoutId) {
+              newActiveStudioLayoutId = null;
+            }
+            return {
+              ...state,
+              savedStudioLayouts: newSavedLayouts,
+              activeStudioLayoutId: newActiveStudioLayoutId,
+            };
+          });
+        },
         updateStudioLayoutName: (layoutId: string, newName: string) => { set(state => ({ savedStudioLayouts: state.savedStudioLayouts.map(l => l.id === layoutId ? { ...l, name: newName } : l), })); },
 
+        // Implement New Canvas Actions
+        setActiveCanvas: (canvasId: string) => {
+          set(state => {
+            if (state.currentCanvases.find(c => c.id === canvasId)) {
+              return { ...state, activeCanvasId: canvasId, selectedElementId: null };
+            }
+            console.warn(`setActiveCanvas: Canvas ID ${canvasId} not found.`);
+            return state;
+          });
+        },
+        addCanvas: (name?: string) => {
+          set(state => {
+            const newCanvasId = `canvas-${Date.now()}`;
+            const newCanvasName = name || `Canvas ${state.currentCanvases.length + 1}`;
+            const newCanvas: StudioCanvas = { id: newCanvasId, name: newCanvasName, layout: [] };
+            return {
+              ...state,
+              currentCanvases: [...state.currentCanvases, newCanvas],
+              activeCanvasId: newCanvasId,
+              selectedElementId: null,
+            };
+          });
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        removeCanvas: (canvasId: string) => {
+          set(state => {
+            if (state.currentCanvases.length <= 1) return state;
+            const newCanvases = state.currentCanvases.filter(c => c.id !== canvasId);
+            let newActiveCanvasId = state.activeCanvasId;
+            if (state.activeCanvasId === canvasId) {
+              newActiveCanvasId = newCanvases.length > 0 ? newCanvases[0].id : null;
+            }
+            return {
+              ...state,
+              currentCanvases: newCanvases,
+              activeCanvasId: newActiveCanvasId,
+              selectedElementId: null,
+            };
+          });
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        updateCanvasName: (canvasId: string, newName: string) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(c =>
+              c.id === canvasId ? { ...c, name: newName } : c
+            ),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        setActiveStudioLayoutId: (layoutId: string | null) => {
+          set({ activeStudioLayoutId: layoutId });
+        },
+
+        _autoSaveOrUpdateActiveStudioLayout: () => {
+          const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
+          const autoSavePresetName = "(auto)";
+
+          if (activeStudioLayoutId) {
+            // Update the currently active, user-named preset (or the "(auto)" preset if it's the active one)
+            const updatedLayouts = savedStudioLayouts.map(layout =>
+              layout.id === activeStudioLayoutId
+                ? {
+                    ...layout,
+                    canvases: JSON.parse(JSON.stringify(currentCanvases)), // Deep copy
+                    activeCanvasId: activeCanvasId,
+                  }
+                : layout
+            );
+            set({ savedStudioLayouts: updatedLayouts });
+          } else {
+            // No active user-named preset, use or create the "(auto)" preset
+            let autoPreset = savedStudioLayouts.find(layout => layout.name === autoSavePresetName);
+            if (autoPreset) {
+              // Update existing "(auto)" preset
+              const updatedAutoPreset = {
+                ...autoPreset,
+                canvases: JSON.parse(JSON.stringify(currentCanvases)),
+                activeCanvasId: activeCanvasId,
+              };
+              const updatedLayouts = savedStudioLayouts.map(layout =>
+                layout.id === autoPreset!.id ? updatedAutoPreset : layout
+              );
+              set({ savedStudioLayouts: updatedLayouts, activeStudioLayoutId: autoPreset.id }); // Set it as active
+            } else {
+              // Create new "(auto)" preset
+              const newAutoLayoutId = `studiolayout-auto-${Date.now()}`;
+              const newAutoLayoutPreset: SavedStudioLayout = {
+                id: newAutoLayoutId,
+                name: autoSavePresetName,
+                canvases: JSON.parse(JSON.stringify(currentCanvases)),
+                activeCanvasId: activeCanvasId,
+              };
+              set({
+                savedStudioLayouts: [...savedStudioLayouts, newAutoLayoutPreset],
+                activeStudioLayoutId: newAutoLayoutId, // Set it as active
+              });
+            }
+          }
+        },
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
@@ -468,8 +694,13 @@ const useDraftStore = create<DraftStore>()(
             hostName: state.hostName, guestName: state.guestName, scores: state.scores,
             savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,
-            activePresetId: state.activePresetId, studioLayout: state.studioLayout,
-            savedStudioLayouts: state.savedStudioLayouts, selectedElementId: state.selectedElementId,
+            activePresetId: state.activePresetId,
+
+            currentCanvases: state.currentCanvases,
+            activeCanvasId: state.activeCanvasId,
+            savedStudioLayouts: state.savedStudioLayouts,
+            selectedElementId: state.selectedElementId,
+            activeStudioLayoutId: state.activeStudioLayoutId,
         }),
       }
     )
