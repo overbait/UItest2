@@ -19,12 +19,9 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
 
     if (!foundCanvas && currentCanvasesFromHook.length > 0) {
       // If not found by URL ID, and canvases exist, try the activeCanvasId from the store
-      console.log(`Canvas with ID '${targetCanvasId}' not found via URL. Attempting to load active canvas ID '${activeCanvasIdFromHook}'.`);
       foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === activeCanvasIdFromHook);
       if (foundCanvas) {
-        console.log(`Successfully found active canvas '${activeCanvasIdFromHook}' as fallback.`);
       } else {
-        console.log(`Active canvas ID '${activeCanvasIdFromHook}' also not found in currentCanvases.`);
       }
     }
     return foundCanvas;
@@ -38,7 +35,6 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     );
   }
 
-  console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout);
   return (
     <div
       style={{

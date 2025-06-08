@@ -467,37 +467,36 @@ const useDraftStore = create<DraftStore>()(
                 ? { ...canvas, layout: [...canvas.layout, newElement] }
                 : canvas
             );
-            return { ...state, currentCanvases: updatedCanvases };
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => {
-          set(state => ({
-            ...state,
-            currentCanvases: state.currentCanvases.map(canvas =>
+          set(state => {
+            const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
                 ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, position } : el) }
                 : canvas
-            ),
-          }));
+            );
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+          });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => {
-          set(state => ({
-            ...state,
-            currentCanvases: state.currentCanvases.map(canvas =>
+          set(state => {
+            const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
                 ? { ...canvas, layout: canvas.layout.map(el => el.id === elementId ? { ...el, size } : el) }
                 : canvas
-            ),
-          }));
+            );
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+          });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
         updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
-          set(state => ({
-            ...state,
-            currentCanvases: state.currentCanvases.map(canvas => {
+          set(state => {
+            const updatedCanvases = state.currentCanvases.map(canvas => {
               if (canvas.id === state.activeCanvasId) {
                 return {
                   ...canvas,
@@ -511,8 +510,9 @@ const useDraftStore = create<DraftStore>()(
                 };
               }
               return canvas;
-            }),
-          }));
+            });
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)) };
+          });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         removeStudioElement: (elementId: string) => {
@@ -528,7 +528,7 @@ const useDraftStore = create<DraftStore>()(
               }
               return canvas;
             });
-            return { ...state, currentCanvases: updatedCanvases, selectedElementId: newSelectedElementId };
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), selectedElementId: newSelectedElementId };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
