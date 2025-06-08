@@ -339,7 +339,7 @@ const StudioInterface: React.FC = () => {
                            background: element.backgroundColor || 'transparent',
                            cursor: 'move',
                            transform: `scale(${currentScale})`,
-                           transformOrigin: 'top left',
+                           transformOrigin: 'center center', // Changed from 'top left'
                        }}>
                     {content}
                   </div>

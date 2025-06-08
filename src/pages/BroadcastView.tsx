@@ -65,7 +65,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
                 width: `${element.size.width * 1920}px`,
                 height: `${element.size.height * 1080}px`,
                 transform: `scale(${currentScale})`,
-                transformOrigin: 'top left',
+                transformOrigin: 'center center', // Changed from 'top left'
                 overflow: 'hidden',
                 backgroundColor: element.backgroundColor || 'transparent',
                 border: `1px solid ${element.borderColor || 'transparent'}`,

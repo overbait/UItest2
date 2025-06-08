@@ -503,24 +503,38 @@ const useDraftStore = create<DraftStore>()(
                   ...canvas,
                   layout: canvas.layout.map(el => {
                     if (el.id === elementId) {
-                      let newSettings = { ...settings };
-                      if (newSettings.scale !== undefined) {
+                      // Apply incoming settings first to a temporary state
+                      let updatedElementState = { ...el, ...settings };
+
+                      // If scale is changing, adjust position to keep center stationary
+                      if (settings.scale !== undefined && settings.scale !== (el.scale || 1)) {
                         const oldScale = el.scale || 1;
-                        const newScaleValue = newSettings.scale;
-                        if (oldScale !== newScaleValue) {
-                          const elementWidth = el.size.width;
-                          const elementHeight = el.size.height;
-                          const currentPositionX = el.position.x;
-                          const currentPositionY = el.position.y;
-                          const deltaScale = oldScale - newScaleValue;
-                          const adjX = (elementWidth / 2) * deltaScale;
-                          const adjY = (elementHeight / 2) * deltaScale;
-                          const newPosX = currentPositionX + adjX;
-                          const newPosY = currentPositionY + adjY;
-                          newSettings.position = { x: newPosX, y: newPosY };
-                        }
+                        const newScale = settings.scale; // Already applied to updatedElementState.scale if present in settings
+
+                        // el.size.width and el.size.height are percentages of the canvas.
+                        // el.position.x and el.position.y are percentages for the top-left.
+
+                        // Calculate the shift needed for the top-left position (in percentages)
+                        // to keep the center of the element stationary.
+                        const dxPercent = (el.size.width / 2) * (oldScale - newScale);
+                        const dyPercent = (el.size.height / 2) * (oldScale - newScale);
+
+                        // The base position for adjustment is the element's current position (el.position)
+                        // unless the incoming 'settings' also includes a new position.
+                        // If settings.position is provided, that means the user is intentionally changing
+                        // position AND scale at the same time (e.g. via direct input or a complex operation).
+                        // In such a case, the position adjustment should be relative to that new intended position.
+                        // However, typical UI for changing scale only sends the 'scale' property.
+                        // So, usually basePositionX/Y will be el.position.x/y.
+                        const basePositionX = settings.position?.x !== undefined ? settings.position.x : el.position.x;
+                        const basePositionY = settings.position?.y !== undefined ? settings.position.y : el.position.y;
+
+                        updatedElementState.position = {
+                          x: basePositionX + dxPercent,
+                          y: basePositionY + dyPercent,
+                        };
                       }
-                      return { ...el, ...newSettings };
+                      return updatedElementState;
                     }
                     return el;
                   }),

@@ -1,4 +1,5 @@
-import { StateStorage, StorageValue } from 'zustand/middleware';
+import { StateStorage } from 'zustand/middleware';
+import useDraftStore from './draftStore'; // Import the store itself
 
 const STORE_NAME = 'aoe2-draft-overlay-combined-storage-v1'; // Must match the 'name' in persist options
 const BROADCAST_CHANNEL_NAME = 'zustand_store_sync_channel';
@@ -12,81 +13,66 @@ try {
   console.warn('BroadcastChannel API not available or failed to initialize. Cross-tab sync might be less responsive.', e);
 }
 
-// Flag to prevent processing self-emitted storage events if we dispatch synthetic ones
-let isSelfTriggered = false;
+// Flag to track if the current tab initiated the change
+let isOriginTab = false;
 
 export const customLocalStorageWithBroadcast: StateStorage = {
-  getItem: (name: string): string | null | Promise<string | null> => {
+  getItem: (name: string): string | null => {
     // console.log('[CustomStorage] getItem:', name);
     return localStorage.getItem(name);
   },
-  setItem: (name: string, value: string): void | Promise<void> => {
+  setItem: (name: string, value: string): void => {
     // console.log('[CustomStorage] setItem:', name, 'value length:', value.length);
-    isSelfTriggered = true; // Mark that this change originates from this tab
+    isOriginTab = true; // Mark this tab as the originator
     localStorage.setItem(name, value);
     if (channel) {
       try {
+        // Send a simple update notification, not the whole state
         // console.log('[CustomStorage] Posting to BroadcastChannel:', name);
-        channel.postMessage({ key: name, newValue: value }); // Send key and new value
+        channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
       } catch (e) {
         console.error('Failed to post message to BroadcastChannel:', e);
-        // Potentially close and nullify channel if it's broken
-        // channel?.close(); channel = null;
       }
     }
-    // Reset flag after a short delay, assuming storage event (if any) would have fired
-    setTimeout(() => { isSelfTriggered = false; }, 50);
+    // Reset the flag shortly after, so this tab can receive external messages later
+    setTimeout(() => { isOriginTab = false; }, 50);
   },
-  removeItem: (name: string): void | Promise<void> => {
+  removeItem: (name: string): void => {
     // console.log('[CustomStorage] removeItem:', name);
-    isSelfTriggered = true;
+    isOriginTab = true;
     localStorage.removeItem(name);
     if (channel) {
       try {
-        channel.postMessage({ key: name, newValue: null }); // Indicate removal
+        channel.postMessage({ storeKey: name, type: 'zustand_store_update' }); // Also an update
       } catch (e) {
         console.error('Failed to post message (remove) to BroadcastChannel:', e);
       }
     }
-    setTimeout(() => { isSelfTriggered = false; }, 50);
+    setTimeout(() => { isOriginTab = false; }, 50);
   },
 };
 
 if (channel) {
-  channel.onmessage = (event: MessageEvent) => {
+  channel.onmessage = async (event: MessageEvent) => {
     // console.log('[CustomStorage] Received from BroadcastChannel:', event.data);
-    if (isSelfTriggered) {
-      // console.log('[CustomStorage] Ignoring self-triggered message from BroadcastChannel');
-      return;
+    if (isOriginTab) {
+      // console.log('[CustomStorage] Ignoring self-originated BroadcastChannel message.');
+      return; // Don't rehydrate if this tab caused the change
     }
 
-    const { key, newValue } = event.data;
-    if (typeof key === 'string') {
-      // Dispatch a synthetic storage event to trigger Zustand's persist middleware listener
-      // This makes Zustand re-read from localStorage and update the state.
-      // Note: The actual newValue in the event might not be perfectly what Zustand expects
-      // if it does complex parsing, but the event itself is the trigger.
-      // The key being STORE_NAME is important for Zustand's listener.
-
-      // console.log(`[CustomStorage] Dispatching synthetic storage event for key: ${STORE_NAME} due to BroadcastChannel message for actual key: ${key}`);
-
-      // We need to simulate the event as if the entire store state string changed
-      // because Zustand's default listener for 'storage' event on localStorage
-      // expects the event.key to be the store name.
-
-      // Get the current persisted string from localStorage to pass as newValue
-      const fullStoreState = localStorage.getItem(STORE_NAME);
-
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: STORE_NAME, // Zustand's persist middleware listens for changes to its main storage key
-          newValue: fullStoreState, // The new state of the entire persisted object
-          oldValue: null, // old value is not strictly necessary for Zustand to re-check
-          storageArea: localStorage,
-          url: window.location.href,
-        })
-      );
+    const { storeKey, type } = event.data;
+    if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
+      // console.log('[CustomStorage] Received store update notification from BroadcastChannel. Rehydrating.');
+      try {
+        // Access the persist API and call rehydrate
+        // This assumes `useDraftStore.persist.rehydrate` is available and works as expected.
+        // Zustand's persist middleware typically exposes this.
+        await (useDraftStore.persist as any).rehydrate();
+        // console.log('[CustomStorage] Store rehydrated successfully.');
+      } catch (e) {
+        console.error('[CustomStorage] Error during manual rehydration:', e);
+      }
     }
   };
-  // console.log('[CustomStorage] BroadcastChannel listener attached.');
+  // console.log('[CustomStorage] BroadcastChannel listener attached for rehydration.');
 }
