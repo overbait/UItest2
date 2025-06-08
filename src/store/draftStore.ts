@@ -13,6 +13,8 @@ import {
   StudioCanvas // <-- Add this
 } from '../types/draft';
 
+import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
+
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
 
 interface DraftStore extends CombinedDraftState {
@@ -437,10 +439,25 @@ const useDraftStore = create<DraftStore>()(
               console.error("No active canvas found for addStudioElement!");
               return state;
             }
+
+            const REF_WIDTH_CONST = 1920;
+            const REF_HEIGHT_CONST = 1080;
+
+            const initialX_px = 10; // desired initial pixel offset X
+            const initialY_px = 10 + (activeCanvas.layout.length * 20); // desired initial pixel offset Y
+            const initialWidth_px = 250;
+            const initialHeight_px = 40;
+
             const newElement: StudioElement = {
               id: Date.now().toString(), type: elementType,
-              position: { x: 10, y: 10 + (activeCanvas.layout.length * 20) },
-              size: { width: 250, height: 40 },
+              position: {
+                x: initialX_px / REF_WIDTH_CONST,
+                y: initialY_px / REF_HEIGHT_CONST
+              },
+              size: {
+                width: initialWidth_px / REF_WIDTH_CONST,
+                height: initialHeight_px / REF_HEIGHT_CONST
+              },
               fontFamily: 'Arial', showName: true, showScore: true,
               backgroundColor: 'transparent', borderColor: 'transparent',
               scale: 1, isPivotLocked: false, pivotInternalOffset: 0,
@@ -702,6 +719,7 @@ const useDraftStore = create<DraftStore>()(
             selectedElementId: state.selectedElementId,
             activeStudioLayoutId: state.activeStudioLayoutId,
         }),
+        storage: customLocalStorageWithBroadcast, // <-- Add this line
       }
     )
   )

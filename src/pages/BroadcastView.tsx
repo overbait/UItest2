@@ -54,16 +54,16 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
             key={element.id}
             style={{
               position: 'absolute',
-              left: `${element.position.x}px`,
-              top: `${element.position.y}px`,
-              width: `${element.size.width * currentScale}px`, // Apply scale to size for outer box
-              height: `${element.size.height * currentScale}px`, // Apply scale to size for outer box
+              left: `${element.position.x * 1920}px`,
+              top: `${element.position.y * 1080}px`,
+              width: `${(element.size.width * 1920) * currentScale}px`,
+              height: `${(element.size.height * 1080) * currentScale}px`,
               boxSizing: 'border-box',
             }}
           >
             <div style={{
-                width: `${element.size.width}px`, // Original unscaled width for content
-                height: `${element.size.height}px`, // Original unscaled height for content
+                width: `${element.size.width * 1920}px`,
+                height: `${element.size.height * 1080}px`,
                 transform: `scale(${currentScale})`,
                 transformOrigin: 'top left',
                 overflow: 'hidden',

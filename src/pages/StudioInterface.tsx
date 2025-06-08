@@ -7,10 +7,10 @@ import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import SettingsPanel from '../components/studio/SettingsPanel';
 
-const MIN_ELEMENT_WIDTH_NORMALIZED = 50; // Represents 50px in a 1920 logical canvas
-const MIN_ELEMENT_HEIGHT_NORMALIZED = 30; // Represents 30px in a 1080 logical canvas
-const REF_WIDTH = 1920;
-const REF_HEIGHT = 1080;
+const MIN_ELEMENT_WIDTH_PERCENT = 50 / 1920;
+const MIN_ELEMENT_HEIGHT_PERCENT = 30 / 1080;
+// REF_WIDTH and REF_HEIGHT are removed as direct constants here, percentages are used.
+// For clarity, where 1920/1080 are used in calculations, they refer to the reference resolution for percentages.
 
 const StudioInterface: React.FC = () => {
   const {
@@ -67,78 +67,56 @@ const StudioInterface: React.FC = () => {
     if (!element) return;
 
     if (element.isPivotLocked) {
-      // Convert normalized element data to current display pixels for the original pivot logic
-      const displayElementX = (element.position.x / REF_WIDTH) * studioCanvasDimensions.width;
-      const displayElementY = (element.position.y / REF_HEIGHT) * studioCanvasDimensions.height;
-      const displayElementWidth = (element.size.width / REF_WIDTH) * studioCanvasDimensions.width;
-      const displayElementHeight = (element.size.height / REF_HEIGHT) * studioCanvasDimensions.height; // For consistency, though height is preserved
-
-      // Original pivot logic using display pixel values:
-      // data.deltaX and data.deltaY are already in display pixels.
+      // Convert stored percentage-based pos/size to current display pixels for pivot logic
+      const displayElementX = element.position.x * studioCanvasDimensions.width;
+      const displayElementY = element.position.y * studioCanvasDimensions.height;
+      const displayElementWidth = element.size.width * studioCanvasDimensions.width;
+      // const displayElementHeight = element.size.height * studioCanvasDimensions.height; // Height is preserved in this logic
 
       let newY_display = displayElementY + data.deltaY; // new Y position in display pixels
 
-      // Current state values IN DISPLAY PIXELS for the logic below
       const currentX_display = displayElementX;
-      const currentUnscaledWidth_display = displayElementWidth; // This is 'unscaled' by element.scale, but it's in display pixels
-      const currentUnscaledHeight_display = displayElementHeight; // This is 'unscaled' by element.scale, in display pixels
-      const currentScale = element.scale || 1; // This scale is correct
-
-      // finalPivotOffset_unscaled is independent of normalization as it's an internal ratio/offset
+      const currentUnscaledWidth_display = displayElementWidth;
+      const currentScale = element.scale || 1;
       const currentPivotOffset_unscaled = element.pivotInternalOffset || 0;
 
       let finalX_display = currentX_display;
       let finalUnscaledWidth_display = currentUnscaledWidth_display;
-      let finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled; // Keep separate from element.pivotInternalOffset
+      // finalPivotOffset_unscaled_calculated is not used to update store, so its calculation can remain as is or be removed if not otherwise needed.
+      // let finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled;
 
-      if (data.deltaX !== 0) { // Horizontal drag occurred
-          // Calculate the fixed screen X-coordinate of the pivot (element's center)
-          // This uses the state *before* the current drag delta.
+      if (data.deltaX !== 0) {
           const pivotScreenX_fixed_display = currentX_display + (currentUnscaledWidth_display / 2) * currentScale;
-
-          // Convert screen drag delta to an equivalent unscaled drag for one edge
-          // This deltaX is a display pixel delta. The effect on unscaled width needs to consider the current element scale.
           const effectiveUnscaledDrag_display = data.deltaX / currentScale;
 
-          // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH_NORMALIZED (converted to display pixels)
-          const minDisplayWidth = (MIN_ELEMENT_WIDTH_NORMALIZED / REF_WIDTH) * studioCanvasDimensions.width;
+          const minDisplayWidth = MIN_ELEMENT_WIDTH_PERCENT * studioCanvasDimensions.width;
 
           const targetUnconstrainedWidth_display = currentUnscaledWidth_display - (2 * effectiveUnscaledDrag_display);
           finalUnscaledWidth_display = Math.max(minDisplayWidth, targetUnconstrainedWidth_display);
 
-          // Calculate the actual change applied to one edge in unscaled (but display pixel unit) units
-          const actualUnscaledDragAppliedToEdge_display = (currentUnscaledWidth_display - finalUnscaledWidth_display) / 2;
-
-          // Calculate the new top-left X screen coordinate to keep the pivotScreenX_fixed_display stationary
+          // const actualUnscaledDragAppliedToEdge_display = (currentUnscaledWidth_display - finalUnscaledWidth_display) / 2;
           finalX_display = pivotScreenX_fixed_display - (finalUnscaledWidth_display / 2) * currentScale;
-
-          // Calculate the new unscaled pivot offset
-          finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge_display);
+          // finalPivotOffset_unscaled_calculated = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge_display);
       }
 
-      // For this reversion step, send these DISPLAY PIXEL values to the store.
-      // This means position.x and size.width for pivot-dragged elements will be temporarily unnormalized in the store.
-      // element.size.height (which is element.size.height from store) remains normalized.
-      // newY_display is also a display pixel value.
-
-      // Normalize the calculated display values before sending to store
-      const normalizedPositionX = (finalX_display / studioCanvasDimensions.width) * REF_WIDTH;
-      const normalizedPositionY = (newY_display / studioCanvasDimensions.height) * REF_HEIGHT;
-      const normalizedSizeWidth = (finalUnscaledWidth_display / studioCanvasDimensions.width) * REF_WIDTH;
+      // Convert calculated display values back to percentages for storing
+      const percentPositionX = finalX_display / studioCanvasDimensions.width;
+      const percentPositionY = newY_display / studioCanvasDimensions.height;
+      const percentSizeWidth = finalUnscaledWidth_display / studioCanvasDimensions.width;
 
       updateStudioElementSettings(elementId, {
-          position: { x: normalizedPositionX, y: normalizedPositionY },
+          position: { x: percentPositionX, y: percentPositionY },
           size: {
-              width: normalizedSizeWidth,
-              height: element.size.height // This is already normalized from the store
+              width: percentSizeWidth,
+              height: element.size.height // This is already a percentage
           },
-          pivotInternalOffset: finalPivotOffset_unscaled_calculated
+          pivotInternalOffset: element.pivotInternalOffset // Remains unchanged
       });
 
-    } else { // Pivot not locked - this part uses normalization correctly
-      const normalizedX = (data.x / studioCanvasDimensions.width) * REF_WIDTH;
-      const normalizedY = (data.y / studioCanvasDimensions.height) * REF_HEIGHT;
-      updateStudioElementPosition(elementId, { x: normalizedX, y: normalizedY });
+    } else { // Pivot not locked
+      const percentX = data.x / studioCanvasDimensions.width;
+      const percentY = data.y / studioCanvasDimensions.height;
+      updateStudioElementPosition(elementId, { x: percentX, y: percentY });
     }
   };
 
@@ -147,15 +125,12 @@ const StudioInterface: React.FC = () => {
     if (!currentElement) return;
     const currentScale = currentElement.scale || 1;
 
-    // data.size.width and data.size.height are the new dimensions in display pixels of the ResizableBox
-    // These dimensions already factor in the currentScale applied to the ResizableBox itself.
-    // We need the unscaled dimensions in display pixels first.
     const newDisplayWidthUnscaled = data.size.width / currentScale;
     const newDisplayHeightUnscaled = data.size.height / currentScale;
 
-    const normalizedWidth = (newDisplayWidthUnscaled / studioCanvasDimensions.width) * REF_WIDTH;
-    const normalizedHeight = (newDisplayHeightUnscaled / studioCanvasDimensions.height) * REF_HEIGHT;
-    updateStudioElementSize(elementId, { width: normalizedWidth, height: normalizedHeight });
+    const percentWidth = newDisplayWidthUnscaled / studioCanvasDimensions.width;
+    const percentHeight = newDisplayHeightUnscaled / studioCanvasDimensions.height;
+    updateStudioElementSize(elementId, { width: percentWidth, height: percentHeight });
   };
 
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
@@ -323,19 +298,17 @@ const StudioInterface: React.FC = () => {
             const currentScale = element.scale || 1;
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
 
-            // Convert normalized stored values to display pixels for rendering
-            const displayX = (element.position.x / REF_WIDTH) * studioCanvasDimensions.width;
-            const displayY = (element.position.y / REF_HEIGHT) * studioCanvasDimensions.height;
-            const displayWidth = (element.size.width / REF_WIDTH) * studioCanvasDimensions.width;
-            const displayHeight = (element.size.height / REF_HEIGHT) * studioCanvasDimensions.height;
+            // Convert percentage-based stored values to display pixels for rendering
+            const displayX = element.position.x * studioCanvasDimensions.width;
+            const displayY = element.position.y * studioCanvasDimensions.height;
+            const unscaledDisplayWidth = element.size.width * studioCanvasDimensions.width;
+            const unscaledDisplayHeight = element.size.height * studioCanvasDimensions.height;
 
-            // Constraints for ResizableBox also need to be in display pixels (unscaled by element.scale, but scaled by canvas ratio)
-            const displayMinElementWidth = (MIN_ELEMENT_WIDTH_NORMALIZED / REF_WIDTH) * studioCanvasDimensions.width;
-            const displayMinElementHeight = (MIN_ELEMENT_HEIGHT_NORMALIZED / REF_HEIGHT) * studioCanvasDimensions.height;
-            // Max constraints could be similarly calculated if needed, e.g., from REF_WIDTH/REF_HEIGHT
-            const displayMaxElementWidth = (REF_WIDTH / REF_WIDTH) * studioCanvasDimensions.width; // i.e. 100% canvas width
-            const displayMaxElementHeight = (REF_HEIGHT / REF_HEIGHT) * studioCanvasDimensions.height; // i.e. 100% canvas height
-
+            // Constraints for ResizableBox
+            const minDisplayConstraintWidth = MIN_ELEMENT_WIDTH_PERCENT * studioCanvasDimensions.width;
+            const minDisplayConstraintHeight = MIN_ELEMENT_HEIGHT_PERCENT * studioCanvasDimensions.height;
+            const maxDisplayConstraintWidth = studioCanvasDimensions.width; // 100% of canvas display width
+            const maxDisplayConstraintHeight = studioCanvasDimensions.height; // 100% of canvas display height
 
             let content = null;
             if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
@@ -350,11 +323,11 @@ const StudioInterface: React.FC = () => {
                   // No bounds="parent"
                   >
                 <ResizableBox
-                    width={displayWidth * currentScale} // ResizableBox expects final scaled size
-                    height={displayHeight * currentScale} // ResizableBox expects final scaled size
+                    width={unscaledDisplayWidth * currentScale}
+                    height={unscaledDisplayHeight * currentScale}
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
-                    minConstraints={[displayMinElementWidth, displayMinElementHeight]} // These are unscaled by element.scale here
-                    maxConstraints={[displayMaxElementWidth, displayMaxElementHeight]} // These are unscaled by element.scale here
+                    minConstraints={[minDisplayConstraintWidth / currentScale, minDisplayConstraintHeight / currentScale]}
+                    maxConstraints={[maxDisplayConstraintWidth / currentScale, maxDisplayConstraintHeight / currentScale]}
                     style={{ ...selectionStyle }}
                     className="drag-handle">
                   <div
