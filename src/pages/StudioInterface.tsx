@@ -269,7 +269,7 @@ const StudioInterface: React.FC = () => {
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
                     minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
                     maxConstraints={[800 / currentScale, 600 / currentScale]}
-                    style={{ ...selectionStyle }}
+                    style={{ ...selectionStyle, position: 'absolute' }}
                     className="drag-handle">
                   <div
                        onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}

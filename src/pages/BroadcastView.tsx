@@ -8,18 +8,32 @@ interface BroadcastViewProps {
 }
 
 const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
-  const { currentCanvases } = useDraftStore(state => ({
-    currentCanvases: state.currentCanvases,
+  const { currentCanvasesFromHook, activeCanvasIdFromHook } = useDraftStore(state => ({
+    currentCanvasesFromHook: state.currentCanvases,
+    activeCanvasIdFromHook: state.activeCanvasId,
   }));
 
   const canvasToRender = useMemo(() => {
-    return currentCanvases.find(canvas => canvas.id === targetCanvasId);
-  }, [currentCanvases, targetCanvasId]);
+    // First, try with targetCanvasId from URL
+    let foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === targetCanvasId);
+
+    if (!foundCanvas && currentCanvasesFromHook.length > 0) {
+      // If not found by URL ID, and canvases exist, try the activeCanvasId from the store
+      console.log(`Canvas with ID '${targetCanvasId}' not found via URL. Attempting to load active canvas ID '${activeCanvasIdFromHook}'.`);
+      foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === activeCanvasIdFromHook);
+      if (foundCanvas) {
+        console.log(`Successfully found active canvas '${activeCanvasIdFromHook}' as fallback.`);
+      } else {
+        console.log(`Active canvas ID '${activeCanvasIdFromHook}' also not found in currentCanvases.`);
+      }
+    }
+    return foundCanvas;
+  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]);
 
   if (!canvasToRender) {
     return (
       <div style={{ width: '1920px', height: '1080px', backgroundColor: 'rgba(255,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px' }}>
-        Canvas with ID '{targetCanvasId}' not found in current layout.
+        Canvas with ID '{targetCanvasId}' (or active canvas fallback) not found.
       </div>
     );
   }
