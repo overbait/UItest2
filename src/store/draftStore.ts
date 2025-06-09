@@ -750,28 +750,28 @@ const useDraftStore = create<DraftStore>()(
             // state here is the full state after hydration
             // We need to ensure state is not undefined before accessing its properties
             if (state) {
-              console.log('LOGAOEINFO: [draftStore] Rehydration finished. Current store state:', {
+              console.debug('LOGAOEINFO: [draftStore] Rehydration finished. Current store state:', { // Changed to debug
                 savedPresetsCount: state.savedPresets?.length ?? 'undefined',
                 activePresetId: state.activePresetId,
                 savedStudioLayoutsCount: state.savedStudioLayouts?.length ?? 'undefined',
                 // For brevity, don't log the full arrays here if they can be large,
                 // but let's log them for now for debugging.
-                savedPresets: state.savedPresets,
-                savedStudioLayouts: state.savedStudioLayouts
+                // savedPresets: state.savedPresets, // Commented out for brevity
+                // savedStudioLayouts: state.savedStudioLayouts // Commented out for brevity
               });
             } else {
-              console.log('LOGAOEINFO: [draftStore] Rehydration finished, but state is undefined (no persisted state found or an issue occurred before this log).');
+              console.debug('LOGAOEINFO: [draftStore] Rehydration finished, but state is undefined (no persisted state found or an issue occurred before this log).'); // Changed to debug
             }
           }
         },
         merge: (persistedStateFromStorage: any, currentState: CombinedDraftState): CombinedDraftState => {
-          console.log('LOGAOEINFO: [draftStore Merge] Merge function called.');
-          console.log('LOGAOEINFO: [draftStore Merge] Raw persistedStateFromStorage received:', persistedStateFromStorage);
-          console.log('LOGAOEINFO: [draftStore Merge] currentState (initial state or current in-memory state):', {
-            savedPresetsCount: currentState.savedPresets?.length,
-            savedStudioLayoutsCount: currentState.savedStudioLayouts?.length
-            // Do not log full currentState arrays to keep logs cleaner unless necessary
-          });
+          // console.debug('LOGAOEINFO: [draftStore Merge] Merge function called.'); // Changed to debug
+          // console.debug('LOGAOEINFO: [draftStore Merge] Raw persistedStateFromStorage received:', persistedStateFromStorage); // Changed to debug
+          // console.debug('LOGAOEINFO: [draftStore Merge] currentState (initial state or current in-memory state):', { // Changed to debug
+          //   savedPresetsCount: currentState.savedPresets?.length,
+          //   savedStudioLayoutsCount: currentState.savedStudioLayouts?.length
+          //   // Do not log full currentState arrays to keep logs cleaner unless necessary
+          // });
 
           let actualPersistedState: Partial<CombinedDraftState> | undefined | null;
           // Check if persistedStateFromStorage is the wrapper object { state: ..., version: ... }
@@ -781,10 +781,10 @@ const useDraftStore = create<DraftStore>()(
               persistedStateFromStorage.hasOwnProperty('state') &&
               persistedStateFromStorage.hasOwnProperty('version')) {
             actualPersistedState = persistedStateFromStorage.state as Partial<CombinedDraftState>;
-            console.log('LOGAOEINFO: [draftStore Merge] Detected wrapper object. Using persistedStateFromStorage.state for merge.');
+            // console.debug('LOGAOEINFO: [draftStore Merge] Detected wrapper object. Using persistedStateFromStorage.state for merge.'); // Changed to debug
           } else {
             actualPersistedState = persistedStateFromStorage as Partial<CombinedDraftState>;
-            console.log('LOGAOEINFO: [draftStore Merge] Did not detect wrapper object, using persistedStateFromStorage directly for merge.');
+            // console.debug('LOGAOEINFO: [draftStore Merge] Did not detect wrapper object, using persistedStateFromStorage directly for merge.'); // Changed to debug
           }
 
           // Now, actualPersistedState holds what we believe is the true persisted application state.
@@ -795,21 +795,21 @@ const useDraftStore = create<DraftStore>()(
           }
 
           // Log details of the state that will actually be merged
-          console.log('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedPresets (to be merged):', actualPersistedState.savedPresets?.length, actualPersistedState.savedPresets);
-          console.log('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedStudioLayouts (to be merged):', actualPersistedState.savedStudioLayouts?.length, actualPersistedState.savedStudioLayouts);
+          // console.debug('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedPresets (to be merged):', actualPersistedState.savedPresets?.length, actualPersistedState.savedPresets); // Changed to debug
+          // console.debug('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedStudioLayouts (to be merged):', actualPersistedState.savedStudioLayouts?.length, actualPersistedState.savedStudioLayouts); // Changed to debug
 
           // Perform the merge
           // The `actualPersistedState` should be a partial state containing only what was persisted.
           const mergedState = { ...currentState, ...actualPersistedState };
 
           // Log details of the final merged state for the arrays of interest
-          console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedPresets after merge:', mergedState.savedPresets?.length, mergedState.savedPresets);
-          console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedStudioLayouts after merge:', mergedState.savedStudioLayouts?.length, mergedState.savedStudioLayouts);
+          // console.debug('LOGAOEINFO: [draftStore Merge] mergedState.savedPresets after merge:', mergedState.savedPresets?.length, mergedState.savedPresets); // Changed to debug
+          // console.debug('LOGAOEINFO: [draftStore Merge] mergedState.savedStudioLayouts after merge:', mergedState.savedStudioLayouts?.length, mergedState.savedStudioLayouts); // Changed to debug
 
           return mergedState;
         },
         deserialize: (str: string) => {
-          console.log('LOGAOEINFO: [draftStore Deserialize] Received string to deserialize:', str);
+          // console.debug('LOGAOEINFO: [draftStore Deserialize] Received string to deserialize:', str); // Changed to debug
           if (str === null || str === undefined || typeof str !== 'string') {
             console.warn('LOGAOEINFO: [draftStore Deserialize] Received null, undefined, or non-string value. Returning undefined.', str);
             // Persist middleware expects deserialized state or undefined if it cannot be parsed.
@@ -819,7 +819,7 @@ const useDraftStore = create<DraftStore>()(
           }
           try {
             const parsedState = JSON.parse(str);
-            console.log('LOGAOEINFO: [draftStore Deserialize] Successfully parsed string to object:', parsedState);
+            // console.debug('LOGAOEINFO: [draftStore Deserialize] Successfully parsed string to object:', parsedState); // Changed to debug
             return parsedState;
           } catch (error) {
             console.error('LOGAOEINFO: [draftStore Deserialize] Error parsing string:', error, 'String was:', str);

@@ -12,6 +12,7 @@ try {
 }
 
 let isOriginTab = false;
+let localStorageWriteInProgressByThisTab = false;
 
 // Helper function to apply state updates from localStorage
 const applyStateFromLocalStorage = () => {
@@ -92,8 +93,10 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 
     // console.debug('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() }); // Changed to debug/commented
 
-    isOriginTab = true;
+    isOriginTab = true; // For BroadcastChannel
+    localStorageWriteInProgressByThisTab = true;
     localStorage.setItem(name, valueToStore);
+    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0);
 
     if (channel) {
       try {
@@ -113,8 +116,11 @@ export const customLocalStorageWithBroadcast: StateStorage = {
   },
   removeItem: (name: string): void => {
     // console.debug('[CustomStorage] removeItem:', { name, timestamp: new Date().toISOString() }); // Changed to debug/commented
-    isOriginTab = true;
+    isOriginTab = true; // For BroadcastChannel
+    localStorageWriteInProgressByThisTab = true;
     localStorage.removeItem(name);
+    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0);
+
     if (channel) {
       try {
         // console.debug('[CustomStorage removeItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' }); // Changed to debug/commented
@@ -179,6 +185,10 @@ if (channel) {
 
 // Add this towards the end of the file
 window.addEventListener('storage', (event: StorageEvent) => {
+  if (localStorageWriteInProgressByThisTab) {
+    console.debug('[CustomStorage storage.event] Ignored event, likely self-originated by this tab.');
+    return;
+  }
   if (event.key === STORE_NAME) {
     // Basic log to confirm event is received, can be made more conditional later
     console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, 'URL:', event.url); // Changed to debug
