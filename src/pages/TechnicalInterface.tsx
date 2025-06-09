@@ -246,17 +246,18 @@ const TechnicalInterface = () => {
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
            <div className="player-scores-horizontal-layout">
               <div className="player-name-input-group">
-                <div style={{
-                  border: hostColor ? `3px solid ${hostColor}` : '3px solid transparent',
-                  backgroundColor: hostColor ? '#383838' : 'transparent',
-                  padding: '5px',
-                  borderRadius: '5px',
-                  transition: 'border-color 0.3s ease, background-color 0.3s ease',
-                  width: '100%',
-                  marginBottom: '8px'
-                }}>
+                <div style={{ width: '100%', marginBottom: '8px' }}> {/* Removed border, bg, padding, radius, transition */}
                   <label htmlFor="hostNameInput">Player 1 (Host)</label>
-                  <input id="hostNameInput" type="text" value={editableHostName} onChange={handleHostNameChange} onBlur={updateHostNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()} className="name-input"/>
+                  <input
+                    id="hostNameInput"
+                    type="text"
+                    value={editableHostName}
+                    onChange={handleHostNameChange}
+                    onBlur={updateHostNameInStore}
+                    onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
+                    className="name-input"
+                    style={{ boxShadow: hostColor ? `0 0 8px 2px ${hostColor}` : 'none' }}
+                  />
                 </div>
                 <PlayerColorPicker currentPlayerColor={hostColor} onSetColor={setHostColor} />
               </div>
@@ -280,17 +281,18 @@ const TechnicalInterface = () => {
                 <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
               </div>
               <div className="player-name-input-group">
-                <div style={{
-                  border: guestColor ? `3px solid ${guestColor}` : '3px solid transparent',
-                  backgroundColor: guestColor ? '#383838' : 'transparent',
-                  padding: '5px',
-                  borderRadius: '5px',
-                  transition: 'border-color 0.3s ease, background-color 0.3s ease',
-                  width: '100%',
-                  marginBottom: '8px'
-                }}>
+                <div style={{ width: '100%', marginBottom: '8px' }}> {/* Removed border, bg, padding, radius, transition */}
                   <label htmlFor="guestNameInput">Player 2 (Guest)</label>
-                  <input id="guestNameInput" type="text" value={editableGuestName} onChange={handleGuestNameChange} onBlur={updateGuestNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()} className="name-input"/>
+                  <input
+                    id="guestNameInput"
+                    type="text"
+                    value={editableGuestName}
+                    onChange={handleGuestNameChange}
+                    onBlur={updateGuestNameInStore}
+                    onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
+                    className="name-input"
+                    style={{ boxShadow: guestColor ? `0 0 8px 2px ${guestColor}` : 'none' }}
+                  />
                 </div>
                 <PlayerColorPicker currentPlayerColor={guestColor} onSetColor={setGuestColor} />
               </div>

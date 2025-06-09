@@ -383,8 +383,8 @@ const useDraftStore = create<DraftStore>()(
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
-        setHostColor: (color) => set({ hostColor: color, activePresetId: null }),
-        setGuestColor: (color) => set({ guestColor: color, activePresetId: null }),
+        setHostColor: (color) => set({ hostColor: color }),
+        setGuestColor: (color) => set({ guestColor: color }),
         switchPlayerSides: () => {
           const {
             hostName, guestName, scores,
