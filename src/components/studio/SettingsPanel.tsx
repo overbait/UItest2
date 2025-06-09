@@ -24,7 +24,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
     if (selectedElement) { removeStudioElement(selectedElement.id); onClose(); }
   };
 
-  const panelStyle: React.CSSProperties = { position: 'absolute', right: 0, top: 0, width: '280px', height: '100%', backgroundColor: '#1e1e1e', borderLeft: '1px solid #333', padding: '1rem', boxSizing: 'border-box', color: 'white', overflowY: 'auto', zIndex: 100 };
+  const panelStyle: React.CSSProperties = {
+    width: '100%',
+    backgroundColor: '#1e1e1e', // Keep its background
+    padding: '1rem', // Keep its padding
+    boxSizing: 'border-box',
+    color: 'white',
+    overflowY: 'auto' // Keep for scrollable content
+    // All positioning, zIndex, fixed height, and left border are removed.
+  };
   const headerStyle: React.CSSProperties = { fontSize: '1.1em', marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #444', color: '#e0e0e0' };
   const sectionHeaderStyle: React.CSSProperties = { fontSize: '1em', color: '#ccc', marginTop: '20px', marginBottom: '10px', borderBottom: '1px solid #383838', paddingBottom: '5px'};
   const settingRowStyle: React.CSSProperties = { marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };

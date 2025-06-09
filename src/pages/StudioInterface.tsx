@@ -211,6 +211,11 @@ const StudioInterface: React.FC = () => {
             </div>
           </li>
         ))}</ul></div>
+        {/* New section for Settings Panel */}
+        <div style={toolboxSectionStyle}>
+          {/* The SettingsPanel will only render its content if selectedElement is not null */}
+          <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
+        </div>
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
@@ -332,7 +337,7 @@ const StudioInterface: React.FC = () => {
           })}
         </div>
       </main>
-      <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
+      {/* The SettingsPanel line is removed from here */}
     </div>
   );
 };
