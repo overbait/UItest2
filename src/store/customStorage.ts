@@ -15,7 +15,7 @@ let isOriginTab = false;
 let localStorageWriteInProgressByThisTab = false;
 
 // Helper function to apply state updates from localStorage
-const applyStateFromLocalStorage = () => {
+const applyStateFromLocalStorage = (sourceTabIdentifier?: string) => {
   // console.log('[CustomStorage applyState] Attempting to apply state from localStorage.');
   try {
     const rawStateFromStorage = localStorage.getItem(STORE_NAME);
@@ -48,6 +48,17 @@ const applyStateFromLocalStorage = () => {
         });
 
         if (Object.keys(updates).length > 0) {
+          if (sourceTabIdentifier === 'BroadcastView via StorageEvent') {
+            console.log(`[CustomStorage applyState - ${sourceTabIdentifier}] Updates to be applied:`, JSON.parse(JSON.stringify(updates)));
+            if (updates.hasOwnProperty('currentCanvases') || updates.hasOwnProperty('activeCanvasId')) {
+              console.log(`[CustomStorage applyState - ${sourceTabIdentifier}] Canvas-related data in updates:`, {
+                currentCanvases: updates.currentCanvases,
+                activeCanvasId: updates.activeCanvasId
+              });
+            } else {
+              console.log(`[CustomStorage applyState - ${sourceTabIdentifier}] No canvas-related (currentCanvases, activeCanvasId) data in this specific update batch.`);
+            }
+          }
           useDraftStore.setState(updates);
           // console.debug('[CustomStorage applyState] Store selectively updated from localStorage. Applied properties:', Object.keys(updates)); // Changed to debug/commented
         } else {
@@ -160,8 +171,10 @@ if (channel) {
     const { storeKey, type } = event.data;
 
     if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
+      // For BroadcastChannel updates, we don't have a direct 'BroadcastView' context like in storage event
+      // So, we pass a generic identifier or none at all.
       // console.debug('[CustomStorage BC.onmessage] Received store update signal via BroadcastChannel. Triggering state application.'); // Changed to debug/commented
-      applyStateFromLocalStorage();
+      applyStateFromLocalStorage('BroadcastChannelEvent');
     } else {
       // console.debug('[CustomStorage BC.onmessage] Received BroadcastChannel message not matching current store/type:', { storeKey, type }); // Changed to debug/commented
     }
@@ -203,7 +216,27 @@ window.addEventListener('storage', (event: StorageEvent) => {
     return;
   }
 
-  console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, '. Applying state for listening tab (e.g., BroadcastView).');
-  applyStateFromLocalStorage();
+  const isBroadcastViewContext = (window as any).IS_BROADCAST_VIEW === true;
+  let sourceIdentifier = isBroadcastViewContext ? 'BroadcastView via StorageEvent' : 'OtherListener via StorageEvent';
+
+  console.debug(`[CustomStorage storage.event - ${sourceIdentifier}] Received event. Applying state.`);
+
+  if (isBroadcastViewContext) {
+    try {
+      const rawState = localStorage.getItem(STORE_NAME);
+      console.log(`[CustomStorage storage.event - ${sourceIdentifier}] Raw data from localStorage:`, rawState ? rawState.substring(0, 300) + "..." : "null"); // Log snippet
+      if (rawState) {
+        const parsedForLog = JSON.parse(rawState);
+        console.log(`[CustomStorage storage.event - ${sourceIdentifier}] Parsed state for logging:`, {
+          stateExists: !!parsedForLog.state,
+          currentCanvasesCount: parsedForLog.state?.currentCanvases?.length,
+          activeCanvasId: parsedForLog.state?.activeCanvasId
+        });
+      }
+    } catch (e) {
+      console.error(`[CustomStorage storage.event - ${sourceIdentifier}] Error parsing localStorage for logging:`, e);
+    }
+  }
+  applyStateFromLocalStorage(sourceIdentifier); // Pass the identifier
 });
 console.log('[CustomStorage] Window storage event listener RE-ATTACHED for key:', STORE_NAME); // This one can stay as log for init
