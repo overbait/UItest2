@@ -149,9 +149,8 @@ const TechnicalInterface = () => {
     if (!mapName) return '';
     return mapName
       .toLowerCase() // 1. Lowercase
-      .replace(/-/g, '_') // 2. Hyphens to underscores
-      .replace(/\s+/g, '_') // 3. Spaces to underscores
-      .replace(/'/g, ''); // 4. Remove apostrophes
+      .replace(/\s+/g, '-') // 2. Spaces to hyphens
+      .replace(/'/g, ''); // 3. Remove apostrophes
   };
 
   return (
@@ -320,7 +319,7 @@ const TechnicalInterface = () => {
                           style={
                             game.hostCiv
                               ? {
-                                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.2) 0%, rgba(74,59,42,0) 50%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
+                                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.4) 0%, rgba(74,59,42,0) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                   backgroundRepeat: 'no-repeat',
@@ -353,7 +352,7 @@ const TechnicalInterface = () => {
                         style={
                           game.map
                             ? {
-                                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.2) 0%, rgba(74,59,42,0) 50%), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
+                                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.4) 0%, rgba(74,59,42,0) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 backgroundRepeat: 'no-repeat',
@@ -383,7 +382,7 @@ const TechnicalInterface = () => {
                           style={
                             game.guestCiv
                               ? {
-                                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.2) 0%, rgba(74,59,42,0) 50%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
+                                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.4) 0%, rgba(74,59,42,0) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                   backgroundRepeat: 'no-repeat',
