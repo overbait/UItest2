@@ -31,11 +31,39 @@ const TechnicalInterface = () => {
     // isPresetDirty, // This state is implicitly handled by activePresetId === null when changes occur
     connectToDraft,
     setHostName, setGuestName,
+    hostColor, setHostColor, // Player color state and setters
+    guestColor, setGuestColor, // Player color state and setters
     incrementScore, decrementScore, switchPlayerSides,
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
   } = useDraftStore();
+
+  const playerColors = ['#00C4FF', '#FF9500', '#A64DFF', '#1E3A8A', '#FF0000', '#FF69B4', '#FFFF00', '#00FF00'];
+
+  const PlayerColorPicker: React.FC<{ currentPlayerColor: string | null, onSetColor: (color: string | null) => void }> = ({ currentPlayerColor, onSetColor }) => {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px', marginBottom: '8px' }}>
+        {playerColors.map(color => (
+          <div
+            key={color}
+            style={{
+              backgroundColor: color,
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '1px solid #ccc',
+              cursor: 'pointer',
+              margin: '0 4px',
+              display: 'inline-block',
+              boxShadow: currentPlayerColor === color ? `0 0 6px ${color}` : 'none',
+            }}
+            onClick={() => onSetColor(currentPlayerColor === color ? null : color)}
+          />
+        ))}
+      </div>
+    );
+  };
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
   const [mapDraftIdInput, setMapDraftIdInput] = useState(mapDraftId || '');
@@ -209,9 +237,13 @@ const TechnicalInterface = () => {
         <div className="card player-scores-card">
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
            <div className="player-scores-horizontal-layout">
-              <div className="player-name-input-group">
+              <div
+                className="player-name-input-group"
+                style={{ border: hostColor ? `2px solid ${hostColor}` : '2px solid transparent', padding: '5px', borderRadius: '5px', transition: 'border-color 0.3s ease' }}
+              >
                 <label htmlFor="hostNameInput">Player 1 (Host)</label>
                 <input id="hostNameInput" type="text" value={editableHostName} onChange={handleHostNameChange} onBlur={updateHostNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()} className="name-input"/>
+                <PlayerColorPicker currentPlayerColor={hostColor} onSetColor={setHostColor} />
               </div>
               <div className="score-controls-group">
                 <button onClick={() => decrementScore('host')} className="score-button button-like">-</button>
@@ -232,9 +264,13 @@ const TechnicalInterface = () => {
                 <span className="score-display">{scores.guest}</span>
                 <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
               </div>
-              <div className="player-name-input-group">
+              <div
+                className="player-name-input-group"
+                style={{ border: guestColor ? `2px solid ${guestColor}` : '2px solid transparent', padding: '5px', borderRadius: '5px', transition: 'border-color 0.3s ease' }}
+              >
                 <label htmlFor="guestNameInput">Player 2 (Guest)</label>
                 <input id="guestNameInput" type="text" value={editableGuestName} onChange={handleGuestNameChange} onBlur={updateGuestNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()} className="name-input"/>
+                <PlayerColorPicker currentPlayerColor={guestColor} onSetColor={setGuestColor} />
               </div>
            </div>
         </div>

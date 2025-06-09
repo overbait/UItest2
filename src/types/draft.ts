@@ -10,6 +10,8 @@ export interface SavedPreset {
   scores: { host: number; guest: number };
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null;
   boxSeriesGames: BoxSeriesGame[];
+  hostColor?: string | null;
+  guestColor?: string | null;
 }
 
 export interface BoxSeriesGame {
@@ -92,6 +94,8 @@ export interface CombinedDraftState {
   mapDraftStatus: ConnectionStatus; mapDraftError: string | null; isLoadingMapDraft: boolean;
   savedPresets: SavedPreset[]; activePresetId: string | null;
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
+  hostColor?: string | null;
+  guestColor?: string | null;
   // studioLayout: StudioElement[]; // This line is removed
   currentCanvases: StudioCanvas[];
   activeCanvasId: string | null;
