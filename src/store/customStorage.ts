@@ -13,6 +13,56 @@ try {
 
 let isOriginTab = false;
 
+// Helper function to apply state updates from localStorage
+const applyStateFromLocalStorage = () => {
+  console.log('[CustomStorage applyState] Attempting to apply state from localStorage.');
+  try {
+    const rawStateFromStorage = localStorage.getItem(STORE_NAME);
+    if (rawStateFromStorage) {
+      const persistedWrapperState = JSON.parse(rawStateFromStorage);
+      // Assuming {state: actualAppState, version: ...} structure based on prior log analysis
+      const actualAppState = persistedWrapperState.state;
+
+      if (actualAppState && typeof actualAppState === 'object') {
+        const updates: Partial<ReturnType<typeof useDraftStore.getState>> = {};
+
+        // Define properties to sync from the persisted state
+        const propertiesToSync: (keyof typeof actualAppState)[] = [
+          'currentCanvases', 'activeCanvasId', 'scores', 'hostName',
+          'guestName', 'layoutLastUpdated', 'civDraftId', 'mapDraftId',
+          'boxSeriesFormat', 'boxSeriesGames', 'activePresetId'
+        ];
+
+        propertiesToSync.forEach(key => {
+          if (actualAppState.hasOwnProperty(key)) {
+            const value = actualAppState[key];
+            if (Array.isArray(value)) {
+              (updates as any)[key] = JSON.parse(JSON.stringify(value));
+            } else if (typeof value === 'object' && value !== null && value.constructor === Object) {
+              (updates as any)[key] = JSON.parse(JSON.stringify(value));
+            } else {
+              (updates as any)[key] = value;
+            }
+          }
+        });
+
+        if (Object.keys(updates).length > 0) {
+          useDraftStore.setState(updates);
+          console.log('[CustomStorage applyState] Store selectively updated from localStorage. Applied properties:', Object.keys(updates));
+        } else {
+          console.log('[CustomStorage applyState] No relevant own properties found in stored state to apply, or actualAppState was empty.');
+        }
+      } else {
+        console.warn('[CustomStorage applyState] Could not find .state property in parsed localStorage data, or it was null/undefined or not an object.');
+      }
+    } else {
+      console.warn('[CustomStorage applyState] Null value from localStorage.getItem (item may have been removed or not set). No state applied from localStorage.');
+    }
+  } catch (e) {
+    console.error('[CustomStorage applyState] Error during state application from localStorage:', e);
+  }
+};
+
 export const customLocalStorageWithBroadcast: StateStorage = {
   getItem: (name: string): string | null => {
     const value = localStorage.getItem(name);
@@ -94,75 +144,29 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 if (channel) {
   console.log('[CustomStorage] Attaching BroadcastChannel listeners. Channel object is valid.');
   channel.onmessage = (event: MessageEvent) => {
-    // Existing onmessage logic from the previous successful subtask:
-    console.log('[CustomStorage] Broadcast message received:', {
-      data: event.data, // Log the actual data received
-      origin: event.origin, // Log origin for security/debugging
+    console.log('[CustomStorage BC.onmessage] Broadcast message received:', {
+      data: event.data,
+      origin: event.origin,
       timestamp: new Date().toISOString(),
     });
 
     if (isOriginTab) {
-      console.log('[CustomStorage] Ignoring self-originated BroadcastChannel message.');
+      console.log('[CustomStorage BC.onmessage] Ignoring self-originated BroadcastChannel message.');
       return;
     }
 
-    // Ensure event.data and event.data.type exist before trying to access them
     if (!event.data || typeof event.data.type !== 'string' || typeof event.data.storeKey !== 'string') {
-        console.warn('[CustomStorage] Received malformed BroadcastChannel message or message of unknown type/storeKey:', event.data);
+        console.warn('[CustomStorage BC.onmessage] Received malformed BroadcastChannel message or message of unknown type/storeKey:', event.data);
         return;
     }
 
     const { storeKey, type } = event.data;
 
     if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
-      console.log('[CustomStorage] Received store update signal. Manually applying relevant state from localStorage.');
-      try {
-        const rawStateFromStorage = localStorage.getItem(STORE_NAME);
-        if (rawStateFromStorage) {
-          const persistedWrapperState = JSON.parse(rawStateFromStorage);
-
-          const actualAppState = persistedWrapperState.state;
-
-          if (actualAppState) {
-            const updates: Partial<typeof useDraftStore.getState> = {};
-
-            if (actualAppState.hasOwnProperty('currentCanvases')) {
-              updates.currentCanvases = JSON.parse(JSON.stringify(actualAppState.currentCanvases));
-            }
-            if (actualAppState.hasOwnProperty('activeCanvasId')) {
-              updates.activeCanvasId = actualAppState.activeCanvasId;
-            }
-            if (actualAppState.hasOwnProperty('scores')) {
-              updates.scores = JSON.parse(JSON.stringify(actualAppState.scores));
-            }
-            if (actualAppState.hasOwnProperty('hostName')) {
-              updates.hostName = actualAppState.hostName;
-            }
-            if (actualAppState.hasOwnProperty('guestName')) {
-              updates.guestName = actualAppState.guestName;
-            }
-            if (actualAppState.hasOwnProperty('layoutLastUpdated')) {
-                updates.layoutLastUpdated = actualAppState.layoutLastUpdated;
-            }
-
-            if (Object.keys(updates).length > 0) {
-                useDraftStore.setState(updates);
-                console.log('[CustomStorage] Store selectively updated from localStorage. New relevant state parts:', JSON.parse(JSON.stringify(updates)));
-            } else {
-                console.log('[CustomStorage] No relevant state parts found in localStorage to update.');
-            }
-
-          } else {
-            console.warn('[CustomStorage] Could not find .state property in parsed localStorage data, or actualAppState is null/undefined.');
-          }
-        } else {
-          console.warn('[CustomStorage] Null value from localStorage.getItem, cannot update state.');
-        }
-      } catch (e) {
-        console.error('[CustomStorage] Error during manual state application from localStorage:', e);
-      }
+      console.log('[CustomStorage BC.onmessage] Received store update signal via BroadcastChannel. Triggering state application.');
+      applyStateFromLocalStorage();
     } else {
-      console.log('[CustomStorage] Received BroadcastChannel message not matching current store/type:', { storeKey, type });
+      console.log('[CustomStorage BC.onmessage] Received BroadcastChannel message not matching current store/type:', { storeKey, type });
     }
   };
 
@@ -180,3 +184,14 @@ if (channel) {
 } else {
   console.error('[CustomStorage] BroadcastChannel object is NULL. Listeners not attached. Cross-tab sync will not work.');
 }
+
+// Add this towards the end of the file
+window.addEventListener('storage', (event: StorageEvent) => {
+  if (event.key === STORE_NAME) {
+    console.log('[CustomStorage storage.event] Received storage event for store key:', event.key,
+                'URL:', event.url
+               );
+    applyStateFromLocalStorage();
+  }
+});
+console.log('[CustomStorage] Window storage event listener attached for key:', STORE_NAME);
