@@ -78,6 +78,7 @@ const TechnicalInterface = () => {
 
   const [editingMapIndex, setEditingMapIndex] = useState<number | null>(null);
   const [editingMapValue, setEditingMapValue] = useState<string>("");
+  const [manuallyAddedMaps, setManuallyAddedMaps] = useState<string[]>([]);
 
   const [editableHostName, setEditableHostName] = useState(hostName);
   const [editableGuestName, setEditableGuestName] = useState(guestName);
@@ -171,7 +172,10 @@ const TechnicalInterface = () => {
     saveCurrentAsPreset(presetName); 
   };
 
-  const availableMapsForBoX = useMemo(() => Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean), [mapPicksHost, mapPicksGuest, mapPicksGlobal]);
+  const availableMapsForBoX = useMemo(() => {
+    const draftMaps = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean);
+    return Array.from(new Set([...draftMaps, ...manuallyAddedMaps]));
+  }, [mapPicksHost, mapPicksGuest, mapPicksGlobal, manuallyAddedMaps]);
   const availableHostCivsForBoX = useMemo(() => [...new Set(civPicksHost)].filter(Boolean), [civPicksHost]);
   const availableGuestCivsForBoX = useMemo(() => [...new Set(civPicksGuest)].filter(Boolean), [civPicksGuest]);
 
@@ -413,12 +417,22 @@ const TechnicalInterface = () => {
                           value={editingMapValue}
                           onChange={(e) => setEditingMapValue(e.target.value)}
                           onBlur={() => {
-                            updateBoxSeriesGame(index, 'map', editingMapValue.trim() || null);
+                            const trimmedMapValue = editingMapValue.trim();
+                            // availableMapsForBoX correctly represents maps from draft + previously manually added maps
+                            if (trimmedMapValue && !availableMapsForBoX.includes(trimmedMapValue)) {
+                              setManuallyAddedMaps(prev => [...new Set([...prev, trimmedMapValue])]);
+                            }
+                            updateBoxSeriesGame(index, 'map', trimmedMapValue || null);
                             setEditingMapIndex(null);
                           }}
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
-                              updateBoxSeriesGame(index, 'map', editingMapValue.trim() || null);
+                              const trimmedMapValue = editingMapValue.trim();
+                              // availableMapsForBoX correctly represents maps from draft + previously manually added maps
+                              if (trimmedMapValue && !availableMapsForBoX.includes(trimmedMapValue)) {
+                                setManuallyAddedMaps(prev => [...new Set([...prev, trimmedMapValue])]);
+                              }
+                              updateBoxSeriesGame(index, 'map', trimmedMapValue || null);
                               setEditingMapIndex(null);
                               // Consider e.preventDefault() if inside a form
                             }
