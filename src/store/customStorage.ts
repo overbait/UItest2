@@ -61,11 +61,14 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 
     if (channel) {
       try {
-        console.log('[CustomStorage] Posting to BroadcastChannel:', { name, type: 'zustand_store_update', timestamp: new Date().toISOString() });
+        console.log('[CustomStorage setItem] Attempting to post message. Channel valid: true. Message:', { storeKey: name, type: 'zustand_store_update' });
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
+        console.log('[CustomStorage setItem] Message posted successfully.');
       } catch (e) {
-        console.error('[CustomStorage] Failed to post message to BroadcastChannel:', e);
+        console.error('[CustomStorage setItem] Error during channel.postMessage:', e);
       }
+    } else {
+      console.warn('[CustomStorage setItem] Channel is null, cannot post message.');
     }
     setTimeout(() => { isOriginTab = false; }, 50);
   },
@@ -75,17 +78,23 @@ export const customLocalStorageWithBroadcast: StateStorage = {
     localStorage.removeItem(name);
     if (channel) {
       try {
+        console.log('[CustomStorage removeItem] Attempting to post message. Channel valid: true. Message:', { storeKey: name, type: 'zustand_store_update' });
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
+        console.log('[CustomStorage removeItem] Message posted successfully.');
       } catch (e) {
-        console.error('[CustomStorage] Failed to post message to BroadcastChannel for remove:', e);
+        console.error('[CustomStorage removeItem] Error during channel.postMessage:', e);
       }
+    } else {
+      console.warn('[CustomStorage removeItem] Channel is null, cannot post message.');
     }
     setTimeout(() => { isOriginTab = false; }, 50);
   },
 };
 
 if (channel) {
-  channel.onmessage = (event: MessageEvent) => { // No longer async, as we're not awaiting rehydrate
+  console.log('[CustomStorage] Attaching BroadcastChannel listeners. Channel object is valid.');
+  channel.onmessage = (event: MessageEvent) => {
+    // Existing onmessage logic from the previous successful subtask:
     console.log('[CustomStorage] Broadcast message received:', {
       data: event.data, // Log the actual data received
       origin: event.origin, // Log origin for security/debugging
@@ -112,16 +121,9 @@ if (channel) {
         if (rawStateFromStorage) {
           const persistedWrapperState = JSON.parse(rawStateFromStorage);
 
-          // Zustand's persist middleware wraps the state: { state: { actualAppState }, version: ... }
-          // Or, if versioning/migration isn't used or configured complexly, it might be the direct state.
-          // We need to safely access the actual application state.
-          // Based on the merge function in draftStore, it expects a wrapper.
           const actualAppState = persistedWrapperState.state;
 
           if (actualAppState) {
-            // Selectively update the parts of the state BroadcastView and its elements might care about.
-            // Deep clone objects/arrays to ensure new references for React's change detection.
-
             const updates: Partial<typeof useDraftStore.getState> = {};
 
             if (actualAppState.hasOwnProperty('currentCanvases')) {
@@ -139,15 +141,9 @@ if (channel) {
             if (actualAppState.hasOwnProperty('guestName')) {
               updates.guestName = actualAppState.guestName;
             }
-            // Add any other top-level state properties that BroadcastView elements might directly render
-            // and that are included in the 'partialize' function for persistence.
-            // Example: layoutLastUpdated, if it's used.
             if (actualAppState.hasOwnProperty('layoutLastUpdated')) {
                 updates.layoutLastUpdated = actualAppState.layoutLastUpdated;
             }
-            // Potentially: civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, activePresetId
-            // if any ScoreDisplayElement or future element type in BroadcastView uses them.
-            // For now, keeping it to the most direct ones.
 
             if (Object.keys(updates).length > 0) {
                 useDraftStore.setState(updates);
@@ -166,9 +162,21 @@ if (channel) {
         console.error('[CustomStorage] Error during manual state application from localStorage:', e);
       }
     } else {
-      // Log if message is for a different store or of a different type, but not an error
       console.log('[CustomStorage] Received BroadcastChannel message not matching current store/type:', { storeKey, type });
     }
   };
-  console.log('[CustomStorage] BroadcastChannel listener attached for manual state application.');
+
+  channel.onmessageerror = (event: MessageEvent) => {
+    console.error('[CustomStorage] BroadcastChannel ONMESSAGEERROR received:', {
+      data: event.data,
+      origin: event.origin,
+      lastEventId: event.lastEventId, // Common properties for error events
+      source: event.source,
+      ports: event.ports,
+      errorEventDetails: event // Log the whole event for more details
+    });
+  };
+  console.log('[CustomStorage] BroadcastChannel onmessage and onmessageerror listeners attached.');
+} else {
+  console.error('[CustomStorage] BroadcastChannel object is NULL. Listeners not attached. Cross-tab sync will not work.');
 }
