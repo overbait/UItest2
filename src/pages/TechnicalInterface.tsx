@@ -76,6 +76,9 @@ const TechnicalInterface = () => {
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
   const [mapDraftIdInput, setMapDraftIdInput] = useState(mapDraftId || '');
 
+  const [editingMapIndex, setEditingMapIndex] = useState<number | null>(null);
+  const [editingMapValue, setEditingMapValue] = useState<string>("");
+
   const [editableHostName, setEditableHostName] = useState(hostName);
   const [editableGuestName, setEditableGuestName] = useState(guestName);
 
@@ -404,30 +407,59 @@ const TechnicalInterface = () => {
                     </div>
                      <div className="selector-group map-selector-group">
                       <label htmlFor={`box-map-${index}`}>Map:</label>
-                      <select
-                        id={`box-map-${index}`}
-                        value={game.map || ''}
-                        onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)}
-                        className="button-like"
-                        style={
-                          game.map
-                            ? {
-                                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.8) 0%, rgba(74,59,42,0) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
+                      {editingMapIndex === index ? (
+                        <input
+                          type="text"
+                          value={editingMapValue}
+                          onChange={(e) => setEditingMapValue(e.target.value)}
+                          onBlur={() => {
+                            updateBoxSeriesGame(index, 'map', editingMapValue.trim() || null);
+                            setEditingMapIndex(null);
+                          }}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              updateBoxSeriesGame(index, 'map', editingMapValue.trim() || null);
+                              setEditingMapIndex(null);
+                              // Consider e.preventDefault() if inside a form
+                            }
+                          }}
+                          className="button-like" // You might want a specific class for text inputs
+                          autoFocus
+                        />
+                      ) : (
+                        <select
+                          id={`box-map-${index}`}
+                          value={game.map || ''}
+                          onChange={(e) => {
+                            if (e.target.value === "_ADD_MAP_") {
+                              setEditingMapIndex(index);
+                              setEditingMapValue(game.map || ""); // Or "" for a new map
+                              return;
+                            }
+                            updateBoxSeriesGame(index, 'map', e.target.value || null);
+                          }}
+                          className="button-like"
+                          style={
+                            game.map
+                              ? {
+                                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.8) 0%, rgba(74,59,42,0) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                   backgroundRepeat: 'no-repeat',
-                                color: 'white',
-                                textShadow: '0 0 3px black, 0 0 3px black',
-                              }
-                            : {
-                                color: 'white', // Or a default color for empty selects
-                                textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
-                              }
-                        }
-                      >
-                        <option value="">- Select Map -</option>
-                        {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
-                      </select>
+                                  color: 'white',
+                                  textShadow: '0 0 3px black, 0 0 3px black',
+                                }
+                              : {
+                                  color: 'white', // Or a default color for empty selects
+                                  textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                                }
+                          }
+                        >
+                          <option value="">- Select Map -</option>
+                          <option value="_ADD_MAP_">Add Map</option>
+                          {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
+                        </select>
+                      )}
                     </div>
                     <div className="selector-group">
                        <label htmlFor={`box-guest-civ-${index}`} className={game.winner === 'guest' ? 'text-winner' : game.winner === 'host' ? 'text-loser' : ''}>
