@@ -85,31 +85,90 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 };
 
 if (channel) {
-  channel.onmessage = async (event: any) => {
-    console.log('[CustomStorage] BroadcastView received state:', {
-      storeKey: event.data.storeKey,
-      type: event.data.type,
+  channel.onmessage = (event: MessageEvent) => { // No longer async, as we're not awaiting rehydrate
+    console.log('[CustomStorage] Broadcast message received:', {
+      data: event.data, // Log the actual data received
+      origin: event.origin, // Log origin for security/debugging
       timestamp: new Date().toISOString(),
     });
+
     if (isOriginTab) {
       console.log('[CustomStorage] Ignoring self-originated BroadcastChannel message.');
       return;
     }
 
+    // Ensure event.data and event.data.type exist before trying to access them
+    if (!event.data || typeof event.data.type !== 'string' || typeof event.data.storeKey !== 'string') {
+        console.warn('[CustomStorage] Received malformed BroadcastChannel message or message of unknown type/storeKey:', event.data);
+        return;
+    }
+
     const { storeKey, type } = event.data;
+
     if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
-      console.log('[CustomStorage] Received store update from BroadcastChannel. Rehydrating.');
+      console.log('[CustomStorage] Received store update signal. Manually applying relevant state from localStorage.');
       try {
-        await (useDraftStore.persist as any).rehydrate();
-        useDraftStore.setState(useDraftStore.getState());
-        console.log('[CustomStorage] Store rehydrated and state propagation ensured:', {
-          state: JSON.parse(JSON.stringify(useDraftStore.getState())), // Deep copy for logging
-          timestamp: new Date().toISOString(),
-        });
+        const rawStateFromStorage = localStorage.getItem(STORE_NAME);
+        if (rawStateFromStorage) {
+          const persistedWrapperState = JSON.parse(rawStateFromStorage);
+
+          // Zustand's persist middleware wraps the state: { state: { actualAppState }, version: ... }
+          // Or, if versioning/migration isn't used or configured complexly, it might be the direct state.
+          // We need to safely access the actual application state.
+          // Based on the merge function in draftStore, it expects a wrapper.
+          const actualAppState = persistedWrapperState.state;
+
+          if (actualAppState) {
+            // Selectively update the parts of the state BroadcastView and its elements might care about.
+            // Deep clone objects/arrays to ensure new references for React's change detection.
+
+            const updates: Partial<typeof useDraftStore.getState> = {};
+
+            if (actualAppState.hasOwnProperty('currentCanvases')) {
+              updates.currentCanvases = JSON.parse(JSON.stringify(actualAppState.currentCanvases));
+            }
+            if (actualAppState.hasOwnProperty('activeCanvasId')) {
+              updates.activeCanvasId = actualAppState.activeCanvasId;
+            }
+            if (actualAppState.hasOwnProperty('scores')) {
+              updates.scores = JSON.parse(JSON.stringify(actualAppState.scores));
+            }
+            if (actualAppState.hasOwnProperty('hostName')) {
+              updates.hostName = actualAppState.hostName;
+            }
+            if (actualAppState.hasOwnProperty('guestName')) {
+              updates.guestName = actualAppState.guestName;
+            }
+            // Add any other top-level state properties that BroadcastView elements might directly render
+            // and that are included in the 'partialize' function for persistence.
+            // Example: layoutLastUpdated, if it's used.
+            if (actualAppState.hasOwnProperty('layoutLastUpdated')) {
+                updates.layoutLastUpdated = actualAppState.layoutLastUpdated;
+            }
+            // Potentially: civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, activePresetId
+            // if any ScoreDisplayElement or future element type in BroadcastView uses them.
+            // For now, keeping it to the most direct ones.
+
+            if (Object.keys(updates).length > 0) {
+                useDraftStore.setState(updates);
+                console.log('[CustomStorage] Store selectively updated from localStorage. New relevant state parts:', JSON.parse(JSON.stringify(updates)));
+            } else {
+                console.log('[CustomStorage] No relevant state parts found in localStorage to update.');
+            }
+
+          } else {
+            console.warn('[CustomStorage] Could not find .state property in parsed localStorage data, or actualAppState is null/undefined.');
+          }
+        } else {
+          console.warn('[CustomStorage] Null value from localStorage.getItem, cannot update state.');
+        }
       } catch (e) {
-        console.error('[CustomStorage] Error during rehydration or state propagation:', e);
+        console.error('[CustomStorage] Error during manual state application from localStorage:', e);
       }
+    } else {
+      // Log if message is for a different store or of a different type, but not an error
+      console.log('[CustomStorage] Received BroadcastChannel message not matching current store/type:', { storeKey, type });
     }
   };
-  console.log('[CustomStorage] BroadcastChannel listener attached for rehydration.');
+  console.log('[CustomStorage] BroadcastChannel listener attached for manual state application.');
 }
