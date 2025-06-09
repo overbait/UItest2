@@ -16,16 +16,25 @@ const StudioInterface: React.FC = () => {
     activeStudioLayoutId,
     setActiveStudioLayoutId,
     updateStudioLayoutName,
-    savedStudioLayouts, selectedElementId,
+    savedStudioLayouts,
+    selectedElementId,
     addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
     addCanvas,
     setActiveCanvas,
-    removeCanvas
+    removeCanvas,
+    // Added for Draft Presets
+    savedPresets,
+    activePresetId,
+    saveCurrentAsPreset,
+    loadPreset,
+    deletePreset,
+    updatePresetName
   } = useDraftStore(state => state);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
+  const [newDraftPresetName, setNewDraftPresetName] = useState<string>(""); // Added for Draft Presets input
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -205,6 +214,92 @@ const StudioInterface: React.FC = () => {
             </div>
           </li>
         ))}</ul></div>
+
+        {/* Draft Presets Section Start */}
+        <div style={toolboxSectionStyle}>
+          <h3 style={toolboxHeaderStyle}>Save Current Draft</h3>
+          <input
+            type="text"
+            placeholder="Draft Preset Name (optional)"
+            value={newDraftPresetName}
+            onChange={(e) => setNewDraftPresetName(e.target.value)}
+            style={inputStyle}
+          />
+          <button
+            onClick={() => {
+              if (newDraftPresetName.trim() === "") {
+                saveCurrentAsPreset(); // Store handles default name
+              } else {
+                saveCurrentAsPreset(newDraftPresetName.trim());
+              }
+              setNewDraftPresetName(""); // Clear input after saving
+            }}
+            style={buttonStyle}
+          >
+            Save Draft Preset
+          </button>
+        </div>
+        <div style={{flexGrow: 1, overflowY: 'auto'}}>
+          <h3 style={toolboxHeaderStyle}>Saved Draft Presets</h3>
+          {savedPresets.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No draft presets yet.</p>}
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {savedPresets.map((preset) => (
+              <li
+                key={preset.id}
+                style={{
+                  ...listItemStyle,
+                  backgroundColor: preset.id === activePresetId ? '#2a2a4a' : 'transparent',
+                  borderLeft: preset.id === activePresetId ? `3px solid #007bff` : 'none',
+                  paddingLeft: preset.id === activePresetId ? '12px' : (listItemStyle.paddingLeft || '5px'),
+                }}
+              >
+                <span
+                  style={{
+                    ...layoutNameStyle,
+                    fontWeight: preset.id === activePresetId ? 'bold' : 'normal'
+                  }}
+                  title={preset.name}
+                >
+                  {preset.name} {preset.id === activePresetId && <em style={{fontSize: '0.9em', color: '#007bff'}}> (active)</em>}
+                </span>
+                <div>
+                  <button
+                    onClick={() => loadPreset(preset.id)}
+                    style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}}
+                    title="Load preset"
+                  >
+                    Load
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentName = preset.name;
+                      const newName = prompt("Enter new name for preset:", currentName);
+                      if (newName && newName.trim() !== "" && newName.trim() !== currentName) {
+                        updatePresetName(preset.id, newName.trim());
+                      }
+                    }}
+                    style={{...actionButtonStyle, backgroundColor: '#6c757d', color: 'white'}}
+                    title="Rename preset"
+                  >
+                    Rename
+                  </button>
+                  <button
+                    onClick={() => {
+                      if(confirm(`Are you sure you want to delete preset "${preset.name}"?`)) {
+                        deletePreset(preset.id);
+                      }
+                    }}
+                    style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}}
+                    title="Delete preset"
+                  >
+                    Del
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Draft Presets Section End */}
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
