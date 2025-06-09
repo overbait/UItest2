@@ -93,17 +93,17 @@
   align-items: center;
   justify-content: space-around; 
   width: 100%;
-  flex-wrap: wrap; 
+  flex-wrap: nowrap; /* Changed from wrap to nowrap */
   gap: 8px; 
   margin-top: 10px; 
 }
 .player-scores-card .player-name-input-group {
   display: flex;
   flex-direction: column; 
-  align-items: flex-start;
+  align-items: center; /* Changed from flex-start to center */
   gap: 3px; 
-  flex-grow: 1;
-  min-width: 130px; 
+  flex: 1 1 250px; /* Added flex shorthand, replaces flex-grow and sets basis */
+  /* min-width: 130px; /* Removed or adjust if necessary, 250px is the new basis */
 }
 .player-scores-card .player-name-input-group label {
   font-size: 0.8em; 

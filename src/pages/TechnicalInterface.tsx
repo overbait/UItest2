@@ -49,14 +49,14 @@ const TechnicalInterface = () => {
             key={color}
             style={{
               backgroundColor: color,
-              width: '20px',
-              height: '20px',
+              width: '16px', // Changed from 20px
+              height: '16px', // Changed from 20px
               borderRadius: '50%',
               border: '1px solid #ccc',
               cursor: 'pointer',
-              margin: '0 4px',
+              margin: '0 3px', // Changed from 0 4px
               display: 'inline-block',
-              boxShadow: currentPlayerColor === color ? `0 0 6px ${color}` : 'none',
+              boxShadow: currentPlayerColor === color ? `0 0 5px 1px ${color}` : 'none', // Adjusted spread for more visibility
             }}
             onClick={() => onSetColor(currentPlayerColor === color ? null : color)}
           />
@@ -239,7 +239,13 @@ const TechnicalInterface = () => {
            <div className="player-scores-horizontal-layout">
               <div
                 className="player-name-input-group"
-                style={{ border: hostColor ? `2px solid ${hostColor}` : '2px solid transparent', padding: '5px', borderRadius: '5px', transition: 'border-color 0.3s ease' }}
+                style={{
+                  border: hostColor ? `3px solid ${hostColor}` : '3px solid transparent',
+                  backgroundColor: hostColor ? '#383838' : 'transparent',
+                  padding: '5px',
+                  borderRadius: '5px',
+                  transition: 'border-color 0.3s ease, background-color 0.3s ease'
+                }}
               >
                 <label htmlFor="hostNameInput">Player 1 (Host)</label>
                 <input id="hostNameInput" type="text" value={editableHostName} onChange={handleHostNameChange} onBlur={updateHostNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()} className="name-input"/>
@@ -266,7 +272,13 @@ const TechnicalInterface = () => {
               </div>
               <div
                 className="player-name-input-group"
-                style={{ border: guestColor ? `2px solid ${guestColor}` : '2px solid transparent', padding: '5px', borderRadius: '5px', transition: 'border-color 0.3s ease' }}
+                style={{
+                  border: guestColor ? `3px solid ${guestColor}` : '3px solid transparent',
+                  backgroundColor: guestColor ? '#383838' : 'transparent',
+                  padding: '5px',
+                  borderRadius: '5px',
+                  transition: 'border-color 0.3s ease, background-color 0.3s ease'
+                }}
               >
                 <label htmlFor="guestNameInput">Player 2 (Guest)</label>
                 <input id="guestNameInput" type="text" value={editableGuestName} onChange={handleGuestNameChange} onBlur={updateGuestNameInStore} onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()} className="name-input"/>
