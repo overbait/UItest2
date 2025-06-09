@@ -748,6 +748,45 @@ const useDraftStore = create<DraftStore>()(
             }
           }
         },
+        merge: (persistedState, currentState) => {
+          console.log('LOGAOEINFO: [draftStore Merge] Merge function called.');
+          // Note: persistedState is the state object from storage, already parsed (e.g., { hostName: "...", savedPresets: [...] })
+          // currentState is the current in-memory store state (e.g., initialCombinedState on first load)
+
+          // It's important to check if persistedState is an object and not null,
+          // as it could be undefined if storage was empty or parsing failed upstream (though getItem handles empty storage)
+          // Also, ensure it's not an empty object if we expect specific keys for a meaningful merge.
+          if (typeof persistedState !== 'object' || persistedState === null || Object.keys(persistedState).length === 0) {
+            console.warn('LOGAOEINFO: [draftStore Merge] persistedState is not a valid object, is null, or is empty. Returning currentState.', persistedState);
+            return currentState;
+          }
+
+          // Type assertion for persistedState, assuming it's part of CombinedDraftState if it's a valid object from storage.
+          const typedPersistedState = persistedState as Partial<CombinedDraftState>;
+
+          console.log('LOGAOEINFO: [draftStore Merge] currentState.savedPresets:', currentState.savedPresets?.length, currentState.savedPresets);
+          console.log('LOGAOEINFO: [draftStore Merge] currentState.savedStudioLayouts:', currentState.savedStudioLayouts?.length, currentState.savedStudioLayouts);
+
+          console.log('LOGAOEINFO: [draftStore Merge] persistedState.savedPresets:', typedPersistedState.savedPresets?.length, typedPersistedState.savedPresets);
+          console.log('LOGAOEINFO: [draftStore Merge] persistedState.savedStudioLayouts:', typedPersistedState.savedStudioLayouts?.length, typedPersistedState.savedStudioLayouts);
+
+          // Standard merge, persisted state takes precedence for overlapping keys
+          const mergedState = { ...currentState, ...typedPersistedState };
+
+          // Explicitly ensure arrays from persisted state are used if they exist,
+          // This is mostly for clarity and to be absolutely sure.
+          if (typedPersistedState.hasOwnProperty('savedPresets')) {
+              mergedState.savedPresets = typedPersistedState.savedPresets || []; // Ensure it's an array
+          }
+          if (typedPersistedState.hasOwnProperty('savedStudioLayouts')) {
+              mergedState.savedStudioLayouts = typedPersistedState.savedStudioLayouts || []; // Ensure it's an array
+          }
+
+          console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedPresets after merge:', mergedState.savedPresets?.length, mergedState.savedPresets);
+          console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedStudioLayouts after merge:', mergedState.savedStudioLayouts?.length, mergedState.savedStudioLayouts);
+
+          return mergedState;
+        },
       }
     )
   )
