@@ -53,7 +53,7 @@
     overflow-y: auto; /* Allows vertical scrolling if content overflows */
     font-family: var(--font-technical);
     color: var(--color-ui-text);
-    background-color: var(--color-aoe-dark);
+    background-color: #1e1e1e; /* Changed from var(--color-aoe-dark) */
   }
   
   h1, h2, h3, h4, h5, h6 {
