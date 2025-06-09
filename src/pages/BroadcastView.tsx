@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement'; // Assuming this is needed
