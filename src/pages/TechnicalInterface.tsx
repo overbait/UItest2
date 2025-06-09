@@ -101,6 +101,26 @@ const TechnicalInterface = () => {
   // Logging for savedPresets and activePresetId
   // console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
 
+  useEffect(() => {
+    if (activePresetId && boxSeriesGames && boxSeriesGames.length > 0) {
+      const draftMaps = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean);
+
+      const customMapsFromPresetGames: string[] = [];
+      boxSeriesGames.forEach(game => {
+        if (game.map && !draftMaps.includes(game.map)) {
+          customMapsFromPresetGames.push(game.map);
+        }
+      });
+
+      if (customMapsFromPresetGames.length > 0) {
+        setManuallyAddedMaps(prevManuallyAddedMaps => {
+          const updatedMaps = [...prevManuallyAddedMaps, ...customMapsFromPresetGames];
+          return Array.from(new Set(updatedMaps)); // Ensure uniqueness
+        });
+      }
+    }
+  }, [activePresetId, boxSeriesGames, mapPicksHost, mapPicksGuest, mapPicksGlobal, setManuallyAddedMaps]);
+
   interface PresetItemProps {
     preset: SavedPreset;
     isActive: boolean;
