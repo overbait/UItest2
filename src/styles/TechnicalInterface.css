@@ -317,19 +317,23 @@
 .game-slot-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .selector-group { display: flex; flex-direction: column; gap: 4px; }
 .selector-group label { font-size: 0.8em; color: var(--aoe-text-light); }
-.selector-group select.button-like { width: 100%; font-size: 0.8em; padding: 5px; }
+.selector-group select.button-like {
+  width: 100%;
+  font-size: 0.8em;
+  padding: 5px; /* This gives 5px top/bottom */
+  box-sizing: border-box; /* Be explicit */
+}
 
 /* Styles for winner/loser indication in BoX card */
 .civ-selection-group { display: flex; align-items: center; gap: 5px; }
 .civ-selection-group select { flex-grow: 1; }
 .win-button {
-  /* padding: 4px 6px; */ /* Original */
-  padding: 5px 8px; /* Adjusted padding: 5px top/bottom like select, more horizontal for 'W' */
-  /* font-size: 0.75em; */ /* Original */
-  font-size: 0.8em;    /* Match font size of select */
-  line-height: 1; /* Keep for vertical centering of text if needed */
+  padding: 5px 8px; /* Keep vertical padding at 5px to match the select override */
+  font-size: 0.8em;
+  line-height: 1.2; /* Default line-height for select might be slightly larger than 1, try 1.2 */
   background-color: var(--aoe-input-bg);
   border: 1px solid var(--aoe-input-border);
+  box-sizing: border-box; /* Added */
   color: var(--aoe-text-light);
   cursor: pointer;
   border-radius: 3px;

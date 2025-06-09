@@ -457,10 +457,14 @@ const TechnicalInterface = () => {
                                   backgroundRepeat: 'no-repeat',
                                   color: 'white',
                                   textShadow: '0 0 3px black, 0 0 3px black',
+                                  position: 'relative', // Added
+                                  zIndex: 2,             // Added
                                 }
                               : {
                                   color: 'white', // Or a default color for empty selects if preferred
                                   textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                                  position: 'relative', // Added
+                                  zIndex: 2,             // Added
                                 }
                           }
                         >
@@ -554,10 +558,14 @@ const TechnicalInterface = () => {
                                   backgroundRepeat: 'no-repeat',
                                   color: 'white',
                                   textShadow: '0 0 3px black, 0 0 3px black',
+                                  position: 'relative', // Added
+                                  zIndex: 2,             // Added
                                 }
                               : {
                                   color: 'white', // Or a default color for empty selects if preferred
                                   textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                                  position: 'relative', // Added
+                                  zIndex: 2,             // Added
                                 }
                           }
                         >
