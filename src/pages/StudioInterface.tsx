@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
@@ -24,6 +24,9 @@ const StudioInterface: React.FC = () => {
     setActiveCanvas,
     removeCanvas
   } = useDraftStore(state => state);
+
+  // Logging for savedStudioLayouts and activeStudioLayoutId
+  console.log('LOGAOEINFO: [StudioInterface Render] savedStudioLayouts from store:', savedStudioLayouts, 'Active Studio Layout ID:', activeStudioLayoutId);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
 
@@ -106,6 +109,45 @@ const StudioInterface: React.FC = () => {
   const listItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 5px', borderBottom: '1px solid #2a2a2a', fontSize: '0.85em',};
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
+
+  useEffect(() => {
+    // Ensure all necessary fields are pulled from the store.
+    // Note: Using getState() inside useEffect is fine for one-time reads on mount.
+    // If this effect were to re-run based on these values changing, you'd select them with useDraftStore(state => ...)
+    const { activePresetId, savedPresets, loadPreset, hostName, scores, civDraftId, mapDraftId } = useDraftStore.getState();
+
+    console.log('LOGAOEINFO: [StudioInterface Mount Effect] Initial state check:', {
+      activePresetId,
+      hasSavedPresets: savedPresets && savedPresets.length > 0,
+      currentHostName: hostName
+    });
+
+    if (activePresetId && savedPresets && savedPresets.length > 0) {
+      const presetToLoad = savedPresets.find(p => p.id === activePresetId);
+
+      if (presetToLoad) {
+        console.log('LOGAOEINFO: [StudioInterface Mount Effect] Found active preset to load:', presetToLoad);
+
+        const isAlreadyLoaded = hostName === presetToLoad.hostName &&
+                              JSON.stringify(scores) === JSON.stringify(presetToLoad.scores) &&
+                              civDraftId === presetToLoad.civDraftId &&
+                              mapDraftId === presetToLoad.mapDraftId;
+
+        if (!isAlreadyLoaded) {
+          console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data not yet fully applied. Calling loadPreset(activePresetId).');
+          loadPreset(activePresetId);
+        } else {
+          console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data seems to be already applied. Skipping loadPreset.');
+        }
+      } else {
+        console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset ID found, but corresponding preset not in savedPresets. ID:', activePresetId);
+        // Optional: Clear the invalid activePresetId if it's confirmed this state is erroneous
+        // useDraftStore.setState({ activePresetId: null });
+      }
+    } else {
+      console.log('LOGAOEINFO: [StudioInterface Mount Effect] No activePresetId found or no savedPresets. Skipping auto-load.');
+    }
+  }, []); // Empty dependency array ensures this runs once on mount
 
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>

@@ -727,6 +727,27 @@ const useDraftStore = create<DraftStore>()(
             layoutLastUpdated: state.layoutLastUpdated,
         }),
         storage: customLocalStorageWithBroadcast, // <-- Add this line
+        onRehydrateStorage: (state, error) => {
+          if (error) {
+            console.error('LOGAOEINFO: [draftStore] Error during rehydration:', error);
+          } else {
+            // state here is the full state after hydration
+            // We need to ensure state is not undefined before accessing its properties
+            if (state) {
+              console.log('LOGAOEINFO: [draftStore] Rehydration finished. Current store state:', {
+                savedPresetsCount: state.savedPresets?.length ?? 'undefined',
+                activePresetId: state.activePresetId,
+                savedStudioLayoutsCount: state.savedStudioLayouts?.length ?? 'undefined',
+                // For brevity, don't log the full arrays here if they can be large,
+                // but let's log them for now for debugging.
+                savedPresets: state.savedPresets,
+                savedStudioLayouts: state.savedStudioLayouts
+              });
+            } else {
+              console.log('LOGAOEINFO: [draftStore] Rehydration finished, but state is undefined (no persisted state found or an issue occurred before this log).');
+            }
+          }
+        },
       }
     )
   )

@@ -47,6 +47,9 @@ const TechnicalInterface = () => {
   useEffect(() => { setEditableGuestName(guestName); }, [guestName]);
   useEffect(() => { setCivDraftIdInput(civDraftId || ''); setMapDraftIdInput(mapDraftId || ''); }, [civDraftId, mapDraftId]);
 
+  // Logging for savedPresets and activePresetId
+  console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
+
   const handleHostNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableHostName(e.target.value);
   const handleGuestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableGuestName(e.target.value);
   const updateHostNameInStore = () => setHostName(editableHostName);
