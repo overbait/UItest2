@@ -136,6 +136,14 @@ const TechnicalInterface = () => {
   const availableHostCivsForBoX = useMemo(() => [...new Set(civPicksHost)].filter(Boolean), [civPicksHost]);
   const availableGuestCivsForBoX = useMemo(() => [...new Set(civPicksGuest)].filter(Boolean), [civPicksGuest]);
 
+  const formatCivNameForImagePath = (civName: string): string => {
+    if (!civName) return '';
+    return civName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/'/g, ''); // Remove apostrophes
+  };
+
   return (
     <div className="technical-interface main-dashboard-layout">
       <div className="top-section-grid">
@@ -299,6 +307,21 @@ const TechnicalInterface = () => {
                           value={game.hostCiv || ''}
                           onChange={(e) => updateBoxSeriesGame(index, 'hostCiv', e.target.value || null)}
                           className={`button-like ${game.winner === 'host' ? 'select-winner' : game.winner === 'guest' ? 'select-loser' : ''}`}
+                          style={
+                            game.hostCiv
+                              ? {
+                                  backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                  backgroundRepeat: 'no-repeat',
+                                  color: 'white',
+                                  textShadow: '0 0 3px black, 0 0 3px black',
+                                }
+                              : {
+                                  color: 'white', // Or a default color for empty selects if preferred
+                                  textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                                }
+                          }
                         >
                           <option value="">- Select Civ -</option>
                           {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
@@ -327,6 +350,21 @@ const TechnicalInterface = () => {
                           value={game.guestCiv || ''}
                           onChange={(e) => updateBoxSeriesGame(index, 'guestCiv', e.target.value || null)}
                           className={`button-like ${game.winner === 'guest' ? 'select-winner' : game.winner === 'host' ? 'select-loser' : ''}`}
+                          style={
+                            game.guestCiv
+                              ? {
+                                  backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                  backgroundRepeat: 'no-repeat',
+                                  color: 'white',
+                                  textShadow: '0 0 3px black, 0 0 3px black',
+                                }
+                              : {
+                                  color: 'white', // Or a default color for empty selects if preferred
+                                  textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                                }
+                          }
                         >
                           <option value="">- Select Civ -</option>
                           {availableGuestCivsForBoX.map(civ => <option key={`g-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
