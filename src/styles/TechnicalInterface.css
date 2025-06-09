@@ -63,7 +63,7 @@
   grid-template-columns: 0.8fr 0.8fr 1.4fr; /* Draft Inputs | Saved Presets | Match Control */
   gap: 15px;
   margin-bottom: 20px;
-  align-items: flex-start;
+  align-items: stretch; /* Changed from flex-start */
 }
 
 .drafts-section-grid {
@@ -219,10 +219,11 @@
 .reset-session-button:hover { background-color: #c9302c; border-color: #a72824; }
 .saved-presets-list {
   min-height: 60px; 
-  max-height: 100px; 
+  /* max-height: 100px; */ /* Removed */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex-grow: 1; /* Added */
   gap: 6px; 
   background-color: var(--aoe-dark-bg);
   border: 1px solid var(--aoe-input-border);
