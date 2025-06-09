@@ -138,8 +138,6 @@ const TechnicalInterface = () => {
 
   return (
     <div className="technical-interface main-dashboard-layout">
-      <h1 className="main-title">AoE4 Draft Overlay Control Panel</h1>
-      <p style={{ color: 'cyan', fontSize: '0.8em', textAlign: 'center', padding: '5px' }}>Diagnostic Version: LOG_MERGE_DESERIALIZE_001</p>
       <div className="top-section-grid">
         <div className="card draft-inputs-card">
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Draft Inputs</h2>
