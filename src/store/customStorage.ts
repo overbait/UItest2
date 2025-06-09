@@ -48,9 +48,9 @@ const applyStateFromLocalStorage = () => {
 
         if (Object.keys(updates).length > 0) {
           useDraftStore.setState(updates);
-          // console.log('[CustomStorage applyState] Store selectively updated from localStorage. Applied properties:', Object.keys(updates));
+          // console.debug('[CustomStorage applyState] Store selectively updated from localStorage. Applied properties:', Object.keys(updates)); // Changed to debug/commented
         } else {
-          // console.log('[CustomStorage applyState] No relevant own properties found in stored state to apply, or actualAppState was empty.');
+          // console.debug('[CustomStorage applyState] No relevant own properties found in stored state to apply, or actualAppState was empty.'); // Changed to debug/commented
         }
       } else {
         console.warn('[CustomStorage applyState] Could not find .state property in parsed localStorage data, or it was null/undefined or not an object.');
@@ -66,7 +66,7 @@ const applyStateFromLocalStorage = () => {
 export const customLocalStorageWithBroadcast: StateStorage = {
   getItem: (name: string): string | null => {
     const value = localStorage.getItem(name);
-    // console.log('[CustomStorage] getItem:', { name, value, timestamp: new Date().toISOString() });
+    // console.debug('[CustomStorage] getItem:', { name, value, timestamp: new Date().toISOString() }); // Changed to debug/commented
     return value;
   },
   setItem: (name: string, value: any): void => {
@@ -77,7 +77,7 @@ export const customLocalStorageWithBroadcast: StateStorage = {
         valueToStore = value;
         // try { valueForLogging = JSON.parse(value); } catch (e) { /* ignore for logging */ }
     } else if (typeof value === 'object' && value !== null) {
-        // console.warn(`[CustomStorage] setItem received an object directly. Stringifying. Name: ${name}`, value);
+        // console.warn(`[CustomStorage] setItem received an object directly. Stringifying. Name: ${name}`, value); // Keep as warn
         try {
             valueToStore = JSON.stringify(value);
             // valueForLogging = value;
@@ -90,43 +90,43 @@ export const customLocalStorageWithBroadcast: StateStorage = {
         return;
     }
 
-    // console.log('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() });
+    // console.debug('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() }); // Changed to debug/commented
 
     isOriginTab = true;
     localStorage.setItem(name, valueToStore);
 
     if (channel) {
       try {
-        // console.log('[CustomStorage setItem] Attempting to post message. Channel valid: true. Message:', { storeKey: name, type: 'zustand_store_update' });
+        // console.debug('[CustomStorage setItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' }); // Changed to debug/commented
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
-        // console.log('[CustomStorage setItem] Message posted successfully.');
+        // console.debug('[CustomStorage setItem] Message posted successfully.'); // Changed to debug/commented
         isOriginTab = false;
       } catch (e) {
         console.error('[CustomStorage setItem] Error during channel.postMessage:', e);
         isOriginTab = false;
       }
     } else {
-      // console.warn('[CustomStorage setItem] Channel is null, cannot post message.');
+      // console.warn('[CustomStorage setItem] Channel is null, cannot post message.'); // Keep as warn
       isOriginTab = false;
     }
     // setTimeout(() => { isOriginTab = false; }, 50); // Removed
   },
   removeItem: (name: string): void => {
-    // console.log('[CustomStorage] removeItem:', { name, timestamp: new Date().toISOString() });
+    // console.debug('[CustomStorage] removeItem:', { name, timestamp: new Date().toISOString() }); // Changed to debug/commented
     isOriginTab = true;
     localStorage.removeItem(name);
     if (channel) {
       try {
-        // console.log('[CustomStorage removeItem] Attempting to post message. Channel valid: true. Message:', { storeKey: name, type: 'zustand_store_update' });
+        // console.debug('[CustomStorage removeItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' }); // Changed to debug/commented
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
-        // console.log('[CustomStorage removeItem] Message posted successfully.');
+        // console.debug('[CustomStorage removeItem] Message posted successfully.'); // Changed to debug/commented
         isOriginTab = false;
       } catch (e) {
         console.error('[CustomStorage removeItem] Error during channel.postMessage:', e);
         isOriginTab = false;
       }
     } else {
-      // console.warn('[CustomStorage removeItem] Channel is null, cannot post message.');
+      // console.warn('[CustomStorage removeItem] Channel is null, cannot post message.'); // Keep as warn
       isOriginTab = false;
     }
     // setTimeout(() => { isOriginTab = false; }, 50); // Removed
@@ -143,7 +143,7 @@ if (channel) {
     // });
 
     if (isOriginTab) {
-      // console.log('[CustomStorage BC.onmessage] Ignoring self-originated BroadcastChannel message.');
+      // console.debug('[CustomStorage BC.onmessage] Ignoring self-originated BroadcastChannel message.'); // Changed to debug/commented
       return;
     }
 
@@ -155,10 +155,10 @@ if (channel) {
     const { storeKey, type } = event.data;
 
     if (type === 'zustand_store_update' && storeKey === STORE_NAME) {
-      // console.log('[CustomStorage BC.onmessage] Received store update signal via BroadcastChannel. Triggering state application.');
+      // console.debug('[CustomStorage BC.onmessage] Received store update signal via BroadcastChannel. Triggering state application.'); // Changed to debug/commented
       applyStateFromLocalStorage();
     } else {
-      // console.log('[CustomStorage BC.onmessage] Received BroadcastChannel message not matching current store/type:', { storeKey, type });
+      // console.debug('[CustomStorage BC.onmessage] Received BroadcastChannel message not matching current store/type:', { storeKey, type }); // Changed to debug/commented
     }
   };
 
@@ -178,12 +178,13 @@ if (channel) {
 }
 
 // Add this towards the end of the file
-// window.addEventListener('storage', (event: StorageEvent) => {
-//   if (event.key === STORE_NAME) {
-//     console.log('[CustomStorage storage.event] Received storage event for store key:', event.key,
-//                 'URL:', event.url
-//                );
-//     applyStateFromLocalStorage();
-//   }
-// });
-// console.log('[CustomStorage] Window storage event listener attached for key:', STORE_NAME);
+window.addEventListener('storage', (event: StorageEvent) => {
+  if (event.key === STORE_NAME) {
+    // Basic log to confirm event is received, can be made more conditional later
+    console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, 'URL:', event.url); // Changed to debug
+    // For now, call applyStateFromLocalStorage directly.
+    // We will need to be more selective later to avoid issues in TechnicalInterface.
+    applyStateFromLocalStorage();
+  }
+});
+console.log('[CustomStorage] Window storage event listener RE-ATTACHED for key:', STORE_NAME); // This one can stay as log for init

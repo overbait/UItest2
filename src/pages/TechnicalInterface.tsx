@@ -41,7 +41,13 @@ const TechnicalInterface = () => {
 
   const playerColors = ['#00C4FF', '#FF9500', '#A64DFF', '#1E3A8A', '#FF0000', '#FF69B4', '#FFFF00', '#00FF00'];
 
-  const PlayerColorPicker: React.FC<{ currentPlayerColor: string | null, onSetColor: (color: string | null) => void }> = ({ currentPlayerColor, onSetColor }) => {
+  interface PlayerColorPickerProps {
+    currentPlayerColor: string | null;
+    onSetColor: (color: string | null) => void;
+  }
+
+  const PlayerColorPicker = React.memo<PlayerColorPickerProps>(({ currentPlayerColor, onSetColor }) => {
+    // console.log(`Rendering PlayerColorPicker for: ${onSetColor === setHostColor ? 'Host' : 'Guest'}`); // Optional: for debugging memoization
     return (
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px', marginBottom: '8px' }}>
         {playerColors.map(color => (
@@ -49,29 +55,27 @@ const TechnicalInterface = () => {
             key={color}
             style={{
               backgroundColor: color,
-              width: '16px', // Changed from 20px
-              height: '16px', // Changed from 20px
+              width: '16px',
+              height: '16px',
               borderRadius: '50%',
               border: '1px solid #ccc',
               cursor: 'pointer',
-              margin: '0 3px', // Changed from 0 4px
+              margin: '0 3px',
               display: 'inline-block',
-              boxShadow: currentPlayerColor === color ? `0 0 5px 1px ${color}` : 'none', // Adjusted spread for more visibility
+              boxShadow: currentPlayerColor === color ? `0 0 5px 1px ${color}` : 'none',
             }}
             onClick={() => {
               const isCurrentlySelected = currentPlayerColor === color;
               const newColorToSet = isCurrentlySelected ? null : color;
-              console.log('[PlayerColorPicker] Clicked color:', color);
-              console.log('[PlayerColorPicker] currentPlayerColor was:', currentPlayerColor);
-              console.log('[PlayerColorPicker] Is this color currently selected?', isCurrentlySelected);
-              console.log('[PlayerColorPicker] Setting color to:', newColorToSet);
+              // console.log('[PlayerColorPicker] Clicked color:', color); // Reduced logging as per plan
+              // console.log('[PlayerColorPicker] Setting color to:', newColorToSet); // Reduced logging as per plan
               onSetColor(newColorToSet);
             }}
           />
         ))}
       </div>
     );
-  };
+  });
 
   const [civDraftIdInput, setCivDraftIdInput] = useState(civDraftId || '');
   const [mapDraftIdInput, setMapDraftIdInput] = useState(mapDraftId || '');
@@ -88,7 +92,33 @@ const TechnicalInterface = () => {
   useEffect(() => { setCivDraftIdInput(civDraftId || ''); setMapDraftIdInput(mapDraftId || ''); }, [civDraftId, mapDraftId]);
 
   // Logging for savedPresets and activePresetId
-  console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
+  // console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
+
+  interface PresetItemProps {
+    preset: SavedPreset;
+    isActive: boolean;
+    isDirty: boolean;
+    onLoadPreset: (id: string) => void;
+    onUpdatePreset: (name: string) => void;
+    onDeletePreset: (id: string) => void;
+  }
+
+  const PresetItem = React.memo<PresetItemProps>(({ preset, isActive, isDirty, onLoadPreset, onUpdatePreset, onDeletePreset }) => {
+    // console.log(`Rendering PresetItem: ${preset.name}, Active: ${isActive}, Dirty: ${isDirty}`); // Optional: for debugging memoization
+    return (
+      <div className="preset-item"> {/* key is on the component instance, not here */}
+        <button onClick={() => onLoadPreset(preset.id)} className={`button-like preset-load-button ${isActive && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
+          {preset.name}
+        </button>
+        {isDirty && (
+          <button onClick={() => onUpdatePreset(preset.name)} className="button-like preset-update-button">
+            Update
+          </button>
+        )}
+        <button onClick={() => onDeletePreset(preset.id)} className="preset-delete-button" title="Delete preset">&times;</button>
+      </div>
+    );
+  });
 
   const handleHostNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableHostName(e.target.value);
   const handleGuestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditableGuestName(e.target.value);
@@ -140,9 +170,9 @@ const TechnicalInterface = () => {
     _resetCurrentSessionState();
   };
 
-  const handleDeletePresetAndReset = (presetIdToDelete: string) => {
-    deletePreset(presetIdToDelete); 
-  };
+  const handleDeletePresetAndReset = React.useCallback((presetIdToDelete: string) => {
+    deletePreset(presetIdToDelete);
+  }, [deletePreset]);
   
   const isCurrentStateDirtyForPreset = (preset: SavedPreset | undefined): boolean => {
     if (!preset || activePresetId !== preset.id) {
@@ -167,10 +197,10 @@ const TechnicalInterface = () => {
     return dirty;
   };
   
-  const handleUpdatePreset = (presetName: string) => {
-    console.log(`Update button clicked for: ${presetName}, attempting to save...`);
-    saveCurrentAsPreset(presetName); 
-  };
+  const handleUpdatePreset = React.useCallback((presetName: string) => {
+    // console.log(`Update button clicked for: ${presetName}, attempting to save...`); // Keep or remove based on desired verbosity
+    saveCurrentAsPreset(presetName);
+  }, [saveCurrentAsPreset]);
 
   const availableMapsForBoX = useMemo(() => {
     const draftMaps = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean);
@@ -231,19 +261,21 @@ const TechnicalInterface = () => {
             {savedPresets.length === 0 && <p className="no-presets-message">No presets. Import drafts then click "+" to save current session and start new.</p>}
             {savedPresets.map((preset: SavedPreset) => {
               const isActive = preset.id === activePresetId;
-              const isDirty = isActive && isCurrentStateDirtyForPreset(preset);
+              // Pass the specific preset to isCurrentStateDirtyForPreset for potentially better memoization context,
+              // though isCurrentStateDirtyForPreset itself uses useDraftStore.getState() which might still cause wider re-evaluations.
+              const currentPresetForDirtyCheck = isActive ? preset : undefined; // If not active, dirty state is irrelevant or based on a non-active preset
+              const isDirty = isActive && isCurrentStateDirtyForPreset(currentPresetForDirtyCheck!);
+
               return (
-                <div key={preset.id} className="preset-item">
-                  <button onClick={() => loadPreset(preset.id)} className={`button-like preset-load-button ${isActive && !isDirty ? 'active-preset' : ''} ${isDirty ? 'dirty-preset' : ''}`}>
-                    {preset.name}
-                  </button>
-                  {isDirty && (
-                    <button onClick={() => handleUpdatePreset(preset.name)} className="button-like preset-update-button">
-                      Update
-                    </button>
-                  )}
-                  <button onClick={() => handleDeletePresetAndReset(preset.id)} className="preset-delete-button" title="Delete preset">&times;</button>
-                </div>
+                <PresetItem
+                  key={preset.id} // Key for React's list reconciliation
+                  preset={preset}
+                  isActive={isActive}
+                  isDirty={isDirty}
+                  onLoadPreset={loadPreset}
+                  onUpdatePreset={handleUpdatePreset}
+                  onDeletePreset={handleDeletePresetAndReset}
+                />
               );
             })}
           </div>
