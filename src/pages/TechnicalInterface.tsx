@@ -437,6 +437,12 @@ const TechnicalInterface = () => {
                         {hostName} Civ:
                       </label>
                       <div className="civ-selection-group">
+                        <button
+                          className={`win-button ${game.winner === 'host' ? 'active' : ''}`}
+                          onClick={() => setGameWinner(index, game.winner === 'host' ? null : 'host')}
+                          title={`Mark ${hostName} as winner for Game ${index + 1}`}
+                          style={{ zIndex: 1, marginRight: '-8px' }}
+                        >W</button>
                         <select
                           id={`box-host-civ-${index}`}
                           value={game.hostCiv || ''}
@@ -461,11 +467,6 @@ const TechnicalInterface = () => {
                           <option value="">- Select Civ -</option>
                           {availableHostCivsForBoX.map(civ => <option key={`h-civ-${index}-${civ}`} value={civ}>{civ}</option>)}
                         </select>
-                        <button 
-                          className={`win-button ${game.winner === 'host' ? 'active' : ''}`} 
-                          onClick={() => setGameWinner(index, game.winner === 'host' ? null : 'host')}
-                          title={`Mark ${hostName} as winner for Game ${index + 1}`}
-                        >W</button>
                       </div>
                     </div>
                      <div className="selector-group map-selector-group">
@@ -567,6 +568,7 @@ const TechnicalInterface = () => {
                           className={`win-button ${game.winner === 'guest' ? 'active' : ''}`}
                           onClick={() => setGameWinner(index, game.winner === 'guest' ? null : 'guest')}
                           title={`Mark ${guestName} as winner for Game ${index + 1}`}
+                          style={{ zIndex: 1, marginLeft: '-8px' }}
                         >W</button>
                       </div>
                     </div>

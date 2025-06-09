@@ -323,9 +323,18 @@
 .civ-selection-group { display: flex; align-items: center; gap: 5px; }
 .civ-selection-group select { flex-grow: 1; }
 .win-button {
-  padding: 4px 6px; font-size: 0.75em; line-height: 1;
-  background-color: var(--aoe-input-bg); border: 1px solid var(--aoe-input-border);
-  color: var(--aoe-text-light); cursor: pointer; border-radius: 3px;
+  /* padding: 4px 6px; */ /* Original */
+  padding: 5px 8px; /* Adjusted padding: 5px top/bottom like select, more horizontal for 'W' */
+  /* font-size: 0.75em; */ /* Original */
+  font-size: 0.8em;    /* Match font size of select */
+  line-height: 1; /* Keep for vertical centering of text if needed */
+  background-color: var(--aoe-input-bg);
+  border: 1px solid var(--aoe-input-border);
+  color: var(--aoe-text-light);
+  cursor: pointer;
+  border-radius: 3px;
+  /* Add relative positioning for z-index context */
+  position: relative;
 }
 .win-button:hover { background-color: var(--aoe-button-hover-bg); }
 .win-button.active { background-color: var(--aoe-green-success); color: white; border-color: var(--aoe-green-success); }
