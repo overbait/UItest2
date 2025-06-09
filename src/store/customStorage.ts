@@ -91,51 +91,50 @@ export const customLocalStorageWithBroadcast: StateStorage = {
         return;
     }
 
-    // console.debug('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() }); // Changed to debug/commented
+    // console.debug('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() });
 
-    isOriginTab = true; // For BroadcastChannel
     localStorageWriteInProgressByThisTab = true;
     localStorage.setItem(name, valueToStore);
-    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0);
+    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0); // Reset for storage event
 
     if (channel) {
+      isOriginTab = true; // Set BEFORE postMessage
       try {
-        // console.debug('[CustomStorage setItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' }); // Changed to debug/commented
+        // console.debug('[CustomStorage setItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' });
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
-        // console.debug('[CustomStorage setItem] Message posted successfully.'); // Changed to debug/commented
-        isOriginTab = false;
+        // console.debug('[CustomStorage setItem] Message posted successfully.');
       } catch (e) {
         console.error('[CustomStorage setItem] Error during channel.postMessage:', e);
-        isOriginTab = false;
+      } finally {
+        isOriginTab = false; // Reset AFTER postMessage, in a finally block
       }
     } else {
-      // console.warn('[CustomStorage setItem] Channel is null, cannot post message.'); // Keep as warn
-      isOriginTab = false;
+      console.warn('[CustomStorage setItem] Channel is null, cannot post message.');
+      // isOriginTab = false; // Not strictly necessary here if channel is null, as onmessage won't fire
     }
-    // setTimeout(() => { isOriginTab = false; }, 50); // Removed
   },
   removeItem: (name: string): void => {
-    // console.debug('[CustomStorage] removeItem:', { name, timestamp: new Date().toISOString() }); // Changed to debug/commented
-    isOriginTab = true; // For BroadcastChannel
+    // console.debug('[CustomStorage] removeItem:', { name, timestamp: new Date().toISOString() });
+
     localStorageWriteInProgressByThisTab = true;
     localStorage.removeItem(name);
-    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0);
+    setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0); // Reset for storage event
 
     if (channel) {
+      isOriginTab = true; // Set BEFORE postMessage
       try {
-        // console.debug('[CustomStorage removeItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' }); // Changed to debug/commented
+        // console.debug('[CustomStorage removeItem] Attempting to post message. Message:', { storeKey: name, type: 'zustand_store_update' });
         channel.postMessage({ storeKey: name, type: 'zustand_store_update' });
-        // console.debug('[CustomStorage removeItem] Message posted successfully.'); // Changed to debug/commented
-        isOriginTab = false;
+        // console.debug('[CustomStorage removeItem] Message posted successfully.');
       } catch (e) {
         console.error('[CustomStorage removeItem] Error during channel.postMessage:', e);
-        isOriginTab = false;
+      } finally {
+        isOriginTab = false; // Reset AFTER postMessage, in a finally block
       }
     } else {
-      // console.warn('[CustomStorage removeItem] Channel is null, cannot post message.'); // Keep as warn
-      isOriginTab = false;
+      console.warn('[CustomStorage removeItem] Channel is null, cannot post message.');
+      // isOriginTab = false; // Not strictly necessary here
     }
-    // setTimeout(() => { isOriginTab = false; }, 50); // Removed
   },
 };
 
@@ -185,15 +184,18 @@ if (channel) {
 
 // Add this towards the end of the file
 window.addEventListener('storage', (event: StorageEvent) => {
+  if ((window as any).IS_TECHNICAL_INTERFACE) {
+    console.debug('[CustomStorage storage.event] Event ignored: running in Technical Interface tab.');
+    return;
+  }
+  // This check is still relevant for other tabs that might write to localStorage
+  // and also listen to storage events (though currently only BroadcastView seems to be a passive listener).
   if (localStorageWriteInProgressByThisTab) {
-    console.debug('[CustomStorage storage.event] Ignored event, likely self-originated by this tab.');
+    console.debug('[CustomStorage storage.event] Event ignored: localStorageWriteInProgressByThisTab is true in this non-TI tab.');
     return;
   }
   if (event.key === STORE_NAME) {
-    // Basic log to confirm event is received, can be made more conditional later
-    console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, 'URL:', event.url); // Changed to debug
-    // For now, call applyStateFromLocalStorage directly.
-    // We will need to be more selective later to avoid issues in TechnicalInterface.
+    console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, '. Applying state for non-TI tab.');
     applyStateFromLocalStorage();
   }
 });

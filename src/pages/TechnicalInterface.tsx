@@ -87,6 +87,13 @@ const TechnicalInterface = () => {
   const [editableHostName, setEditableHostName] = useState(hostName);
   const [editableGuestName, setEditableGuestName] = useState(guestName);
 
+  useEffect(() => {
+    (window as any).IS_TECHNICAL_INTERFACE = true;
+    return () => {
+      (window as any).IS_TECHNICAL_INTERFACE = false;
+    };
+  }, []);
+
   useEffect(() => { setEditableHostName(hostName); }, [hostName]);
   useEffect(() => { setEditableGuestName(guestName); }, [guestName]);
   useEffect(() => { setCivDraftIdInput(civDraftId || ''); setMapDraftIdInput(mapDraftId || ''); }, [civDraftId, mapDraftId]);

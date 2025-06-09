@@ -13,6 +13,13 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     activeCanvasIdFromHook: state.activeCanvasId,
   }));
 
+  useEffect(() => {
+    (window as any).IS_BROADCAST_VIEW = true;
+    return () => {
+      (window as any).IS_BROADCAST_VIEW = false;
+    };
+  }, []);
+
   const canvasToRender = useMemo(() => {
     // First, try with targetCanvasId from URL
     let foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === targetCanvasId);
