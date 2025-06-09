@@ -184,19 +184,26 @@ if (channel) {
 
 // Add this towards the end of the file
 window.addEventListener('storage', (event: StorageEvent) => {
-  if ((window as any).IS_TECHNICAL_INTERFACE) {
-    console.debug('[CustomStorage storage.event] Event ignored: running in Technical Interface tab.');
+  if (event.key !== STORE_NAME) {
+    return; // Only process events for our store
+  }
+
+  // Controller tabs should ignore storage events to prevent self-update loops.
+  // They rely on BroadcastChannel for updates from other tabs.
+  // IS_BROADCAST_STUDIO will be added as a flag in the next plan step.
+  if ((window as any).IS_TECHNICAL_INTERFACE || (window as any).IS_BROADCAST_STUDIO) {
+    console.debug('[CustomStorage storage.event] Event ignored: running in a controller tab (TechnicalInterface or BroadcastStudio).');
     return;
   }
-  // This check is still relevant for other tabs that might write to localStorage
-  // and also listen to storage events (though currently only BroadcastView seems to be a passive listener).
+
+  // The localStorageWriteInProgressByThisTab check is a general safeguard,
+  // primarily for tabs that might both write and listen to storage events.
   if (localStorageWriteInProgressByThisTab) {
-    console.debug('[CustomStorage storage.event] Event ignored: localStorageWriteInProgressByThisTab is true in this non-TI tab.');
+    console.debug('[CustomStorage storage.event] Event ignored: localStorageWriteInProgressByThisTab is true in this listening tab.');
     return;
   }
-  if (event.key === STORE_NAME) {
-    console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, '. Applying state for non-TI tab.');
-    applyStateFromLocalStorage();
-  }
+
+  console.debug('[CustomStorage storage.event] Received storage event for store key:', event.key, '. Applying state for listening tab (e.g., BroadcastView).');
+  applyStateFromLocalStorage();
 });
 console.log('[CustomStorage] Window storage event listener RE-ATTACHED for key:', STORE_NAME); // This one can stay as log for init

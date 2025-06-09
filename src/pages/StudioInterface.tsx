@@ -28,6 +28,13 @@ const StudioInterface: React.FC = () => {
   // Logging for savedStudioLayouts and activeStudioLayoutId
   console.log('LOGAOEINFO: [StudioInterface Render] savedStudioLayouts from store:', savedStudioLayouts, 'Active Studio Layout ID:', activeStudioLayoutId);
 
+  useEffect(() => {
+    (window as any).IS_BROADCAST_STUDIO = true;
+    return () => {
+      (window as any).IS_BROADCAST_STUDIO = false;
+    };
+  }, []); // Empty dependency array ensures this runs only on mount and unmount
+
   const [newLayoutName, setNewLayoutName] = useState<string>("");
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
