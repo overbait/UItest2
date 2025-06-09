@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
@@ -16,25 +16,16 @@ const StudioInterface: React.FC = () => {
     activeStudioLayoutId,
     setActiveStudioLayoutId,
     updateStudioLayoutName,
-    savedStudioLayouts,
-    selectedElementId,
+    savedStudioLayouts, selectedElementId,
     addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
     addCanvas,
     setActiveCanvas,
-    removeCanvas,
-    // Added for Draft Presets
-    savedPresets,
-    activePresetId,
-    saveCurrentAsPreset,
-    loadPreset,
-    deletePreset,
-    updatePresetName
+    removeCanvas
   } = useDraftStore(state => state);
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
-  const [newDraftPresetName, setNewDraftPresetName] = useState<string>(""); // Added for Draft Presets input
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -116,42 +107,6 @@ const StudioInterface: React.FC = () => {
   const layoutNameStyle: React.CSSProperties = { flexGrow: 1, marginRight: '10px', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',};
   const actionButtonStyle: React.CSSProperties = { padding: '5px 8px', fontSize: '0.8em', marginLeft: '5px', cursor: 'pointer', borderRadius: '3px', border: 'none',};
 
-  useEffect(() => {
-    const { activePresetId, savedPresets, loadPreset, hostName, scores } = useDraftStore.getState();
-
-    // Log current state for debugging
-    console.log('[StudioInterface Mount] Initial state from store:', { activePresetId, savedPresetsCount: savedPresets.length, hostName });
-
-    if (activePresetId && savedPresets && savedPresets.length > 0) {
-      const presetToLoad = savedPresets.find(p => p.id === activePresetId);
-
-      if (presetToLoad) {
-        console.log('[StudioInterface Mount] Found active preset to load:', presetToLoad);
-        // Check if preset data seems to be already applied to avoid redundant loads.
-        // This check might need to be more robust depending on what `loadPreset` exactly does.
-        // For example, if loadPreset also fetches fresh draft data, this check might be too simple.
-        const isAlreadyLoaded = hostName === presetToLoad.hostName &&
-                              JSON.stringify(scores) === JSON.stringify(presetToLoad.scores) &&
-                              useDraftStore.getState().civDraftId === presetToLoad.civDraftId &&
-                              useDraftStore.getState().mapDraftId === presetToLoad.mapDraftId;
-
-
-        if (!isAlreadyLoaded) {
-          console.log('[StudioInterface Mount] Active preset data not yet fully applied to current state. Calling loadPreset.');
-          loadPreset(activePresetId);
-        } else {
-          console.log('[StudioInterface Mount] Active preset data seems to be already applied. Skipping loadPreset.');
-        }
-      } else {
-        console.log('[StudioInterface Mount] Active preset ID found, but corresponding preset not in savedPresets. ID:', activePresetId);
-        // Optionally, clear the invalid activePresetId from the store here
-        // useDraftStore.setState({ activePresetId: null });
-      }
-    } else {
-      console.log('[StudioInterface Mount] No activePresetId found or no savedPresets. Skipping auto-load.');
-    }
-  }, []); // Empty dependency array ensures this runs once on mount
-
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
@@ -214,92 +169,6 @@ const StudioInterface: React.FC = () => {
             </div>
           </li>
         ))}</ul></div>
-
-        {/* Draft Presets Section Start */}
-        <div style={toolboxSectionStyle}>
-          <h3 style={toolboxHeaderStyle}>Save Current Draft</h3>
-          <input
-            type="text"
-            placeholder="Draft Preset Name (optional)"
-            value={newDraftPresetName}
-            onChange={(e) => setNewDraftPresetName(e.target.value)}
-            style={inputStyle}
-          />
-          <button
-            onClick={() => {
-              if (newDraftPresetName.trim() === "") {
-                saveCurrentAsPreset(); // Store handles default name
-              } else {
-                saveCurrentAsPreset(newDraftPresetName.trim());
-              }
-              setNewDraftPresetName(""); // Clear input after saving
-            }}
-            style={buttonStyle}
-          >
-            Save Draft Preset
-          </button>
-        </div>
-        <div style={{flexGrow: 1, overflowY: 'auto'}}>
-          <h3 style={toolboxHeaderStyle}>Saved Draft Presets</h3>
-          {savedPresets.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No draft presets yet.</p>}
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {savedPresets.map((preset) => (
-              <li
-                key={preset.id}
-                style={{
-                  ...listItemStyle,
-                  backgroundColor: preset.id === activePresetId ? '#2a2a4a' : 'transparent',
-                  borderLeft: preset.id === activePresetId ? `3px solid #007bff` : 'none',
-                  paddingLeft: preset.id === activePresetId ? '12px' : (listItemStyle.paddingLeft || '5px'),
-                }}
-              >
-                <span
-                  style={{
-                    ...layoutNameStyle,
-                    fontWeight: preset.id === activePresetId ? 'bold' : 'normal'
-                  }}
-                  title={preset.name}
-                >
-                  {preset.name} {preset.id === activePresetId && <em style={{fontSize: '0.9em', color: '#007bff'}}> (active)</em>}
-                </span>
-                <div>
-                  <button
-                    onClick={() => loadPreset(preset.id)}
-                    style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}}
-                    title="Load preset"
-                  >
-                    Load
-                  </button>
-                  <button
-                    onClick={() => {
-                      const currentName = preset.name;
-                      const newName = prompt("Enter new name for preset:", currentName);
-                      if (newName && newName.trim() !== "" && newName.trim() !== currentName) {
-                        updatePresetName(preset.id, newName.trim());
-                      }
-                    }}
-                    style={{...actionButtonStyle, backgroundColor: '#6c757d', color: 'white'}}
-                    title="Rename preset"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    onClick={() => {
-                      if(confirm(`Are you sure you want to delete preset "${preset.name}"?`)) {
-                        deletePreset(preset.id);
-                      }
-                    }}
-                    style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}}
-                    title="Delete preset"
-                  >
-                    Del
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-        {/* Draft Presets Section End */}
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
