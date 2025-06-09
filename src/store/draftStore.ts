@@ -748,44 +748,68 @@ const useDraftStore = create<DraftStore>()(
             }
           }
         },
-        merge: (persistedState, currentState) => {
+        merge: (persistedStateFromStorage: any, currentState: CombinedDraftState): CombinedDraftState => {
           console.log('LOGAOEINFO: [draftStore Merge] Merge function called.');
-          // Note: persistedState is the state object from storage, already parsed (e.g., { hostName: "...", savedPresets: [...] })
-          // currentState is the current in-memory store state (e.g., initialCombinedState on first load)
+          console.log('LOGAOEINFO: [draftStore Merge] Raw persistedStateFromStorage received:', persistedStateFromStorage);
+          console.log('LOGAOEINFO: [draftStore Merge] currentState (initial state or current in-memory state):', {
+            savedPresetsCount: currentState.savedPresets?.length,
+            savedStudioLayoutsCount: currentState.savedStudioLayouts?.length
+            // Do not log full currentState arrays to keep logs cleaner unless necessary
+          });
 
-          // It's important to check if persistedState is an object and not null,
-          // as it could be undefined if storage was empty or parsing failed upstream (though getItem handles empty storage)
-          // Also, ensure it's not an empty object if we expect specific keys for a meaningful merge.
-          if (typeof persistedState !== 'object' || persistedState === null || Object.keys(persistedState).length === 0) {
-            console.warn('LOGAOEINFO: [draftStore Merge] persistedState is not a valid object, is null, or is empty. Returning currentState.', persistedState);
+          let actualPersistedState: Partial<CombinedDraftState> | undefined | null;
+          // Check if persistedStateFromStorage is the wrapper object { state: ..., version: ... }
+          // Also check if persistedStateFromStorage itself is populated
+          if (persistedStateFromStorage &&
+              typeof persistedStateFromStorage === 'object' &&
+              persistedStateFromStorage.hasOwnProperty('state') &&
+              persistedStateFromStorage.hasOwnProperty('version')) {
+            actualPersistedState = persistedStateFromStorage.state as Partial<CombinedDraftState>;
+            console.log('LOGAOEINFO: [draftStore Merge] Detected wrapper object. Using persistedStateFromStorage.state for merge.');
+          } else {
+            actualPersistedState = persistedStateFromStorage as Partial<CombinedDraftState>;
+            console.log('LOGAOEINFO: [draftStore Merge] Did not detect wrapper object, using persistedStateFromStorage directly for merge.');
+          }
+
+          // Now, actualPersistedState holds what we believe is the true persisted application state.
+          // Check if it's valid before proceeding with the merge.
+          if (typeof actualPersistedState !== 'object' || actualPersistedState === null) {
+            console.warn('LOGAOEINFO: [draftStore Merge] actualPersistedState is not a valid object or is null after potential unwrap. Returning currentState.', actualPersistedState);
             return currentState;
           }
 
-          // Type assertion for persistedState, assuming it's part of CombinedDraftState if it's a valid object from storage.
-          const typedPersistedState = persistedState as Partial<CombinedDraftState>;
+          // Log details of the state that will actually be merged
+          console.log('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedPresets (to be merged):', actualPersistedState.savedPresets?.length, actualPersistedState.savedPresets);
+          console.log('LOGAOEINFO: [draftStore Merge] actualPersistedState.savedStudioLayouts (to be merged):', actualPersistedState.savedStudioLayouts?.length, actualPersistedState.savedStudioLayouts);
 
-          console.log('LOGAOEINFO: [draftStore Merge] currentState.savedPresets:', currentState.savedPresets?.length, currentState.savedPresets);
-          console.log('LOGAOEINFO: [draftStore Merge] currentState.savedStudioLayouts:', currentState.savedStudioLayouts?.length, currentState.savedStudioLayouts);
+          // Perform the merge
+          // The `actualPersistedState` should be a partial state containing only what was persisted.
+          const mergedState = { ...currentState, ...actualPersistedState };
 
-          console.log('LOGAOEINFO: [draftStore Merge] persistedState.savedPresets:', typedPersistedState.savedPresets?.length, typedPersistedState.savedPresets);
-          console.log('LOGAOEINFO: [draftStore Merge] persistedState.savedStudioLayouts:', typedPersistedState.savedStudioLayouts?.length, typedPersistedState.savedStudioLayouts);
-
-          // Standard merge, persisted state takes precedence for overlapping keys
-          const mergedState = { ...currentState, ...typedPersistedState };
-
-          // Explicitly ensure arrays from persisted state are used if they exist,
-          // This is mostly for clarity and to be absolutely sure.
-          if (typedPersistedState.hasOwnProperty('savedPresets')) {
-              mergedState.savedPresets = typedPersistedState.savedPresets || []; // Ensure it's an array
-          }
-          if (typedPersistedState.hasOwnProperty('savedStudioLayouts')) {
-              mergedState.savedStudioLayouts = typedPersistedState.savedStudioLayouts || []; // Ensure it's an array
-          }
-
+          // Log details of the final merged state for the arrays of interest
           console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedPresets after merge:', mergedState.savedPresets?.length, mergedState.savedPresets);
           console.log('LOGAOEINFO: [draftStore Merge] mergedState.savedStudioLayouts after merge:', mergedState.savedStudioLayouts?.length, mergedState.savedStudioLayouts);
 
           return mergedState;
+        },
+        deserialize: (str: string) => {
+          console.log('LOGAOEINFO: [draftStore Deserialize] Received string to deserialize:', str);
+          if (str === null || str === undefined || typeof str !== 'string') {
+            console.warn('LOGAOEINFO: [draftStore Deserialize] Received null, undefined, or non-string value. Returning undefined.', str);
+            // Persist middleware expects deserialized state or undefined if it cannot be parsed.
+            // If str is null (e.g. storage empty), JSON.parse(null) would error.
+            // Returning undefined is a common way to signal no persisted state.
+            return undefined;
+          }
+          try {
+            const parsedState = JSON.parse(str);
+            console.log('LOGAOEINFO: [draftStore Deserialize] Successfully parsed string to object:', parsedState);
+            return parsedState;
+          } catch (error) {
+            console.error('LOGAOEINFO: [draftStore Deserialize] Error parsing string:', error, 'String was:', str);
+            // If parsing fails, return undefined so merge function can handle it (e.g. by using currentState)
+            return undefined;
+          }
         },
       }
     )
