@@ -144,6 +144,14 @@ const TechnicalInterface = () => {
       .replace(/'/g, ''); // Remove apostrophes
   };
 
+  const formatMapNameForImagePath = (mapName: string): string => {
+    if (!mapName) return '';
+    return mapName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/'/g, ''); // Remove apostrophes
+  };
+
   return (
     <div className="technical-interface main-dashboard-layout">
       <div className="top-section-grid">
@@ -310,7 +318,7 @@ const TechnicalInterface = () => {
                           style={
                             game.hostCiv
                               ? {
-                                  backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
+                                  backgroundImage: `linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                   backgroundRepeat: 'no-repeat',
@@ -335,7 +343,27 @@ const TechnicalInterface = () => {
                     </div>
                      <div className="selector-group map-selector-group">
                       <label htmlFor={`box-map-${index}`}>Map:</label>
-                      <select id={`box-map-${index}`} value={game.map || ''} onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)} className="button-like">
+                      <select
+                        id={`box-map-${index}`}
+                        value={game.map || ''}
+                        onChange={(e) => updateBoxSeriesGame(index, 'map', e.target.value || null)}
+                        className="button-like"
+                        style={
+                          game.map
+                            ? {
+                                backgroundImage: `linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                backgroundRepeat: 'no-repeat',
+                                color: 'white',
+                                textShadow: '0 0 3px black, 0 0 3px black',
+                              }
+                            : {
+                                color: 'white', // Or a default color for empty selects
+                                textShadow: '0 0 3px black, 0 0 3px black', // Keep text shadow for consistency
+                              }
+                        }
+                      >
                         <option value="">- Select Map -</option>
                         {availableMapsForBoX.map(map => <option key={`map-${index}-${map}`} value={map}>{map}</option>)}
                       </select>
@@ -353,7 +381,7 @@ const TechnicalInterface = () => {
                           style={
                             game.guestCiv
                               ? {
-                                  backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
+                                  backgroundImage: `linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                   backgroundRepeat: 'no-repeat',
