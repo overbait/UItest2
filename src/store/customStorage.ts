@@ -101,12 +101,13 @@ if (channel) {
       console.log('[CustomStorage] Received store update from BroadcastChannel. Rehydrating.');
       try {
         await (useDraftStore.persist as any).rehydrate();
-        console.log('[CustomStorage] Store rehydrated successfully:', {
+        useDraftStore.setState(useDraftStore.getState());
+        console.log('[CustomStorage] Store rehydrated and state propagation ensured:', {
           state: JSON.parse(JSON.stringify(useDraftStore.getState())), // Deep copy for logging
           timestamp: new Date().toISOString(),
         });
       } catch (e) {
-        console.error('[CustomStorage] Error during rehydration:', e);
+        console.error('[CustomStorage] Error during rehydration or state propagation:', e);
       }
     }
   };
