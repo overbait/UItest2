@@ -17,7 +17,7 @@ import {
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
-const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net/socket.io/'; // Updated for Socket.IO
+const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net'; // Base domain
 
 interface DraftStore extends CombinedDraftState {
   connectToDraft: (draftIdOrUrl: string, draftType: 'civ' | 'map') => Promise<boolean>;
@@ -253,15 +253,14 @@ const useDraftStore = create<DraftStore>()(
           try {
             set({ socketStatus: 'connecting', socketError: null, socketDraftType: draftType });
 
-            const socketBaseUrl = DRAFT_WEBSOCKET_URL_PLACEHOLDER; // This should end in /socket.io/ or similar base path
-            currentSocket = io(socketBaseUrl, { // Use the base URL
+            currentSocket = io(DRAFT_WEBSOCKET_URL_PLACEHOLDER, { // URL is wss://aoe2cm.net
+              path: '/socket.io/',  // Specify the path for Socket.IO engine
               query: {
-                draftId: draftId, // draftId is passed in the query
-                EIO: '4', // Ensure EIO version 4 for compatibility if needed
+                draftId: draftId,
+                EIO: '4',
               },
-              transports: ['websocket'], // Force WebSocket transport
-              reconnection: false, // Disable auto-reconnection as per requirement
-              // path: `/socket.io`, // Specify path if your server is not at the root of the URL
+              transports: ['websocket'],
+              reconnection: false,
             });
 
             currentSocket.on('connect', () => {
