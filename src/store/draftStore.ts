@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
 
 import {
   CombinedDraftState,
@@ -16,7 +17,7 @@ import {
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
-const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net/socket'; // User will need to replace this
+const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net/socket.io/'; // Updated for Socket.IO
 
 interface DraftStore extends CombinedDraftState {
   connectToDraft: (draftIdOrUrl: string, draftType: 'civ' | 'map') => Promise<boolean>;
@@ -73,7 +74,7 @@ interface DraftStore extends CombinedDraftState {
   // WebSocket Actions
   connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => void;
   disconnectWebSocket: () => void;
-  handleWebSocketMessage: (messageData: any) => void;
+  // handleWebSocketMessage: (messageData: any) => void; // Removed
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -243,215 +244,191 @@ const useDraftStore = create<DraftStore>()(
         ...initialCombinedState,
 
         connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => {
-          if (currentSocket && currentSocket.readyState !== WebSocket.CLOSED && currentSocket.readyState !== WebSocket.CLOSING) {
-            console.log('WebSocket connection already open or opening, or in closing state. Disconnecting before creating a new one.');
-            if (currentSocket.readyState !== WebSocket.CLOSING) {
-                currentSocket.close(1000, "Client initiated new connection");
-            }
+          if (currentSocket) {
+            console.log("Disconnecting previous socket before creating a new one. Old socket draft ID:", currentSocket.io.opts.query?.draftId);
+            currentSocket.disconnect();
             currentSocket = null;
-            set({ socketStatus: 'disconnected', socketError: 'Starting new WebSocket connection, previous one closed.', socketDraftType: null });
           }
 
-          const socketUrl = `${DRAFT_WEBSOCKET_URL_PLACEHOLDER}/${draftId}`;
-
           try {
-            currentSocket = new WebSocket(socketUrl);
             set({ socketStatus: 'connecting', socketError: null, socketDraftType: draftType });
 
-            currentSocket.onopen = (event) => {
-              console.log('WebSocket connection opened:', event);
-              set({ socketStatus: 'live', socketError: null });
-            };
+            const socketBaseUrl = DRAFT_WEBSOCKET_URL_PLACEHOLDER; // This should end in /socket.io/ or similar base path
+            currentSocket = io(socketBaseUrl, { // Use the base URL
+              query: {
+                draftId: draftId, // draftId is passed in the query
+                EIO: '4', // Ensure EIO version 4 for compatibility if needed
+              },
+              transports: ['websocket'], // Force WebSocket transport
+              reconnection: false, // Disable auto-reconnection as per requirement
+              // path: `/socket.io`, // Specify path if your server is not at the root of the URL
+            });
 
-            currentSocket.onmessage = (event) => {
-              console.log('WebSocket message received:', event.data);
-              try {
-                get().handleWebSocketMessage(event.data);
-              } catch (e) {
-                console.error('Error processing WebSocket message:', e);
+            currentSocket.on('connect', () => {
+              console.log(`Socket.IO connected for draft ${draftId}, type ${draftType}. Socket ID: ${currentSocket?.id}`);
+              const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
+              // Ensure this connection is still the one expected by the store
+              if (get().socketDraftType === draftType && currentStoreDraftId === draftId) {
+                set({ socketStatus: 'live', socketError: null });
+
+                // Add event listeners after successful connection and context validation
+                if (currentSocket) {
+                  currentSocket.off('act'); // Remove previous listeners, if any
+                  currentSocket.off('countdown');
+
+                  currentSocket.on('act', (eventPayload) => {
+                    console.log('Socket.IO "act" event received:', eventPayload);
+                    if (!eventPayload || typeof eventPayload !== 'object') {
+                      console.warn('Received "act" event with invalid payload:', eventPayload);
+                      return;
+                    }
+                    const { executingPlayer, chosenOptionId, actionType } = eventPayload;
+                    if (!actionType || chosenOptionId === undefined) {
+                      console.warn('Received "act" event with missing actionType or chosenOptionId property:', eventPayload);
+                      return;
+                    }
+
+                    let optionName: string;
+                    const currentDraftOptions = get().aoe2cmRawDraftOptions;
+                    const currentSocketDraftType = get().socketDraftType;
+
+                    if (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") {
+                      optionName = "Hidden Ban";
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) {
+                      optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
+                    } else if (chosenOptionId === "") {
+                      optionName = "";
+                    } else {
+                      console.warn('Received "act" event with invalid chosenOptionId:', chosenOptionId, "Payload:", eventPayload);
+                      return;
+                    }
+
+                    let effectiveDraftType: 'civ' | 'map' | null = null;
+                    if (chosenOptionId === "HIDDEN_BAN") {
+                      effectiveDraftType = currentSocketDraftType;
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.startsWith('aoe4.')) {
+                      effectiveDraftType = 'civ';
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) {
+                      effectiveDraftType = 'map';
+                    } else if (chosenOptionId === "" && currentSocketDraftType) {
+                      effectiveDraftType = currentSocketDraftType;
+                    }
+
+                    if (effectiveDraftType === 'civ') {
+                      if (actionType === 'pick') {
+                        if (executingPlayer === 'HOST') set(state => ({ civPicksHost: [...new Set([...state.civPicksHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ civPicksGuest: [...new Set([...state.civPicksGuest, optionName])] }));
+                      } else if (actionType === 'ban') {
+                        if (executingPlayer === 'HOST') set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
+                      } else if (actionType === 'snipe') {
+                        if (executingPlayer === 'HOST') set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
+                      }
+                    } else if (effectiveDraftType === 'map') {
+                      if (actionType === 'pick') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapPicksHost: [...new Set([...state.mapPicksHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapPicksGuest: [...new Set([...state.mapPicksGuest, optionName])] }));
+                        else if (executingPlayer === 'NONE') set(state => ({ mapPicksGlobal: [...new Set([...state.mapPicksGlobal, optionName])] }));
+                      } else if (actionType === 'ban') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
+                        else if (executingPlayer === 'NONE') set(state => ({ mapBansGlobal: [...new Set([...state.mapBansGlobal, optionName])] }));
+                      } else if (actionType === 'snipe') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
+                      }
+                    } else {
+                      if (chosenOptionId === "HIDDEN_BAN") {
+                        console.warn(`Could not determine type (civ/map) for HIDDEN_BAN. socketDraftType: ${currentSocketDraftType}. "act" event not applied for HIDDEN_BAN.`);
+                      } else {
+                        console.warn(`Could not determine type (civ/map) for "act" event with chosenOptionId: ${chosenOptionId}. Event not applied. socketDraftType: ${currentSocketDraftType}`);
+                      }
+                    }
+                    get()._updateActivePresetIfNeeded();
+                  });
+
+                  currentSocket.on('countdown', (countdownPayload) => {
+                    console.log('Socket.IO "countdown" event received:', countdownPayload);
+                    if (countdownPayload && typeof countdownPayload === 'object' && countdownPayload.hasOwnProperty('value')) {
+                      // Placeholder for state update:
+                      // set({ currentCountdownValue: countdownPayload.value, currentCountdownDisplay: countdownPayload.display });
+                    } else {
+                      console.warn('Received "countdown" event with invalid payload:', countdownPayload);
+                    }
+                  });
+                } // End if(currentSocket) for adding listeners
+
+              } else { // Context changed or old socket
+                console.warn("Socket.IO connected, but draft context in store changed or this is an old socket. Disconnecting this socket. Store Draft ID:", currentStoreDraftId, "Socket Draft ID in query:", currentSocket?.io.opts.query?.draftId);
+                currentSocket?.disconnect();
               }
-            }; // Corrected: Added missing semicolon here
+            });
 
-            currentSocket.onerror = (event) => {
-              console.error('WebSocket error:', event);
-              const errorMessage = 'WebSocket connection error. Real-time updates may not be available.';
-              set({ socketStatus: 'error', socketError: errorMessage });
-            };
-
-            currentSocket.onclose = (event) => {
-              console.log('WebSocket connection closed:', event.code, event.reason, event.wasClean);
-              // Check if this onclose is for the *current* socket, not a stale one.
-              // This check helps prevent a stale socket's onclose from overriding a newer socket's state.
-              // However, given currentSocket is nulled right after close in disconnectWebSocket or here,
-              // this specific check (event.target === currentSocket) might be tricky if currentSocket is already null.
-              // The important part is that currentSocket is nulled to signify no active connection.
-
-              let statusUpdate: Partial<CombinedDraftState> = {
-                socketStatus: 'disconnected',
-                socketError: null,
-                // Do not reset socketDraftType here if error, as it might be relevant for retry logic or UI
-              };
-
-              if (!event.wasClean && event.code !== 1000 && event.code !== 1005) {
-                statusUpdate.socketError = `Live connection closed unexpectedly (Code: ${event.code} - Reason: ${event.reason || 'N/A'}). Real-time updates stopped.`;
-                statusUpdate.socketStatus = 'error';
-                // If it's an error, we might keep socketDraftType for context, or clear it if it's no longer valid.
-                // For now, let's clear it as the connection is gone.
-                statusUpdate.socketDraftType = null;
-              } else {
-                // Clean closure or client navigation, clear draft type
-                statusUpdate.socketDraftType = null;
+            currentSocket.on('connect_error', (err) => {
+              console.error(`Socket.IO connection error for draft ${draftId} (type ${draftType}):`, err.message, err.cause);
+              const errorMessage = `Socket.IO connection error: ${err.message}. Real-time updates unavailable.`;
+              const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
+              // Only update error if this error pertains to the current connection attempt
+              if (get().socketDraftType === draftType && currentStoreDraftId === draftId) {
+                set({ socketStatus: 'error', socketError: errorMessage, socketDraftType: null });
               }
-              set(statusUpdate);
-              if (event.target === currentSocket || !currentSocket || currentSocket.readyState === WebSocket.CLOSED) {
+              // Clean up this socket instance if it's the one that failed
+              if (currentSocket && currentSocket.io.opts.query?.draftId === draftId) {
+                 currentSocket.disconnect();
                  currentSocket = null;
               }
-            };
+            });
 
-          } catch (err) {
-            console.error("Failed to initialize WebSocket:", err);
-            const message = err instanceof Error ? err.message : "Failed to initialize WebSocket connection.";
-            set({ socketStatus: 'error', socketError: `Setup error: ${message}`, socketDraftType: null }); // Clear type on setup error
-            currentSocket = null;
+            currentSocket.on('disconnect', (reason) => {
+              console.log(`Socket.IO disconnected for draft ${draftId} (type ${draftType}). Reason: ${reason}. Socket ID was: ${currentSocket?.id || 'already cleared or different instance'}`);
+              const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
+              // Only update state if this disconnect event is for the draft we care about
+              if (get().socketDraftType === draftType && currentStoreDraftId === draftId) {
+                let statusUpdate: Partial<CombinedDraftState> = {
+                  socketStatus: 'disconnected',
+                  socketError: null,
+                  socketDraftType: null, // Reset draft type on disconnect
+                };
+                if (reason !== 'io server disconnect' && reason !== 'io client disconnect') {
+                  statusUpdate.socketError = `Live connection closed: ${reason}. Updates stopped.`;
+                  statusUpdate.socketStatus = 'error'; // Treat unexpected disconnects as errors
+                }
+                set(statusUpdate);
+              }
+              // Ensure the global currentSocket is nulled if this instance is the one being disconnected.
+              // Check by id if available and matches, or if the query draftId matches.
+              // This helps prevent a stale disconnect event from nulling a newer, active socket.
+              if (currentSocket && currentSocket.io.opts.query?.draftId === draftId ) {
+                 currentSocket = null;
+              }
+            });
+
+          } catch (initError) {
+            console.error(`Failed to initialize Socket.IO for draft ${draftId} (type ${draftType}):`, initError);
+            const message = initError instanceof Error ? initError.message : "Failed to initialize Socket.IO.";
+            set({ socketStatus: 'error', socketError: `Setup error: ${message}`, socketDraftType: null });
+            if (currentSocket) { // If somehow currentSocket got assigned before full failure
+                currentSocket.disconnect();
+                currentSocket = null;
+            }
           }
         },
 
         disconnectWebSocket: () => {
           if (currentSocket) {
-            currentSocket.onclose = () => {
-              console.log('WebSocket intentionally disconnected by client.');
-              set({ socketStatus: 'disconnected', socketError: null, socketDraftType: null });
-              currentSocket = null;
-            };
-            currentSocket.close(1000, "Client initiated disconnect");
-          } else {
-            set({ socketStatus: 'disconnected', socketError: null, socketDraftType: null });
+            console.log("Calling currentSocket.disconnect() for draft ID:", currentSocket.io.opts.query?.draftId, "Socket ID:", currentSocket.id);
+            currentSocket.disconnect();
+            // The 'disconnect' event handler for currentSocket should handle setting currentSocket to null
+            // and updating related store states.
+            // However, to ensure immediate nullification if the event handler doesn't fire or is delayed:
+            currentSocket = null;
           }
+          // Always ensure the state reflects disconnection, regardless of whether a socket instance existed.
+          set({ socketStatus: 'disconnected', socketError: null, socketDraftType: null });
         },
 
-        handleWebSocketMessage: (messageData: any) => {
-          if (typeof messageData !== 'string') {
-            console.warn('WebSocket message data is not a string:', messageData);
-            return;
-          }
-
-          const typeMatch = messageData.match(/^\[(.*?)\]/);
-          const messageType = typeMatch ? typeMatch[1] : null;
-          const jsonData = messageType ? messageData.substring(typeMatch[0].length) : null;
-
-          if (!messageType || !jsonData) {
-            console.warn('Could not parse WebSocket message type or data:', messageData);
-            return;
-          }
-
-          try {
-            const payload = JSON.parse(jsonData);
-
-            if (messageType === 'act') {
-              const { executingPlayer, chosenOptionId, actionType } = payload;
-              if (!executingPlayer || !chosenOptionId || !actionType) {
-                console.warn('Missing fields in "act" message payload:', payload);
-                return;
-              }
-
-              let optionName: string;
-              let effectiveDraftType: 'civ' | 'map' | null = null;
-              const currentDraftOptions = get().aoe2cmRawDraftOptions;
-
-              if (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") {
-                optionName = "Hidden Ban";
-                effectiveDraftType = get().socketDraftType; // Use the type of the current WebSocket connection
-                console.log(`WS Action: ${actionType}, Player: ${executingPlayer}, Option ID: ${chosenOptionId} (Interpreted as: "${optionName}"), EffectiveType: ${effectiveDraftType}`);
-
-                if (effectiveDraftType === 'civ') {
-                  if (executingPlayer === 'HOST') {
-                    set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
-                  } else if (executingPlayer === 'GUEST') {
-                    set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
-                  }
-                } else if (effectiveDraftType === 'map') {
-                  if (executingPlayer === 'HOST') {
-                    set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
-                  } else if (executingPlayer === 'GUEST') {
-                    set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
-                  }
-                  // Note: HIDDEN_BAN for 'NONE' player (global map ban) is not explicitly handled here,
-                  // assuming HIDDEN_BAN is player-specific. If global hidden bans are possible, add logic.
-                } else {
-                  console.warn(`Could not determine type (civ/map) for HIDDEN_BAN. socketDraftType: ${get().socketDraftType}. Ban not applied for HIDDEN_BAN.`);
-                }
-              } else {
-                // Standard processing for all other actions ('pick', 'snipe') and non-hidden 'ban'
-                optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
-                const isCivActionHeuristic = chosenOptionId.startsWith('aoe4.');
-                effectiveDraftType = isCivActionHeuristic ? 'civ' : 'map';
-                console.log(`WS Action: ${actionType}, Player: ${executingPlayer}, Option: ${optionName} (ID: ${chosenOptionId}), EffectiveType: ${effectiveDraftType}`);
-
-                if (actionType === 'pick') {
-                  if (effectiveDraftType === 'civ') {
-                    if (executingPlayer === 'HOST') {
-                      set(state => ({ civPicksHost: [...new Set([...state.civPicksHost, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') {
-                      set(state => ({ civPicksGuest: [...new Set([...state.civPicksGuest, optionName])] }));
-                    }
-                  } else { // map action
-                    if (executingPlayer === 'HOST') {
-                      set(state => ({ mapPicksHost: [...new Set([...state.mapPicksHost, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') {
-                      set(state => ({ mapPicksGuest: [...new Set([...state.mapPicksGuest, optionName])] }));
-                    } else if (executingPlayer === 'NONE') {
-                      set(state => ({ mapPicksGlobal: [...new Set([...state.mapPicksGlobal, optionName])] }));
-                    }
-                  }
-                } else if (actionType === 'ban') { // This will now only handle non-hidden bans
-                  if (effectiveDraftType === 'civ') {
-                    if (executingPlayer === 'HOST') {
-                      set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') {
-                      set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
-                    }
-                  } else { // map action
-                    if (executingPlayer === 'HOST') {
-                      set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') {
-                      set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
-                    } else if (executingPlayer === 'NONE') {
-                      set(state => ({ mapBansGlobal: [...new Set([...state.mapBansGlobal, optionName])] }));
-                    }
-                  }
-                } else if (actionType === 'snipe') {
-                  if (effectiveDraftType === 'civ') {
-                    if (executingPlayer === 'HOST') { // Host snipes Guest's civ
-                      set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') { // Guest snipes Host's civ
-                      set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
-                    }
-                  } else { // map action
-                    if (executingPlayer === 'HOST') { // Host snipes Guest's map
-                      set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
-                    } else if (executingPlayer === 'GUEST') { // Guest snipes Host's map
-                      set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
-                    }
-                  }
-                }
-              }
-              // Call _updateActivePresetIfNeeded after any 'act' message processing
-              // For now, keeping it simple as per subtask instructions.
-              get()._updateActivePresetIfNeeded();
-
-
-            } else if (messageType === 'countdown') {
-              console.log('WebSocket Countdown Data:', payload);
-              // Example: {value: 3, display: true}
-              // Could set state here: set(state => ({ countdownValue: payload.value, countdownDisplay: payload.display }))
-            } else {
-              console.log(`Unknown WebSocket message type "${messageType}":`, payload);
-            }
-
-          } catch (e) {
-            console.error('Error parsing WebSocket JSON payload or processing message:', e, jsonData);
-          }
-        },
+        // handleWebSocketMessage removed
 
         _resetCurrentSessionState: () => {
           // Removed localStorage.removeItem for lastHostFlag and lastGuestFlag
@@ -1176,7 +1153,7 @@ const useDraftStore = create<DraftStore>()(
   )
 );
 
-let currentSocket: WebSocket | null = null;
+let currentSocket: Socket | null = null; // Updated type
 
 // @ts-ignore
 useDraftStore.subscribe(
