@@ -241,56 +241,79 @@ const useDraftStore = create<DraftStore>()(
         ...initialCombinedState,
 
         connectToWebSocket: (draftId: string) => {
-          if (currentSocket) {
-            console.warn('WebSocket connection already exists. Disconnecting before creating a new one.');
-            get().disconnectWebSocket();
+          if (currentSocket && currentSocket.readyState !== WebSocket.CLOSED && currentSocket.readyState !== WebSocket.CLOSING) {
+            console.log('WebSocket connection already open or opening, or in closing state. Disconnecting before creating a new one.');
+            // Force close the existing socket directly if it's not already closing or closed
+            // This avoids relying on the disconnectWebSocket's potentially overridden onclose
+            if (currentSocket.readyState !== WebSocket.CLOSING) {
+                currentSocket.close(1000, "Client initiated new connection");
+            }
+            // Nullify to allow immediate new connection attempt without waiting for old onclose,
+            // as a new one is being established.
+            currentSocket = null;
+            // Set status to disconnected to reflect the old socket is being abandoned.
+            set({ socketStatus: 'disconnected', socketError: 'Starting new WebSocket connection, previous one closed.' });
           }
 
-          // set({ socketStatus: 'connecting', socketError: null }); // Moved into try block
-
           const socketUrl = `${DRAFT_WEBSOCKET_URL_PLACEHOLDER}/${draftId}`;
+
           try {
             currentSocket = new WebSocket(socketUrl);
-            set({ socketStatus: 'connecting', socketError: null }); // Set status after attempting to create
+            set({ socketStatus: 'connecting', socketError: null });
 
-            currentSocket.onopen = () => {
-              console.log('WebSocket connected to:', socketUrl);
-            set({ socketStatus: 'live', socketError: null });
-          };
-
-          currentSocket.onmessage = (event) => {
-            console.log('WebSocket message received:', event.data);
-            try {
-              get().handleWebSocketMessage(event.data);
-            } catch (e) {
-              console.error('Error processing WebSocket message:', e);
+            currentSocket.onopen = (event) => {
+              console.log('WebSocket connection opened:', event);
+              set({ socketStatus: 'live', socketError: null });
             };
 
-            currentSocket.onerror = (event: Event) => { // Added Event type for better clarity if possible
+            currentSocket.onmessage = (event) => {
+              console.log('WebSocket message received:', event.data);
+              try {
+                get().handleWebSocketMessage(event.data);
+              } catch (e) {
+                console.error('Error processing WebSocket message:', e);
+              }
+            }; // Corrected: Added missing semicolon here
+
+            currentSocket.onerror = (event) => {
               console.error('WebSocket error:', event);
-              const errorMessage = 'Failed to connect to live draft server. Real-time updates may not be available.';
+              const errorMessage = 'WebSocket connection error. Real-time updates may not be available.';
               set({ socketStatus: 'error', socketError: errorMessage });
             };
 
-            currentSocket.onclose = (event: CloseEvent) => { // Added CloseEvent type
+            currentSocket.onclose = (event) => {
               console.log('WebSocket connection closed:', event.code, event.reason, event.wasClean);
+              // Check if this onclose is for the *current* socket, not a stale one.
+              // This check helps prevent a stale socket's onclose from overriding a newer socket's state.
+              // However, given currentSocket is nulled right after close in disconnectWebSocket or here,
+              // this specific check (event.target === currentSocket) might be tricky if currentSocket is already null.
+              // The important part is that currentSocket is nulled to signify no active connection.
+
               let statusUpdate: Partial<CombinedDraftState> = {
                 socketStatus: 'disconnected',
-                socketError: null, // Clear previous errors on normal disconnect
+                socketError: null,
               };
-              if (!event.wasClean && event.code !== 1000) { // 1000 is normal closure by client
-                statusUpdate.socketError = `Live connection closed unexpectedly (Code: ${event.code}${event.reason ? `- ${event.reason}` : ''}). Real-time updates stopped.`;
+
+              // Only update error if it's an unexpected close for the *current* connection attempt
+              // This means `disconnectWebSocket` should handle its own state updates for clean disconnects.
+              if (!event.wasClean && event.code !== 1000 && event.code !== 1005) { // 1000: Normal, 1005: No status Rcvd (often client-side navig)
+                statusUpdate.socketError = `Live connection closed unexpectedly (Code: ${event.code} - Reason: ${event.reason || 'N/A'}). Real-time updates stopped.`;
                 statusUpdate.socketStatus = 'error';
               }
               set(statusUpdate);
-              currentSocket = null;
+              // Only nullify if this event pertains to the socket instance we expect to be active.
+              // This is a bit complex if a new socket is rapidly created.
+              // The most robust way is that disconnectWebSocket sets currentSocket to null *after* calling close().
+              if (event.target === currentSocket || !currentSocket || currentSocket.readyState === WebSocket.CLOSED) {
+                 currentSocket = null;
+              }
             };
 
           } catch (err) {
             console.error("Failed to initialize WebSocket:", err);
             const message = err instanceof Error ? err.message : "Failed to initialize WebSocket connection.";
             set({ socketStatus: 'error', socketError: `Setup error: ${message}` });
-            currentSocket = null; // Ensure it's null
+            currentSocket = null;
           }
         },
 
