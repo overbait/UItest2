@@ -356,6 +356,36 @@ const useDraftStore = create<DraftStore>()(
                       console.warn('Received "countdown" event with invalid payload:', countdownPayload);
                     }
                   });
+
+                  // Add the onAny listener for debugging
+                  currentSocket.onAny((eventName, ...args) => {
+                    console.log('Socket.IO [DEBUG] event received:', eventName, args);
+                  });
+
+                  currentSocket.off('draft_update'); // Remove previous listener if any
+                  currentSocket.on('draft_update', (data) => {
+                    console.log('Socket.IO "draft_update" event received:', data);
+                    // TODO: Future enhancement: Process this 'data'
+                    // if (data && data.preset && data.preset.draftOptions) {
+                    //   set({ aoe2cmRawDraftOptions: data.preset.draftOptions });
+                    // }
+                    // if (data && data.nameHost && data.nameGuest) {
+                    //   set({ hostName: data.nameHost, guestName: data.nameGuest });
+                    // }
+                  });
+
+                  // Emit join and ready events
+                  console.log(`Socket.IO emitting 'join_draft' for draftId: ${draftId}`);
+                  currentSocket.emit('join_draft', { draftId: draftId });
+
+                  console.log(`Socket.IO emitting 'player_ready' for draftId: ${draftId} as OBSERVER`);
+                  currentSocket.emit('player_ready', {
+                    draftId: draftId,
+                    playerType: 'OBSERVER'
+                  });
+                  // Developer Note: The exact event names ('join_draft', 'player_ready') and their
+                  // payloads are educated guesses. These may need adjustment based on server expectations.
+
                 } // End if(currentSocket) for adding listeners
 
               } else { // Context changed or old socket
