@@ -41,7 +41,7 @@ export interface Aoe2cmRawDraftData {
   ongoing?: boolean;
 }
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'live' | 'reconnecting';
 
 export interface SingleDraftData {
   id: string;
@@ -92,10 +92,13 @@ export interface CombinedDraftState {
   mapPicksGuest: string[]; mapBansGuest: string[]; mapPicksGlobal: string[]; mapBansGlobal: string[];
   civDraftStatus: ConnectionStatus; civDraftError: string | null; isLoadingCivDraft: boolean;
   mapDraftStatus: ConnectionStatus; mapDraftError: string | null; isLoadingMapDraft: boolean;
+  socketStatus: ConnectionStatus;
+  socketError: string | null;
   savedPresets: SavedPreset[]; activePresetId: string | null;
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
   hostColor?: string | null;
   guestColor?: string | null;
+  aoe2cmRawDraftOptions?: Aoe2cmRawDraftData['preset']['draftOptions'];
   // studioLayout: StudioElement[]; // This line is removed
   currentCanvases: StudioCanvas[];
   activeCanvasId: string | null;

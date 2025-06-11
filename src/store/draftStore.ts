@@ -16,6 +16,7 @@ import {
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
+const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net/socket'; // User will need to replace this
 
 interface DraftStore extends CombinedDraftState {
   connectToDraft: (draftIdOrUrl: string, draftType: 'civ' | 'map') => Promise<boolean>;
@@ -68,6 +69,11 @@ interface DraftStore extends CombinedDraftState {
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
   setActiveStudioLayoutId: (layoutId: string | null) => void;
+
+  // WebSocket Actions
+  connectToWebSocket: (draftId: string) => void;
+  disconnectWebSocket: () => void;
+  handleWebSocketMessage: (messageData: any) => void;
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -86,6 +92,9 @@ const initialCombinedState: CombinedDraftState = {
   mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
   civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
   mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
+  socketStatus: 'disconnected',
+  socketError: null,
+  aoe2cmRawDraftOptions: undefined,
   savedPresets: [], activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
 
   currentCanvases: initialCanvases,
@@ -98,6 +107,7 @@ const initialCombinedState: CombinedDraftState = {
   guestColor: null,
   hostFlag: null, // Initialize to null
   guestFlag: null, // Initialize to null
+  // aoe2cmRawDraftOptions is added above
 };
 
 const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
@@ -217,11 +227,182 @@ const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ
   output.status = draftStatus; output.currentTurnPlayer = currentTurnPlayerDisplay; output.currentAction = currentActionDisplay; return output;
 };
 
+const getOptionNameFromStore = (optionId: string, draftOptions: Aoe2cmRawDraftData['preset']['draftOptions'] | undefined): string => {
+  if (!draftOptions) return optionId; // Fallback if options not available
+  const option = draftOptions.find(opt => opt.id === optionId);
+  if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
+  return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; // Fallback if name not found
+};
+
 const useDraftStore = create<DraftStore>()(
   devtools(
     persist(
       (set, get) => ({
         ...initialCombinedState,
+
+        connectToWebSocket: (draftId: string) => {
+          if (currentSocket) {
+            console.warn('WebSocket connection already exists. Disconnecting before creating a new one.');
+            get().disconnectWebSocket();
+          }
+
+          // set({ socketStatus: 'connecting', socketError: null }); // Moved into try block
+
+          const socketUrl = `${DRAFT_WEBSOCKET_URL_PLACEHOLDER}/${draftId}`;
+          try {
+            currentSocket = new WebSocket(socketUrl);
+            set({ socketStatus: 'connecting', socketError: null }); // Set status after attempting to create
+
+            currentSocket.onopen = () => {
+              console.log('WebSocket connected to:', socketUrl);
+            set({ socketStatus: 'live', socketError: null });
+          };
+
+          currentSocket.onmessage = (event) => {
+            console.log('WebSocket message received:', event.data);
+            try {
+              get().handleWebSocketMessage(event.data);
+            } catch (e) {
+              console.error('Error processing WebSocket message:', e);
+            };
+
+            currentSocket.onerror = (event: Event) => { // Added Event type for better clarity if possible
+              console.error('WebSocket error:', event);
+              const errorMessage = 'Failed to connect to live draft server. Real-time updates may not be available.';
+              set({ socketStatus: 'error', socketError: errorMessage });
+            };
+
+            currentSocket.onclose = (event: CloseEvent) => { // Added CloseEvent type
+              console.log('WebSocket connection closed:', event.code, event.reason, event.wasClean);
+              let statusUpdate: Partial<CombinedDraftState> = {
+                socketStatus: 'disconnected',
+                socketError: null, // Clear previous errors on normal disconnect
+              };
+              if (!event.wasClean && event.code !== 1000) { // 1000 is normal closure by client
+                statusUpdate.socketError = `Live connection closed unexpectedly (Code: ${event.code}${event.reason ? `- ${event.reason}` : ''}). Real-time updates stopped.`;
+                statusUpdate.socketStatus = 'error';
+              }
+              set(statusUpdate);
+              currentSocket = null;
+            };
+
+          } catch (err) {
+            console.error("Failed to initialize WebSocket:", err);
+            const message = err instanceof Error ? err.message : "Failed to initialize WebSocket connection.";
+            set({ socketStatus: 'error', socketError: `Setup error: ${message}` });
+            currentSocket = null; // Ensure it's null
+          }
+        },
+
+        disconnectWebSocket: () => {
+          if (currentSocket) {
+            currentSocket.onclose = () => { // Override onclose for intentional disconnect
+              console.log('WebSocket intentionally disconnected by client.');
+              set({ socketStatus: 'disconnected', socketError: null });
+              currentSocket = null;
+            };
+            currentSocket.close(1000, "Client initiated disconnect");
+          } else {
+            set({ socketStatus: 'disconnected', socketError: null }); // Ensure state is clean if no socket
+          }
+        },
+
+        handleWebSocketMessage: (messageData: any) => {
+          if (typeof messageData !== 'string') {
+            console.warn('WebSocket message data is not a string:', messageData);
+            return;
+          }
+
+          const typeMatch = messageData.match(/^\[(.*?)\]/);
+          const messageType = typeMatch ? typeMatch[1] : null;
+          const jsonData = messageType ? messageData.substring(typeMatch[0].length) : null;
+
+          if (!messageType || !jsonData) {
+            console.warn('Could not parse WebSocket message type or data:', messageData);
+            return;
+          }
+
+          try {
+            const payload = JSON.parse(jsonData);
+
+            if (messageType === 'act') {
+              const { executingPlayer, chosenOptionId, actionType } = payload;
+              if (!executingPlayer || !chosenOptionId || !actionType) {
+                console.warn('Missing fields in "act" message payload:', payload);
+                return;
+              }
+
+              const optionName = getOptionNameFromStore(chosenOptionId, get().aoe2cmRawDraftOptions);
+              const isCivAction = chosenOptionId.startsWith('aoe4.'); // Heuristic
+
+              console.log(`WS Action: ${actionType}, Player: ${executingPlayer}, Option: ${optionName} (ID: ${chosenOptionId}), IsCiv: ${isCivAction}`);
+
+              if (actionType === 'pick') {
+                if (isCivAction) {
+                  if (executingPlayer === 'HOST') {
+                    set(state => ({ civPicksHost: [...new Set([...state.civPicksHost, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') {
+                    set(state => ({ civPicksGuest: [...new Set([...state.civPicksGuest, optionName])] }));
+                  }
+                } else { // map action
+                  if (executingPlayer === 'HOST') {
+                    set(state => ({ mapPicksHost: [...new Set([...state.mapPicksHost, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') {
+                    set(state => ({ mapPicksGuest: [...new Set([...state.mapPicksGuest, optionName])] }));
+                  } else if (executingPlayer === 'NONE') {
+                    set(state => ({ mapPicksGlobal: [...new Set([...state.mapPicksGlobal, optionName])] }));
+                  }
+                }
+              } else if (actionType === 'ban') {
+                if (isCivAction) {
+                  if (executingPlayer === 'HOST') {
+                    set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') {
+                    set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
+                  }
+                } else { // map action
+                  if (executingPlayer === 'HOST') {
+                    set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') {
+                    set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
+                  } else if (executingPlayer === 'NONE') {
+                    set(state => ({ mapBansGlobal: [...new Set([...state.mapBansGlobal, optionName])] }));
+                  }
+                }
+              } else if (actionType === 'snipe') {
+                // Snipes usually target the *other* player's potential picks, effectively becoming a ban for them.
+                if (isCivAction) {
+                  if (executingPlayer === 'HOST') { // Host snipes Guest's civ
+                    set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') { // Guest snipes Host's civ
+                    set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
+                  }
+                } else { // map action
+                  if (executingPlayer === 'HOST') { // Host snipes Guest's map
+                    set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
+                  } else if (executingPlayer === 'GUEST') { // Guest snipes Host's map
+                    set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
+                  }
+                }
+              }
+              // Potentially call _updateActivePresetIfNeeded() or box series updates here if necessary
+              // For now, keeping it simple as per subtask instructions.
+              get()._updateActivePresetIfNeeded();
+
+
+            } else if (messageType === 'countdown') {
+              console.log('WebSocket Countdown Data:', payload);
+              // Example: {value: 3, display: true}
+              // Could set state here: set(state => ({ countdownValue: payload.value, countdownDisplay: payload.display }))
+            } else {
+              console.log(`Unknown WebSocket message type "${messageType}":`, payload);
+            }
+
+          } catch (e) {
+            console.error('Error parsing WebSocket JSON payload or processing message:', e, jsonData);
+          }
+        },
+
         _resetCurrentSessionState: () => {
           // Removed localStorage.removeItem for lastHostFlag and lastGuestFlag
           const newDefaultCanvasId = `default-rst-${Date.now()}`;
@@ -236,6 +417,9 @@ const useDraftStore = create<DraftStore>()(
             mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
             civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
             mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
+            socketStatus: 'disconnected', // Reset WebSocket state
+            socketError: null,            // Reset WebSocket state
+            aoe2cmRawDraftOptions: undefined, // Reset draft options
             activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
 
             hostFlag: null, // Explicitly null
@@ -318,6 +502,7 @@ const useDraftStore = create<DraftStore>()(
             // ***** First (Immediate) Set Call *****
             set(state => ({
               ...state,
+              aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions, // Store draft options
               hostName: newHostName,
               guestName: newGuestName,
               civPicksHost: newCivPicksHost,
@@ -392,6 +577,8 @@ const useDraftStore = create<DraftStore>()(
             });
 
             get()._updateActivePresetIfNeeded();
+            // Initiate WebSocket connection after successful HTTP fetch and state update
+            if (extractedId) get().connectToWebSocket(extractedId);
             return true;
           } catch (error) {
             let errorMessage = `Failed to fetch or process ${draftType} draft data.`;
@@ -402,7 +589,9 @@ const useDraftStore = create<DraftStore>()(
             return false;
           }
         },
-        disconnectDraft: (draftType: 'civ' | 'map') => { if (draftType === 'civ') { set({ civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest, boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })), activePresetId: null, }); } else { set({ mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })), activePresetId: null, }); } if (!get().civDraftId && !get().mapDraftId) set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null }); },
+        disconnectDraft: (draftType: 'civ' | 'map') => {
+          get().disconnectWebSocket(); // Disconnect WebSocket regardless of draft type first
+          if (draftType === 'civ') { set({ civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest, boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })), activePresetId: null, }); } else { set({ mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })), activePresetId: null, }); } if (!get().civDraftId && !get().mapDraftId) set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null }); },
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
@@ -867,5 +1056,35 @@ const useDraftStore = create<DraftStore>()(
     )
   )
 );
+
+// Note: currentSocket is already defined at the bottom by previous step, this is fine.
+// We are adding the WebSocket actions within the store definition above.
+
+// @ts-ignore
+useDraftStore.subscribe(
+  // @ts-ignore
+  (state, prevState) => {
+    // console.log('Global state change detected in draftStore:', state);
+
+    // Check if the activeStudioLayoutId has changed from a non-null value to null
+    if (prevState.activeStudioLayoutId && !state.activeStudioLayoutId) {
+      const autoSaveLayout = state.savedStudioLayouts.find(layout => layout.name === "(auto)");
+      if (autoSaveLayout) {
+        // console.log(`LOGAOEINFO: [draftStore Global Sub] activeStudioLayoutId became null. Restoring (auto) preset: ${autoSaveLayout.id}`);
+        // useDraftStore.setState({ activeStudioLayoutId: autoSaveLayout.id });
+        // ^ This was causing an infinite loop. The logic for auto-saving/restoring (auto)
+        // should be handled within the actions that modify layouts or activeStudioLayoutId directly.
+        // For now, we just log. A more sophisticated approach might be needed if direct state manipulation here is truly required.
+      }
+    }
+
+    // Broadcast specific state changes to other tabs/windows.
+    // This is a simplified example. You might want to be more specific about what changes trigger a broadcast.
+    // if (state.layoutLastUpdated !== prevState.layoutLastUpdated) {
+    //   customLocalStorageWithBroadcast.setItem('aoe2-draft-overlay-combined-storage-v1', JSON.stringify(useDraftStore.getState()));
+    // }
+  }
+);
+
 
 export default useDraftStore;
