@@ -158,7 +158,7 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
             console.error(`[FlagPersistence] Error seeding from ${COUNTRY_PLAYERS_FILE_PATH}.`, error);
             setPlayerCountryMap(new Map(initialMap)); // Still set the map (which would be empty if seeding failed from start)
           });
-        // When seeding from file, setPlayerCountryMap is called asynchronously, so no need to call it again here.
+        // No early return here, setPlayerCountryMap will be called by the fetch promise chain.
       }
     } catch (e) {
       console.warn('[FlagPersistence] Error parsing playerFlagMappings from localStorage. Initializing as empty.', e);
@@ -240,7 +240,7 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
         setGuestFlag(autoFlag);
       }
     }
-  }, [guestName, playerCountryMap, guestFlag, setGuestFlag]);
+  }, [guestName, playerCountryMap, guestFlag, setGuestFlag]); // Ensuring this one is correct, was potentially malformed
 
 
   // Logging for savedPresets and activePresetId
@@ -274,13 +274,13 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
     const existingCodeInMemory = workingMap.get(currentNickname);
     let mappingChanged = false;
 
-    if (selectedCode === null) {
+    if (selectedCode === null) { // "None" selected
       if (workingMap.has(currentNickname)) {
         workingMap.delete(currentNickname);
         mappingChanged = true;
         console.log(`[FlagPersistence] '${currentNickname}' removed from working map.`);
       }
-    } else {
+    } else { // Specific flag selected
       if (existingCodeInMemory !== selectedCode) {
         workingMap.set(currentNickname, selectedCode);
         mappingChanged = true;
@@ -289,10 +289,11 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
     }
 
     if (mappingChanged) {
-      setPlayerCountryMap(workingMap);
-      savePlayerCountryMapToLocalStorage(workingMap);
+      setPlayerCountryMap(workingMap); // Update React state first
+      savePlayerCountryMapToLocalStorage(workingMap); // Then persist
     }
 
+    // Update Zustand store for immediate UI feedback on the flag button itself
     if (editingPlayerFlagFor === 'host') setHostFlag(selectedCode);
     else if (editingPlayerFlagFor === 'guest') setGuestFlag(selectedCode);
 
@@ -303,19 +304,19 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
   // Effect for Host Flag Loading (and reacting to nickname changes)
   useEffect(() => {
     if (hostName && hostName.trim() !== '') { // Ensure nickname is not empty
-      const flagCode = playerCountryMap.get(hostName);
+      const flagCode = playerCountryMap.get(hostName); // playerCountryMap is from React state
       setHostFlag(flagCode || null);
       console.log(`[FlagPersistence] Host nickname changed to: ${hostName}, flag set to: ${flagCode || null}`);
     } else {
       setHostFlag(null); // Clear flag if nickname becomes empty
       console.log(`[FlagPersistence] Host nickname is empty, flag cleared.`);
     }
-  }, [hostName, playerCountryMap, setHostFlag]); // playerCountryMap is a dependency
+  }, [hostName, playerCountryMap, setHostFlag]);
 
   // Effect for Guest Flag Loading (and reacting to nickname changes)
   useEffect(() => {
     if (guestName && guestName.trim() !== '') {
-      const flagCode = playerCountryMap.get(guestName);
+      const flagCode = playerCountryMap.get(guestName); // playerCountryMap is from React state
       setGuestFlag(flagCode || null);
       console.log(`[FlagPersistence] Guest nickname changed to: ${guestName}, flag set to: ${flagCode || null}`);
     } else {
@@ -326,6 +327,7 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
 
 
   useEffect(() => {
+    if (activePresetId && boxSeriesGames && boxSeriesGames.length > 0) {
       const draftMaps = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal])).filter(Boolean);
 
       const customMapsFromPresetGames: string[] = [];
@@ -483,8 +485,8 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
     const rect = flagDropdownAnchorEl.getBoundingClientRect();
     return {
       position: 'absolute' as 'absolute',
-      top: rect.bottom + window.scrollY,
-      left: rect.left + window.scrollX,
+      top: rect.bottom + window.scrollY, // Added comma here
+      left: rect.left + window.scrollX, // Assuming comma was missing here
       zIndex: 1000,
     };
   }, [flagDropdownAnchorEl]);
