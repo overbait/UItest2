@@ -1,4 +1,4 @@
-# AoE2 Draft Overlay
+# AoE4 Draft Overlay
 
 Real-time overlay and management suite for **Age of Empires II Captains-Mode drafts**.  
 It provides a **technical interface** for tournament admins/casters and a **broadcast view** with a fully transparent background for OBS or any streaming software.
@@ -15,8 +15,7 @@ It provides a **technical interface** for tournament admins/casters and a **broa
 7. [API & Real-Time Data Flow](#api--real-time-data-flow)
 8. [AI / Automation Hooks](#ai--automation-hooks)
 9. [Customization](#customization)
-10. [Deployment](#deployment)
-11. [Contributing](#contributing)
+
 12. [License & Credits](#license--credits)
 
 ---
@@ -194,12 +193,7 @@ Current draft summary (`/technical → AI Integration → Copy`) looks like:
 
 ---
 
-## Deployment
 
-*### Vercel (recommended)*  
-1. Press **“Deploy to Vercel”** or create a new Vercel project from your GitHub repo.  
-2. Build command: `npm run build`  
-3. Output dir: `dist`  
 
 *### Static Hosting*  
 ```bash
@@ -215,17 +209,6 @@ npx gh-pages -d dist
 
 ---
 
-## Contributing
-
-1. Fork the repository & create a feature branch:
-   ```bash
-   git checkout -b feat/my-awesome-feature
-   ```
-2. **Commit with conventional commits** (`feat:`, `fix:` …).
-3. Run `npm run lint` and `npm run build` before pushing.
-4. Open a Pull Request – all PRs run ESLint and a production build on GitHub Actions.
-
-Big ideas, feedback, or bug reports → open an **Issue** or ping **@Sforz** on Discord.
 
 ---
 
