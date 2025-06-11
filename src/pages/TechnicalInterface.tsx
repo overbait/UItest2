@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useDraftStore from '../store/draftStore';
 import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft';
 import '../styles/TechnicalInterface.css';
@@ -31,8 +31,10 @@ const TechnicalInterface = () => {
     // isPresetDirty, // This state is implicitly handled by activePresetId === null when changes occur
     connectToDraft,
     setHostName, setGuestName,
-    hostColor, setHostColor, // Player color state and setters
-    guestColor, setGuestColor, // Player color state and setters
+    hostColor, setHostColor,
+    guestColor, setGuestColor,
+    hostFlag, setHostFlag, // Player flag state and setters
+    guestFlag, setGuestFlag, // Player flag state and setters
     incrementScore, decrementScore, switchPlayerSides,
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
@@ -87,6 +89,15 @@ const TechnicalInterface = () => {
   const [editableHostName, setEditableHostName] = useState(hostName);
   const [editableGuestName, setEditableGuestName] = useState(guestName);
 
+  const [playerCountryMap, setPlayerCountryMap] = useState<Map<string, string>>(new Map());
+  const [availableFlags, setAvailableFlags] = useState<string[]>([]);
+
+  const [flagDropdownAnchorEl, setFlagDropdownAnchorEl] = useState<HTMLElement | null>(null);
+  const [isFlagDropdownOpen, setIsFlagDropdownOpen] = useState<boolean>(false);
+  const [editingPlayerFlagFor, setEditingPlayerFlagFor] = useState<'host' | 'guest' | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+
   useEffect(() => {
     (window as any).IS_TECHNICAL_INTERFACE = true;
     return () => {
@@ -97,6 +108,73 @@ const TechnicalInterface = () => {
   useEffect(() => { setEditableHostName(hostName); }, [hostName]);
   useEffect(() => { setEditableGuestName(guestName); }, [guestName]);
   useEffect(() => { setCivDraftIdInput(civDraftId || ''); setMapDraftIdInput(mapDraftId || ''); }, [civDraftId, mapDraftId]);
+
+  // Effect to load mappings and available flags on mount
+  useEffect(() => {
+    // Load countryplayers.txt
+    const loadMappings = async () => {
+      try {
+        const response = await fetch('/assets/countryflags/countryplayers.txt');
+        if (!response.ok) {
+          console.error('Failed to fetch countryplayers.txt:', response.statusText);
+          // Potentially set an error state here or use a default map
+          return;
+        }
+        const text = await response.text();
+        const newPlayerCountryMap = new Map<string, string>();
+        text.split('\n').forEach(line => {
+          line = line.trim();
+          if (line) {
+            const parts = line.split('_');
+            if (parts.length >= 2) {
+              const nickname = parts.slice(0, -1).join('_');
+              const countryCode = parts[parts.length - 1].toLowerCase();
+              if (nickname && countryCode) {
+                newPlayerCountryMap.set(nickname, countryCode);
+              }
+            } else {
+              console.warn(`Skipping malformed line in countryplayers.txt: ${line}`);
+            }
+          }
+        });
+        setPlayerCountryMap(newPlayerCountryMap);
+        // console.log('Player country map loaded:', newPlayerCountryMap);
+      } catch (error) {
+        console.error('Error loading or parsing countryplayers.txt:', error);
+      }
+    };
+
+    loadMappings();
+
+    // Placeholder for available flags - dynamic listing is complex client-side
+    // This will be refined in a later step (flag selection logic)
+    setAvailableFlags(['de', 'fr', 'us', 'gb', 'kr', 'ru', 'es', 'cn', 'jp', 'ca', 'br', 'au', 'it', 'se', 'no', 'fi', 'dk', 'pl', 'nl', 'ua']);
+    // console.log('Available flags (placeholder) set.');
+
+  }, []); // Empty dependency array ensures this runs once on mount
+
+  // Effect for Host Flag Loading
+  useEffect(() => {
+    if (hostName && playerCountryMap.has(hostName) && hostFlag === null) {
+      const autoFlag = playerCountryMap.get(hostName);
+      if (autoFlag) {
+        // console.log(`Auto-setting host flag for ${hostName} to ${autoFlag}`);
+        setHostFlag(autoFlag);
+      }
+    }
+  }, [hostName, playerCountryMap, hostFlag, setHostFlag]);
+
+  // Effect for Guest Flag Loading
+  useEffect(() => {
+    if (guestName && playerCountryMap.has(guestName) && guestFlag === null) {
+      const autoFlag = playerCountryMap.get(guestName);
+      if (autoFlag) {
+        // console.log(`Auto-setting guest flag for ${guestName} to ${autoFlag}`);
+        setGuestFlag(autoFlag);
+      }
+    }
+  }, [guestName, playerCountryMap, guestFlag, setGuestFlag]);
+
 
   // Logging for savedPresets and activePresetId
   // console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
@@ -253,8 +331,50 @@ const TechnicalInterface = () => {
       .replace(/'/g, ''); // 3. Remove apostrophes
   };
 
+  const filteredFlags = availableFlags.filter(code => code.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const dropdownStyle = useMemo(() => {
+    if (!flagDropdownAnchorEl) return { display: 'none' };
+    const rect = flagDropdownAnchorEl.getBoundingClientRect();
+    return {
+      position: 'absolute' as 'absolute',
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX,
+      zIndex: 1000,
+    };
+  }, [flagDropdownAnchorEl]);
+
+  // Effect to handle clicks outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isFlagDropdownOpen && flagDropdownAnchorEl && !flagDropdownAnchorEl.contains(event.target as Node)) {
+        // A bit more robust: check if the click is outside the dropdown itself too, not just the anchor
+        // This requires a ref to the dropdown content. For now, this simplified version might mostly work.
+        // A more complete solution would involve checking if the event.target is within a dropdown ref.
+        const dropdownElement = document.getElementById('flagDropdown'); // Assuming the ID is on the dropdown
+        if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
+          setIsFlagDropdownOpen(false);
+          setEditingPlayerFlagFor(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isFlagDropdownOpen, flagDropdownAnchorEl]);
+
+
   return (
-    <div className="technical-interface main-dashboard-layout">
+    <div className="technical-interface main-dashboard-layout" onClick={() => {
+      // General click on the interface body can close the dropdown if it's not handled by stopPropagation
+      // This is a fallback; the useEffect with mousedown is more reliable for clicks truly "outside".
+      // if (isFlagDropdownOpen) {
+      //   setIsFlagDropdownOpen(false);
+      //   setEditingPlayerFlagFor(null);
+      // }
+    }}>
       <div className="top-section-grid">
         <div className="card draft-inputs-card">
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px'}}>Draft Inputs</h2>
@@ -312,18 +432,32 @@ const TechnicalInterface = () => {
           <h2 className="section-title" style={{fontSize: '1.2em', marginTop:'0', marginBottom:'10px', width: '100%', textAlign:'center'}}>Match Control</h2>
            <div className="player-scores-horizontal-layout">
               <div className="player-name-input-group">
-                <div style={{ width: '100%', marginBottom: '8px' }}> {/* Removed border, bg, padding, radius, transition */}
+                <div style={{ width: '100%', marginBottom: '8px' }}>
                   <label htmlFor="hostNameInput">Player 1 (Host)</label>
-                  <input
-                    id="hostNameInput"
-                    type="text"
-                    value={editableHostName}
-                    onChange={handleHostNameChange}
-                    onBlur={updateHostNameInStore}
-                    onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
-                    className="name-input"
-                    style={{ boxShadow: hostColor ? `0 0 8px 2px ${hostColor}` : 'none' }}
-                  />
+                  <div className="player-input-flag-group">
+                    <input
+                      id="hostNameInput"
+                      type="text"
+                      value={editableHostName}
+                      onChange={handleHostNameChange}
+                      onBlur={updateHostNameInStore}
+                      onKeyPress={(e) => e.key === 'Enter' && updateHostNameInStore()}
+                      className="name-input name-input-reduced"
+                      style={{ boxShadow: hostColor ? `0 0 8px 2px ${hostColor}` : 'none' }}
+                    />
+                    <button
+                      onClick={(event) => {
+                        setFlagDropdownAnchorEl(event.currentTarget);
+                        setIsFlagDropdownOpen(true);
+                        setEditingPlayerFlagFor('host');
+                        setSearchTerm('');
+                      }}
+                      className="flag-button"
+                    >
+                      🌍
+                    </button>
+                    {hostFlag && <img src={`/assets/countryflags/${hostFlag}.png`} alt={hostFlag} className="selected-flag-image" />}
+                  </div>
                 </div>
                 <PlayerColorPicker currentPlayerColor={hostColor} onSetColor={setHostColor} />
               </div>
@@ -347,24 +481,99 @@ const TechnicalInterface = () => {
                 <button onClick={() => incrementScore('guest')} className="score-button button-like">+</button>
               </div>
               <div className="player-name-input-group">
-                <div style={{ width: '100%', marginBottom: '8px' }}> {/* Removed border, bg, padding, radius, transition */}
+                <div style={{ width: '100%', marginBottom: '8px' }}>
                   <label htmlFor="guestNameInput">Player 2 (Guest)</label>
-                  <input
-                    id="guestNameInput"
-                    type="text"
-                    value={editableGuestName}
-                    onChange={handleGuestNameChange}
-                    onBlur={updateGuestNameInStore}
-                    onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
-                    className="name-input"
-                    style={{ boxShadow: guestColor ? `0 0 8px 2px ${guestColor}` : 'none' }}
-                  />
+                  <div className="player-input-flag-group">
+                    {guestFlag && <img src={`/assets/countryflags/${guestFlag}.png`} alt={guestFlag} className="selected-flag-image" />}
+                    <button
+                      onClick={(event) => {
+                        setFlagDropdownAnchorEl(event.currentTarget);
+                        setIsFlagDropdownOpen(true);
+                        setEditingPlayerFlagFor('guest');
+                        setSearchTerm('');
+                      }}
+                      className="flag-button"
+                    >
+                      🌍
+                    </button>
+                    <input
+                      id="guestNameInput"
+                      type="text"
+                      value={editableGuestName}
+                      onChange={handleGuestNameChange}
+                      onBlur={updateGuestNameInStore}
+                      onKeyPress={(e) => e.key === 'Enter' && updateGuestNameInStore()}
+                      className="name-input name-input-reduced"
+                      style={{ boxShadow: guestColor ? `0 0 8px 2px ${guestColor}` : 'none' }}
+                    />
+                  </div>
                 </div>
                 <PlayerColorPicker currentPlayerColor={guestColor} onSetColor={setGuestColor} />
               </div>
            </div>
         </div>
       </div>
+
+      {/* Flag Dropdown Structure */}
+      {isFlagDropdownOpen && (
+        <div className="flag-dropdown" style={dropdownStyle} id="flagDropdownContent" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()} // Prevent closing dropdown when clicking input
+            className="flag-dropdown-search-input"
+            autoFocus
+          />
+          <div
+            className="flag-dropdown-item"
+            onClick={() => {
+              if (editingPlayerFlagFor === 'host') setHostFlag(null);
+              else if (editingPlayerFlagFor === 'guest') setGuestFlag(null);
+              setIsFlagDropdownOpen(false);
+              setEditingPlayerFlagFor(null);
+            }}
+          >
+            None
+          </div>
+          {filteredFlags.map(code => (
+            <div
+              key={code}
+              className="flag-dropdown-item"
+              onClick={() => {
+                const currentNickname = editingPlayerFlagFor === 'host' ? hostName : guestName;
+                if (editingPlayerFlagFor === 'host') setHostFlag(code);
+                else if (editingPlayerFlagFor === 'guest') setGuestFlag(code);
+
+                if (!playerCountryMap.has(currentNickname) && code !== null) { // code !== null implies a flag is chosen
+                  console.log(`TODO: Update countryplayers.txt for new player ${currentNickname} with flag ${code}`);
+                  // const newMap = new Map(playerCountryMap);
+                  // newMap.set(currentNickname, code);
+                  // setPlayerCountryMap(newMap); // Optional: Update local map for immediate UI feedback
+                } else if (playerCountryMap.get(currentNickname) !== code && code !== null) {
+                   console.log(`TODO: Update countryplayers.txt for existing player ${currentNickname} from ${playerCountryMap.get(currentNickname)} to ${code}`);
+                   // const newMap = new Map(playerCountryMap);
+                   // newMap.set(currentNickname, code);
+                   // setPlayerCountryMap(newMap); // Optional: Update local map
+                } else if (code === null && playerCountryMap.has(currentNickname)){
+                  // If 'None' is selected and there was a mapping, this implies a removal or change to no flag.
+                  console.log(`TODO: Update countryplayers.txt for player ${currentNickname} to remove flag or set as 'None'. Current mapping was ${playerCountryMap.get(currentNickname)}.`);
+                  // const newMap = new Map(playerCountryMap);
+                  // newMap.delete(currentNickname); // Or set to a special value like 'none' if preferred
+                  // setPlayerCountryMap(newMap);
+                }
+
+                setIsFlagDropdownOpen(false);
+                setEditingPlayerFlagFor(null);
+              }}
+            >
+              <img src={`/assets/countryflags/${code}.png`} alt={code} /* Style via CSS: .flag-dropdown-item img */ />
+              {code.toUpperCase()}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="drafts-section-grid">
         <div className="card draft-display-card civ-draft-card">
