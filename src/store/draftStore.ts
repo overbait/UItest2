@@ -1176,8 +1176,7 @@ const useDraftStore = create<DraftStore>()(
   )
 );
 
-// Note: currentSocket is already defined at the bottom by previous step, this is fine.
-// We are adding the WebSocket actions within the store definition above.
+let currentSocket: WebSocket | null = null;
 
 // @ts-ignore
 useDraftStore.subscribe(
