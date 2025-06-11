@@ -618,7 +618,7 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
                 <div style={{ width: '100%', marginBottom: '8px' }}>
                   <label htmlFor="guestNameInput">Player 2 (Guest)</label>
                   <div className="player-input-flag-group">
-                    {guestFlag && <img src={`/assets/countryflags/${guestFlag}.png`} alt={guestFlag} className="selected-flag-image" />}
+                    {/* Removed separate selected-flag-image img tag for guest - it's now inside the button */}
                     <button
                       onClick={(event) => {
                         setFlagDropdownAnchorEl(event.currentTarget);
@@ -629,12 +629,11 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
                       className="button-like flag-button"
                     >
                       {guestFlag ? (
-                        <img src={`/assets/countryflags/${guestFlag}.png`} alt={guestFlag.toUpperCase()} /* Style via CSS */ />
+                        <img src={`/assets/countryflags/${guestFlag}.png`} alt={guestFlag.toUpperCase()} />
                       ) : (
                         '🌍'
                       )}
                     </button>
-                    {/* Removed separate selected-flag-image img tag */}
                     <input
                       id="guestNameInput"
                       type="text"
