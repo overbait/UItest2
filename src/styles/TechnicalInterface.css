@@ -400,17 +400,34 @@
   align-items: center;
   gap: 8px; /* Adjust as needed */
 }
+
 .flag-button {
-  padding: 5px 8px; /* basic button styling */
-  font-size: 0.9em; /* Ensure text (emoji) is not too large */
-  line-height: 1; /* Adjust for vertical centering if needed */
-  /* Additional basic button styling can be inherited or added */
+  padding: 4px; /* Slightly adjust padding if needed, to give image a bit of space OR rely on image's own transparency */
+  min-width: 38px;  /* Adjust if necessary to fit common flag aspect ratios well + padding */
+  height: 30px;   /* Explicit height for the button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em; /* Slightly adjust emoji size if padding changes affect it */
+  line-height: 1; /* Helps center emoji vertically if it's text-based */
+  box-sizing: border-box;
+  /* other .button-like styles (border, background, etc.) should be inherited */
+  overflow: hidden; /* Ensure image does not bleed out if somehow max-width/height fails */
 }
+
+.flag-button img {
+  max-width: 100%;   /* Fill available width within padding */
+  max-height: 100%;  /* Fill available height within padding */
+  object-fit: contain; /* Maintain aspect ratio, fit within element */
+  display: block;      /* Can help prevent extra space below image */
+}
+
+/* .selected-flag-image is no longer used as the image is inside the button */
 .selected-flag-image {
-  width: 24px; /* Adjust as needed */
-  height: 24px; /* Adjust as needed */
-  border: 1px solid #555;
-  object-fit: cover; /* Ensures the image covers the area without distortion */
+  /* width: 24px; */
+  /* height: 24px; */
+  /* border: 1px solid #555; */
+  /* object-fit: cover; */
 }
 
 /* Flag Dropdown Styles */
