@@ -94,6 +94,7 @@ export interface CombinedDraftState {
   mapDraftStatus: ConnectionStatus; mapDraftError: string | null; isLoadingMapDraft: boolean;
   socketStatus: ConnectionStatus;
   socketError: string | null;
+  socketDraftType: 'civ' | 'map' | null;
   savedPresets: SavedPreset[]; activePresetId: string | null;
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
   hostColor?: string | null;
