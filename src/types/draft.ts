@@ -12,20 +12,6 @@ export interface SavedPreset {
   boxSeriesGames: BoxSeriesGame[];
   hostColor?: string | null;
   guestColor?: string | null;
-  hostFlag?: string | null;
-  guestFlag?: string | null;
-  timestamp: number;
-  // Added missing draft event arrays
-  civPicksHost: string[];
-  civBansHost: string[];
-  civPicksGuest: string[];
-  civBansGuest: string[];
-  mapPicksHost: string[];
-  mapBansHost: string[];
-  mapPicksGuest: string[];
-  mapBansGuest: string[];
-  mapPicksGlobal: string[];
-  mapBansGlobal: string[];
 }
 
 export interface BoxSeriesGame {
@@ -95,8 +81,8 @@ export interface StudioElement {
 export interface SavedStudioLayout {
   id: string;
   name: string;
-  elements: StudioElement[]; // Reverted to match usage in draftStore save/load
-  timestamp: number; // Added as it's used in save/update logic
+  canvases: StudioCanvas[]; // Replaces 'layout'
+  activeCanvasId: string | null; // Stores the last active canvas ID for this layout
 }
 
 export interface CombinedDraftState {
@@ -113,7 +99,7 @@ export interface CombinedDraftState {
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null; boxSeriesGames: BoxSeriesGame[];
   hostColor?: string | null;
   guestColor?: string | null;
-  aoe2cmRawDraftOptions?: Array<{ id: string; name: string; }> | undefined; // Simplified type
+  aoe2cmRawDraftOptions?: Aoe2cmRawDraftData['preset']['draftOptions'];
   // studioLayout: StudioElement[]; // This line is removed
   currentCanvases: StudioCanvas[];
   activeCanvasId: string | null;
@@ -122,8 +108,6 @@ export interface CombinedDraftState {
   activeStudioLayoutId: string | null;
   layoutLastUpdated?: number;
   draftIsLikelyFinished?: boolean;
-  hostFlag?: string | null;
-  guestFlag?: string | null;
 }
 
 // Define StudioCanvas type
