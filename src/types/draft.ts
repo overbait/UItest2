@@ -107,6 +107,7 @@ export interface CombinedDraftState {
   selectedElementId: string | null; // This should already exist
   activeStudioLayoutId: string | null;
   layoutLastUpdated?: number;
+  draftIsLikelyFinished?: boolean;
 }
 
 // Define StudioCanvas type
