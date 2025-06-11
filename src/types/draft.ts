@@ -12,8 +12,6 @@ export interface SavedPreset {
   boxSeriesGames: BoxSeriesGame[];
   hostColor?: string | null;
   guestColor?: string | null;
-  hostFlag?: string | null;
-  guestFlag?: string | null;
 }
 
 export interface BoxSeriesGame {

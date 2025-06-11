@@ -77,26 +77,8 @@ const initialPlayerNameGuest = 'Player 2';
 const initialDefaultCanvasId = `default-${Date.now()}`;
 const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
 
-// Logic to read initial flags from localStorage
-let initialHostFlagFromStorage: string | null = null;
-try {
-  const storedLastHostFlag = localStorage.getItem('lastHostFlag');
-  if (storedLastHostFlag !== null) {
-    initialHostFlagFromStorage = storedLastHostFlag === '__NONE__' ? null : storedLastHostFlag;
-  }
-} catch (e) {
-  console.warn("Could not read lastHostFlag from localStorage", e);
-}
-
-let initialGuestFlagFromStorage: string | null = null;
-try {
-  const storedLastGuestFlag = localStorage.getItem('lastGuestFlag');
-  if (storedLastGuestFlag !== null) {
-    initialGuestFlagFromStorage = storedLastGuestFlag === '__NONE__' ? null : storedLastGuestFlag;
-  }
-} catch (e) {
-  console.warn("Could not read lastGuestFlag from localStorage", e);
-}
+// Initial flags are now derived in TechnicalInterface.tsx based on playerFlagMappings in localStorage.
+// The store's hostFlag/guestFlag will be null initially, then populated.
 
 const initialCombinedState: CombinedDraftState = {
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
@@ -114,8 +96,8 @@ const initialCombinedState: CombinedDraftState = {
   layoutLastUpdated: null,
   hostColor: null,
   guestColor: null,
-  hostFlag: initialHostFlagFromStorage,
-  guestFlag: initialGuestFlagFromStorage,
+  hostFlag: null, // Initialize to null
+  guestFlag: null, // Initialize to null
 };
 
 const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
@@ -241,12 +223,7 @@ const useDraftStore = create<DraftStore>()(
       (set, get) => ({
         ...initialCombinedState,
         _resetCurrentSessionState: () => {
-          try {
-            localStorage.removeItem('lastHostFlag');
-            localStorage.removeItem('lastGuestFlag');
-          } catch (e) {
-            console.warn("Could not remove flags from localStorage during reset", e);
-          }
+          // Removed localStorage.removeItem for lastHostFlag and lastGuestFlag
           const newDefaultCanvasId = `default-rst-${Date.now()}`;
           const defaultCanvases: StudioCanvas[] = [{ id: newDefaultCanvasId, name: 'Default', layout: [] }];
           const currentSavedPresets = get().savedPresets; // Keep these
@@ -277,7 +254,7 @@ const useDraftStore = create<DraftStore>()(
             savedStudioLayouts: currentSavedStudioLayouts,
           });
         },
-        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor, hostFlag, guestFlag } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor, hostFlag, guestFlag }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
+        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
           if (draftType === 'civ') set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null });
@@ -431,22 +408,14 @@ const useDraftStore = create<DraftStore>()(
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
         setHostColor: (color) => { set({ hostColor: color }); get()._updateActivePresetIfNeeded(); },
         setGuestColor: (color) => { set({ guestColor: color }); get()._updateActivePresetIfNeeded(); },
-        setHostFlag: (flag) => {
+        setHostFlag: (flag: string | null) => {
           set({ hostFlag: flag });
-          try {
-            localStorage.setItem('lastHostFlag', flag === null ? '__NONE__' : flag);
-          } catch (e) {
-            console.warn("Could not save lastHostFlag to localStorage", e);
-          }
+          // localStorage.setItem removed
           get()._updateActivePresetIfNeeded();
         },
-        setGuestFlag: (flag) => {
+        setGuestFlag: (flag: string | null) => {
           set({ guestFlag: flag });
-          try {
-            localStorage.setItem('lastGuestFlag', flag === null ? '__NONE__' : flag);
-          } catch (e) {
-            console.warn("Could not save lastGuestFlag to localStorage", e);
-          }
+          // localStorage.setItem removed
           get()._updateActivePresetIfNeeded();
         },
         switchPlayerSides: () => {
@@ -506,8 +475,8 @@ const useDraftStore = create<DraftStore>()(
         },
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
-        saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor, hostFlag, guestFlag } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor, hostFlag, guestFlag }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
-        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, hostFlag: preset.hostFlag || null, guestFlag: preset.guestFlag || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
+        saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
+        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, /* hostFlag and guestFlag removed */ civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
         setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
@@ -801,9 +770,7 @@ const useDraftStore = create<DraftStore>()(
             activePresetId: state.activePresetId,
             hostColor: state.hostColor,
             guestColor: state.guestColor,
-            hostFlag: state.hostFlag,
-            guestFlag: state.guestFlag,
-
+            // hostFlag and guestFlag removed from partialize
             currentCanvases: state.currentCanvases,
             activeCanvasId: state.activeCanvasId,
             savedStudioLayouts: state.savedStudioLayouts,
