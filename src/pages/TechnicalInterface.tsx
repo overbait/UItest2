@@ -113,39 +113,37 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
   // Effect to load mappings and available flags on mount
   useEffect(() => {
     // Load countryplayers.txt
-    const loadMappings = async () => {
-      try {
-        const response = await fetch('/assets/countryflags/countryplayers.txt');
+    fetch(COUNTRY_PLAYERS_FILE_PATH)
+      .then(response => {
         if (!response.ok) {
-          console.error('Failed to fetch countryplayers.txt:', response.statusText);
-          // Potentially set an error state here or use a default map
-          return;
+          if (response.status === 404) {
+            console.warn(`[FlagInit] ${COUNTRY_PLAYERS_FILE_PATH} not found. Initializing with empty map.`);
+            return ""; // Treat as empty
+          }
+          throw new Error(`Failed to fetch ${COUNTRY_PLAYERS_FILE_PATH}: ${response.statusText}`);
         }
-        const text = await response.text();
-        const newPlayerCountryMap = new Map<string, string>();
-        text.split('\n').forEach(line => {
-          line = line.trim();
-          if (line) {
-            const parts = line.split('_');
-            if (parts.length >= 2) {
-              const nickname = parts.slice(0, -1).join('_');
-              const countryCode = parts[parts.length - 1].toLowerCase();
-              if (nickname && countryCode) {
-                newPlayerCountryMap.set(nickname, countryCode);
-              }
-            } else {
-              console.warn(`Skipping malformed line in countryplayers.txt: ${line}`);
+        return response.text();
+      })
+      .then(text => {
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        const newMap = new Map<string, string>();
+        lines.forEach(line => {
+          const parts = line.split('_');
+          if (parts.length >= 2) {
+            const cCode = parts.pop()!;
+            const nick = parts.join('_');
+            if (nick.trim() !== '') {
+              newMap.set(nick, cCode.toLowerCase());
             }
           }
         });
-        setPlayerCountryMap(newPlayerCountryMap);
-        // console.log('Player country map loaded:', newPlayerCountryMap);
-      } catch (error) {
-        console.error('Error loading or parsing countryplayers.txt:', error);
-      }
-    };
-
-    loadMappings();
+        setPlayerCountryMap(newMap);
+        console.log('[FlagInit] Initial playerCountryMap loaded:', newMap);
+      })
+      .catch(error => {
+        console.error(`[FlagInit] Error loading ${COUNTRY_PLAYERS_FILE_PATH}. Initializing with empty map.`, error);
+        setPlayerCountryMap(new Map<string, string>()); // Ensure map is initialized on error
+      });
 
     // Load available flags
     const loadFlags = async () => {
@@ -228,18 +226,15 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
   // console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
 
   const handleFlagSelection = async (selectedCode: string | null) => {
-    console.log('[FlagDebug] handleFlagSelection called with:', selectedCode);
-    if (!editingPlayerFlagFor) {
-      console.log('[FlagDebug] No player context for editing (editingPlayerFlagFor is null). Aborting.');
-      return;
-    }
+    // Keep initial logs for context
+    console.log('[FlagPersistence] handleFlagSelection called. Player context:', editingPlayerFlagFor, 'Selected code:', selectedCode);
+    if (!editingPlayerFlagFor) return;
 
     const currentNickname = editingPlayerFlagFor === 'host' ? hostName : guestName;
-    console.log('[FlagDebug] currentNickname:', currentNickname, 'selectedCode:', selectedCode);
+    console.log('[FlagPersistence] Current Nickname:', currentNickname);
 
     if (!currentNickname || currentNickname.trim() === '') {
-      console.log('[FlagDebug] Nickname is empty. Aborting file operations.');
-      // Still update store and close dropdown for UI feedback
+      console.log('[FlagPersistence] Nickname is empty. Skipping persistence logic.');
       if (editingPlayerFlagFor === 'host') setHostFlag(selectedCode);
       else if (editingPlayerFlagFor === 'guest') setGuestFlag(selectedCode);
       setIsFlagDropdownOpen(false);
@@ -250,88 +245,92 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
     try {
       let fileContent = "";
       try {
-        console.log(`[FlagDebug] Attempting to read ${COUNTRY_PLAYERS_FILE_PATH}`);
-        fileContent = await (window as any).readFile(COUNTRY_PLAYERS_FILE_PATH);
-        console.log(`[FlagDebug] ${COUNTRY_PLAYERS_FILE_PATH} content:`, JSON.stringify(fileContent));
-      } catch (readError: any) {
-        if (readError && readError.message && readError.message.includes("File not found")) {
-          console.warn(`[FlagDebug] ${COUNTRY_PLAYERS_FILE_PATH} not found. Assuming empty.`);
+        // Fetch for reading within handleFlagSelection to get potentially updated state if multiple changes happen fast,
+        // though for this app's purpose, using the playerCountryMap state might be sufficient.
+        // For robustness against external changes to the file during session, fetching is better.
+        const response = await fetch(COUNTRY_PLAYERS_FILE_PATH);
+        if (!response.ok) {
+          if (response.status === 404) fileContent = ""; // File not found, treat as empty
+          else throw new Error(`Network response was not ok for ${COUNTRY_PLAYERS_FILE_PATH}`);
         } else {
-          console.warn(`[FlagDebug] Could not read ${COUNTRY_PLAYERS_FILE_PATH} or it's empty. Assuming empty. Error:`, readError);
+          fileContent = await response.text();
         }
-        fileContent = ""; // Ensure fileContent is empty string on error or if not found
+      } catch (readError) {
+        console.warn(`[FlagPersistence] Could not read ${COUNTRY_PLAYERS_FILE_PATH} during selection. Using current in-memory map or assuming empty. Error:`, readError);
+        // Fallback: use existing playerCountryMap state or assume empty if it also failed.
+        // This part is tricky without true file sync. For simplicity, we'll reconstruct from current state if fetch fails here.
+        // Or, more simply, if fetch fails, we can just use the existing `playerCountryMap` state directly.
+        // For this iteration, let's assume if fetch fails, we operate on a temporary empty map to avoid complex merge logic,
+        // meaning only the current change will be considered for the "intended content" log.
+        // A better approach might be to pass playerCountryMap into this function or ensure it's always up-to-date.
+        // Given the constraint, let's proceed with a fresh parse attempt or empty.
+         fileContent = ""; // Default to empty if fetch fails here to avoid using stale data for "intended write"
       }
 
+      console.log('[FlagPersistence] File content for processing:', JSON.stringify(fileContent.substring(0,100)) + (fileContent.length > 100 ? "..." : ""));
+
+
       const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-      const currentFileMap = new Map<string, string>();
+      const currentFileMap = new Map<string, string>(); // This map represents the state of the file *before* this change
       lines.forEach(line => {
         const parts = line.split('_');
         if (parts.length >= 2) {
           const cCode = parts.pop()!;
           const nick = parts.join('_');
-          if (nick.trim() !== '') { // Ensure nickname from file is not empty
+          if (nick.trim() !== '') {
             currentFileMap.set(nick, cCode.toLowerCase());
           }
         }
       });
-      console.log('[FlagDebug] Parsed currentFileMap:', currentFileMap);
+      // console.log('[FlagPersistence] Parsed currentFileMap (from file):', currentFileMap); // Can be verbose
+
+      // Create a mutable copy for this operation, based on the current in-memory playerCountryMap
+      // This is crucial: we want to reflect what *would* happen if we could save.
+      // So, the base for calculation should be the most up-to-date known state.
+      const workingMap = new Map(playerCountryMap);
+      const existingCodeInMemory = workingMap.get(currentNickname); // Check against in-memory version for change detection
+      console.log(`[FlagPersistence] In-memory code for ${currentNickname}: ${existingCodeInMemory}`);
+
 
       let mappingChanged = false;
-      const existingCodeInFile = currentFileMap.get(currentNickname);
-      console.log('[FlagDebug] existingCodeInFile for', currentNickname, ':', existingCodeInFile);
 
       if (selectedCode === null) { // "None" selected
-        console.log('[FlagDebug] "None" selected.');
-        if (currentFileMap.has(currentNickname)) {
-          console.log('[FlagDebug] Nickname exists in map. Deleting.');
-          currentFileMap.delete(currentNickname);
+        if (workingMap.has(currentNickname)) {
+          workingMap.delete(currentNickname);
           mappingChanged = true;
-        } else {
-          console.log('[FlagDebug] Nickname does not exist in map. No change for "None".');
+          console.log(`[FlagPersistence] '${currentNickname}' removed from working map.`);
         }
       } else { // Specific flag selected
-        console.log('[FlagDebug] Specific flag selected:', selectedCode);
-        const BNicknameInMap = currentFileMap.has(currentNickname); // Store boolean result
-        const BExistingCodeMatchesSelected = existingCodeInFile === selectedCode; // Store boolean result
-        console.log(`[FlagDebug] Condition check: currentFileMap.has('${currentNickname}') ->`, BNicknameInMap);
-        console.log(`[FlagDebug] Condition check: existingCodeInFile ('${existingCodeInFile}') !== selectedCode ('${selectedCode}') ->`, !BExistingCodeMatchesSelected);
-
-        if (!BNicknameInMap || !BExistingCodeMatchesSelected) {
-        // if (existingCodeInFile !== selectedCode) { // Original logic - might be problematic if existingCodeInFile is undefined
-          console.log('[FlagDebug] Nickname is new or code is different. Setting new code.');
-          currentFileMap.set(currentNickname, selectedCode);
+        if (existingCodeInMemory !== selectedCode) {
+          workingMap.set(currentNickname, selectedCode);
           mappingChanged = true;
-        } else {
-          console.log('[FlagDebug] Nickname exists and code is the same. No change.');
+          console.log(`[FlagPersistence] '${currentNickname}' updated to '${selectedCode}' in working map.`);
         }
       }
-      console.log('[FlagDebug] mappingChanged:', mappingChanged);
+
+      console.log('[FlagPersistence] mappingChanged:', mappingChanged);
 
       if (mappingChanged) {
-        const newFileLines = Array.from(currentFileMap.entries()).map(([nick, cCode]) => `${nick}_${cCode}`);
+        // Update the React state for playerCountryMap to reflect the change for the current session
+        setPlayerCountryMap(new Map(workingMap));
+        console.log('[FlagPersistence] In-memory playerCountryMap updated:', workingMap);
+
+        const newFileLines = Array.from(workingMap.entries()).map(([nick, cCode]) => `${nick}_${cCode}`);
         const newFileContent = newFileLines.join('\n') + (newFileLines.length > 0 ? '\n' : '');
-        console.log(`[FlagDebug] Attempting to write to ${COUNTRY_PLAYERS_FILE_PATH}. Content:`, JSON.stringify(newFileContent));
-        try {
-          await (window as any).writeFile(COUNTRY_PLAYERS_FILE_PATH, newFileContent);
-          console.log(`[FlagDebug] Successfully wrote to ${COUNTRY_PLAYERS_FILE_PATH}`);
-          setPlayerCountryMap(new Map(currentFileMap));
-        } catch (writeError) {
-          console.error(`[FlagDebug] Error writing to ${COUNTRY_PLAYERS_FILE_PATH}:`, writeError);
-        }
+
+        console.log("[FlagPersistence] Intended content for countryplayers.txt (due to environment limitations, this is not written to file but reflects what would be saved):\n" + newFileContent);
+        // THE (window as any).writeFile CALL IS NOW REMOVED
       }
 
     } catch (error) {
-      console.error(`[FlagDebug] General error in handleFlagSelection for file ops:`, error);
+      console.error(`[FlagPersistence] General error in handleFlagSelection:`, error);
     }
 
-    // Update Zustand store (this should happen regardless of file write success for UI responsiveness)
-    console.log('[FlagDebug] Updating Zustand store for player:', editingPlayerFlagFor, 'with flag:', selectedCode);
     if (editingPlayerFlagFor === 'host') setHostFlag(selectedCode);
     else if (editingPlayerFlagFor === 'guest') setGuestFlag(selectedCode);
 
     setIsFlagDropdownOpen(false);
     setEditingPlayerFlagFor(null);
-    console.log('[FlagDebug] handleFlagSelection finished.');
   };
 
   useEffect(() => {
