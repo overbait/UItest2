@@ -97,6 +97,7 @@ const TechnicalInterface = () => {
   const [editingPlayerFlagFor, setEditingPlayerFlagFor] = useState<'host' | 'guest' | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
+const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
 
   useEffect(() => {
     (window as any).IS_TECHNICAL_INTERFACE = true;
@@ -146,10 +147,57 @@ const TechnicalInterface = () => {
 
     loadMappings();
 
-    // Placeholder for available flags - dynamic listing is complex client-side
-    // This will be refined in a later step (flag selection logic)
-    setAvailableFlags(['de', 'fr', 'us', 'gb', 'kr', 'ru', 'es', 'cn', 'jp', 'ca', 'br', 'au', 'it', 'se', 'no', 'fi', 'dk', 'pl', 'nl', 'ua']);
-    // console.log('Available flags (placeholder) set.');
+    // Load available flags
+    const loadFlags = async () => {
+      try {
+        // This is a placeholder for how the subtask might get directory listing.
+        // The actual mechanism depends on the subtask execution environment.
+        // If this mechanism isn't available, the catch block will use the manual list.
+        // Assuming listFiles is globally available or polyfilled by the subtask environment
+        const files = await (window as any).listFiles('assets/countryflags/');
+        const flagCodes = files
+          .filter((file: string) => file.endsWith('.png') && file !== '.gitkeep' && file !== 'countryplayers.txt')
+          .map((file: string) => file.replace('.png', ''))
+          .sort();
+        if (flagCodes.length > 0) {
+          setAvailableFlags(flagCodes);
+          // console.log('Dynamically loaded available flags:', flagCodes);
+        } else {
+          throw new Error("No flags found via dynamic listing or empty list returned.");
+        }
+      } catch (error) {
+        console.warn("Dynamic flag listing failed or not available, using manual fallback list. Error:", error);
+        const manualFlagFiles = [
+          "ad.png", "ae.png", "af.png", "ag.png", "ai.png", "al.png", "am.png", "ao.png", "aq.png", "ar.png", "as.png", "at.png", "au.png", "aw.png", "ax.png", "az.png",
+          "ba.png", "bb.png", "bd.png", "be.png", "bf.png", "bg.png", "bh.png", "bi.png", "bj.png", "bl.png", "bm.png", "bn.png", "bo.png", "bq.png", "br.png", "bs.png", "bt.png", "bv.png", "bw.png", "by.png", "bz.png",
+          "ca.png", "cc.png", "cd.png", "cf.png", "cg.png", "ch.png", "ci.png", "ck.png", "cl.png", "cm.png", "cn.png", "co.png", "cp.png", "cr.png", "cs.png", "cu.png", "cv.png", "cw.png", "cx.png", "cy.png", "cz.png",
+          "de.png", "dj.png", "dk.png", "dm.png", "do.png", "dz.png", "ec.png", "ee.png", "eg.png", "eh.png", "er.png", "es.png", "et.png", "eu.png",
+          "fi.png", "fj.png", "fk.png", "fl.png", "fm.png", "fo.png", "fr.png",
+          "ga.png", "gb.png", "gb-eng.png", "gb-nir.png", "gb-sct.png", "gb-wls.png", "gd.png", "ge.png", "gf.png", "gg.png", "gh.png", "gi.png", "gl.png", "gm.png", "gn.png", "go.png", "gp.png", "gq.png", "gr.png", "gs.png", "gt.png", "gu.png", "gw.png", "gy.png",
+          "hk.png", "hm.png", "hn.png", "hr.png", "ht.png", "hu.png",
+          "ic.png", "id.png", "ie.png", "il.png", "im.png", "in.png", "io.png", "iq.png", "ir.png", "is.png", "it.png",
+          "je.png", "jm.png", "jn.png", "jo.png", "jp.png",
+          "ke.png", "kg.png", "kh.png", "ki.png", "km.png", "kn.png", "kp.png", "kr.png", "kw.png", "ky.png", "kz.png",
+          "la.png", "lb.png", "lc.png", "li.png", "lk.png", "lr.png", "ls.png", "lt.png", "lu.png", "lv.png", "ly.png",
+          "ma.png", "mc.png", "md.png", "me.png", "mf.png", "mg.png", "mh.png", "mi.png", "mk.png", "ml.png", "mm.png", "mn.png", "mo.png", "mp.png", "mq.png", "mr.png", "ms.png", "mt.png", "mu.png", "mv.png", "mw.png", "mx.png", "my.png", "mz.png",
+          "na.png", "nc.png", "ne.png", "nf.png", "ng.png", "ni.png", "nl.png", "no.png", "np.png", "nr.png", "nu.png", "nz.png",
+          "om.png", "pa.png", "pe.png", "pf.png", "pg.png", "ph.png", "pk.png", "pl.png", "pm.png", "pn.png", "pr.png", "ps.png", "pt.png", "pw.png", "py.png", "qa.png",
+          "re.png", "ro.png", "rs.png", "ru.png", "rw.png",
+          "sa.png", "sb.png", "sc.png", "sd.png", "se.png", "sf.png", "sg.png", "sh.png", "si.png", "sj.png", "sk.png", "sl.png", "sm.png", "sn.png", "so.png", "sr.png", "ss.png", "st.png", "sv.png", "sx.png", "sy.png", "sz.png",
+          "ta.png", "tc.png", "td.png", "tf.png", "tg.png", "th.png", "tj.png", "tk.png", "tl.png", "tm.png", "tn.png", "to.png", "tr.png", "tt.png", "tv.png", "tw.png", "tz.png",
+          "ua.png", "ug.png", "um.png", "un.png", "us.png", "uy.png", "uz.png",
+          "va.png", "vc.png", "ve.png", "vg.png", "vi.png", "vn.png", "vu.png",
+          "wf.png", "ws.png",
+          "xk.png",
+          "ye.png", "yt.png",
+          "za.png", "zm.png", "zw.png"
+        ];
+        const flagCodes = manualFlagFiles.map(file => file.replace('.png', '')).sort();
+        setAvailableFlags(flagCodes);
+        // console.log('Manually set available flags due to dynamic listing failure or placeholder.');
+      }
+    };
+    loadFlags();
 
   }, []); // Empty dependency array ensures this runs once on mount
 
@@ -178,6 +226,88 @@ const TechnicalInterface = () => {
 
   // Logging for savedPresets and activePresetId
   // console.log('LOGAOEINFO: [TechnicalInterface Render] savedPresets from store:', savedPresets, 'Active Preset ID:', activePresetId);
+
+  const handleFlagSelection = async (selectedCode: string | null) => {
+    if (!editingPlayerFlagFor) return;
+
+    const currentNickname = editingPlayerFlagFor === 'host' ? hostName : guestName;
+
+    if (!currentNickname) {
+      console.warn("Cannot update flag mapping: current nickname is empty.");
+      // Update Zustand store (this should happen regardless of file write success for UI responsiveness)
+      if (editingPlayerFlagFor === 'host') setHostFlag(selectedCode);
+      else if (editingPlayerFlagFor === 'guest') setGuestFlag(selectedCode);
+      setIsFlagDropdownOpen(false);
+      setEditingPlayerFlagFor(null);
+      return;
+    }
+
+    try {
+      let fileContent = "";
+      try {
+        // Assuming readFile is provided by the environment
+        fileContent = await (window as any).readFile(COUNTRY_PLAYERS_FILE_PATH);
+      } catch (readError: any) {
+        // If file doesn't exist or is empty, treat as empty, but log if it's not a typical 'file not found'
+        if (readError.message?.includes('File not found') || readError.code === 'ENOENT') {
+          console.warn(`${COUNTRY_PLAYERS_FILE_PATH} not found or empty. Will create if needed.`);
+        } else {
+          console.warn(`Could not read ${COUNTRY_PLAYERS_FILE_PATH}. Assuming empty. Error:`, readError);
+        }
+        fileContent = "";
+      }
+
+      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+      const currentFileMap = new Map<string, string>();
+      lines.forEach(line => {
+        const parts = line.split('_');
+        if (parts.length >= 2) {
+          const cCode = parts.pop()!; // Assert non-null with ! as parts.length >= 2
+          const nick = parts.join('_');
+          if (nick) { // Ensure nickname is not empty
+             currentFileMap.set(nick, cCode.toLowerCase());
+          }
+        }
+      });
+
+      let mappingChanged = false;
+      const existingCodeInFile = currentFileMap.get(currentNickname);
+
+      if (selectedCode === null) { // "None" selected
+        if (currentFileMap.has(currentNickname)) {
+          currentFileMap.delete(currentNickname);
+          mappingChanged = true;
+        }
+      } else { // Specific flag selected
+        if (existingCodeInFile !== selectedCode) {
+          currentFileMap.set(currentNickname, selectedCode);
+          mappingChanged = true;
+        }
+      }
+
+      if (mappingChanged) {
+        const newFileLines = Array.from(currentFileMap.entries()).map(([nick, cCode]) => `${nick}_${cCode}`);
+        // Add a trailing newline only if there's content, to prevent multiple newlines for an empty file
+        const newFileContent = newFileLines.length > 0 ? newFileLines.join('\n') + '\n' : '';
+
+        // Assuming writeFile is provided by the environment
+        await (window as any).writeFile(COUNTRY_PLAYERS_FILE_PATH, newFileContent);
+        console.log(`${COUNTRY_PLAYERS_FILE_PATH} updated.`);
+        setPlayerCountryMap(new Map(currentFileMap)); // Update local state
+      }
+
+    } catch (error) {
+      console.error(`Error updating ${COUNTRY_PLAYERS_FILE_PATH}:`, error);
+      // Optionally, inform the user via UI that saving the mapping failed
+    }
+
+    // Update Zustand store (this should happen regardless of file write success for UI responsiveness)
+    if (editingPlayerFlagFor === 'host') setHostFlag(selectedCode);
+    else if (editingPlayerFlagFor === 'guest') setGuestFlag(selectedCode);
+
+    setIsFlagDropdownOpen(false);
+    setEditingPlayerFlagFor(null);
+  };
 
   useEffect(() => {
     if (activePresetId && boxSeriesGames && boxSeriesGames.length > 0) {
@@ -452,11 +582,15 @@ const TechnicalInterface = () => {
                         setEditingPlayerFlagFor('host');
                         setSearchTerm('');
                       }}
-                      className="flag-button"
+                      className="button-like flag-button"
                     >
-                      🌍
+                      {hostFlag ? (
+                        <img src={`/assets/countryflags/${hostFlag}.png`} alt={hostFlag.toUpperCase()} /* Style via CSS */ />
+                      ) : (
+                        '🌍'
+                      )}
                     </button>
-                    {hostFlag && <img src={`/assets/countryflags/${hostFlag}.png`} alt={hostFlag} className="selected-flag-image" />}
+                    {/* Removed separate selected-flag-image img tag */}
                   </div>
                 </div>
                 <PlayerColorPicker currentPlayerColor={hostColor} onSetColor={setHostColor} />
@@ -492,10 +626,15 @@ const TechnicalInterface = () => {
                         setEditingPlayerFlagFor('guest');
                         setSearchTerm('');
                       }}
-                      className="flag-button"
+                      className="button-like flag-button"
                     >
-                      🌍
+                      {guestFlag ? (
+                        <img src={`/assets/countryflags/${guestFlag}.png`} alt={guestFlag.toUpperCase()} /* Style via CSS */ />
+                      ) : (
+                        '🌍'
+                      )}
                     </button>
+                    {/* Removed separate selected-flag-image img tag */}
                     <input
                       id="guestNameInput"
                       type="text"
@@ -528,12 +667,8 @@ const TechnicalInterface = () => {
           />
           <div
             className="flag-dropdown-item"
-            onClick={() => {
-              if (editingPlayerFlagFor === 'host') setHostFlag(null);
-              else if (editingPlayerFlagFor === 'guest') setGuestFlag(null);
-              setIsFlagDropdownOpen(false);
-              setEditingPlayerFlagFor(null);
-            }}
+            className="flag-dropdown-item"
+            onClick={() => handleFlagSelection(null)}
           >
             None
           </div>
@@ -541,32 +676,7 @@ const TechnicalInterface = () => {
             <div
               key={code}
               className="flag-dropdown-item"
-              onClick={() => {
-                const currentNickname = editingPlayerFlagFor === 'host' ? hostName : guestName;
-                if (editingPlayerFlagFor === 'host') setHostFlag(code);
-                else if (editingPlayerFlagFor === 'guest') setGuestFlag(code);
-
-                if (!playerCountryMap.has(currentNickname) && code !== null) { // code !== null implies a flag is chosen
-                  console.log(`TODO: Update countryplayers.txt for new player ${currentNickname} with flag ${code}`);
-                  // const newMap = new Map(playerCountryMap);
-                  // newMap.set(currentNickname, code);
-                  // setPlayerCountryMap(newMap); // Optional: Update local map for immediate UI feedback
-                } else if (playerCountryMap.get(currentNickname) !== code && code !== null) {
-                   console.log(`TODO: Update countryplayers.txt for existing player ${currentNickname} from ${playerCountryMap.get(currentNickname)} to ${code}`);
-                   // const newMap = new Map(playerCountryMap);
-                   // newMap.set(currentNickname, code);
-                   // setPlayerCountryMap(newMap); // Optional: Update local map
-                } else if (code === null && playerCountryMap.has(currentNickname)){
-                  // If 'None' is selected and there was a mapping, this implies a removal or change to no flag.
-                  console.log(`TODO: Update countryplayers.txt for player ${currentNickname} to remove flag or set as 'None'. Current mapping was ${playerCountryMap.get(currentNickname)}.`);
-                  // const newMap = new Map(playerCountryMap);
-                  // newMap.delete(currentNickname); // Or set to a special value like 'none' if preferred
-                  // setPlayerCountryMap(newMap);
-                }
-
-                setIsFlagDropdownOpen(false);
-                setEditingPlayerFlagFor(null);
-              }}
+              onClick={() => handleFlagSelection(code)}
             >
               <img src={`/assets/countryflags/${code}.png`} alt={code} /* Style via CSS: .flag-dropdown-item img */ />
               {code.toUpperCase()}
