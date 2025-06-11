@@ -77,6 +77,27 @@ const initialPlayerNameGuest = 'Player 2';
 const initialDefaultCanvasId = `default-${Date.now()}`;
 const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
 
+// Logic to read initial flags from localStorage
+let initialHostFlagFromStorage: string | null = null;
+try {
+  const storedLastHostFlag = localStorage.getItem('lastHostFlag');
+  if (storedLastHostFlag !== null) {
+    initialHostFlagFromStorage = storedLastHostFlag === '__NONE__' ? null : storedLastHostFlag;
+  }
+} catch (e) {
+  console.warn("Could not read lastHostFlag from localStorage", e);
+}
+
+let initialGuestFlagFromStorage: string | null = null;
+try {
+  const storedLastGuestFlag = localStorage.getItem('lastGuestFlag');
+  if (storedLastGuestFlag !== null) {
+    initialGuestFlagFromStorage = storedLastGuestFlag === '__NONE__' ? null : storedLastGuestFlag;
+  }
+} catch (e) {
+  console.warn("Could not read lastGuestFlag from localStorage", e);
+}
+
 const initialCombinedState: CombinedDraftState = {
   civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
   scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
@@ -93,8 +114,8 @@ const initialCombinedState: CombinedDraftState = {
   layoutLastUpdated: null,
   hostColor: null,
   guestColor: null,
-  hostFlag: null,
-  guestFlag: null,
+  hostFlag: initialHostFlagFromStorage,
+  guestFlag: initialGuestFlagFromStorage,
 };
 
 const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ' | 'map' ): Partial<SingleDraftData> => {
@@ -220,23 +241,40 @@ const useDraftStore = create<DraftStore>()(
       (set, get) => ({
         ...initialCombinedState,
         _resetCurrentSessionState: () => {
+          try {
+            localStorage.removeItem('lastHostFlag');
+            localStorage.removeItem('lastGuestFlag');
+          } catch (e) {
+            console.warn("Could not remove flags from localStorage during reset", e);
+          }
           const newDefaultCanvasId = `default-rst-${Date.now()}`;
           const defaultCanvases: StudioCanvas[] = [{ id: newDefaultCanvasId, name: 'Default', layout: [] }];
-          const currentSavedPresets = get().savedPresets;
-          const currentSavedStudioLayouts = get().savedStudioLayouts;
+          const currentSavedPresets = get().savedPresets; // Keep these
+          const currentSavedStudioLayouts = get().savedStudioLayouts; // Keep these
 
           set({
-            ...initialCombinedState,
-            savedPresets: currentSavedPresets,
-            savedStudioLayouts: currentSavedStudioLayouts,
+            // Re-apply initial values for things that should reset, explicitly setting flags to null
+            civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
+            scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+            mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
+            civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
+            mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
+            activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
+
+            hostFlag: null, // Explicitly null
+            guestFlag: null, // Explicitly null
+            hostColor: null, // Assuming colors also reset
+            guestColor: null,
+
             currentCanvases: defaultCanvases,
             activeCanvasId: newDefaultCanvasId,
             selectedElementId: null,
             activeStudioLayoutId: null,
-            hostColor: null,
-            guestColor: null,
-            hostFlag: null,
-            guestFlag: null,
+            layoutLastUpdated: null,
+
+            // Keep persistent parts
+            savedPresets: currentSavedPresets,
+            savedStudioLayouts: currentSavedStudioLayouts,
           });
         },
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor, hostFlag, guestFlag } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor, hostFlag, guestFlag }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
@@ -393,8 +431,24 @@ const useDraftStore = create<DraftStore>()(
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
         setHostColor: (color) => { set({ hostColor: color }); get()._updateActivePresetIfNeeded(); },
         setGuestColor: (color) => { set({ guestColor: color }); get()._updateActivePresetIfNeeded(); },
-        setHostFlag: (flag: string | null) => { set({ hostFlag: flag }); get()._updateActivePresetIfNeeded(); },
-        setGuestFlag: (flag: string | null) => { set({ guestFlag: flag }); get()._updateActivePresetIfNeeded(); },
+        setHostFlag: (flag) => {
+          set({ hostFlag: flag });
+          try {
+            localStorage.setItem('lastHostFlag', flag === null ? '__NONE__' : flag);
+          } catch (e) {
+            console.warn("Could not save lastHostFlag to localStorage", e);
+          }
+          get()._updateActivePresetIfNeeded();
+        },
+        setGuestFlag: (flag) => {
+          set({ guestFlag: flag });
+          try {
+            localStorage.setItem('lastGuestFlag', flag === null ? '__NONE__' : flag);
+          } catch (e) {
+            console.warn("Could not save lastGuestFlag to localStorage", e);
+          }
+          get()._updateActivePresetIfNeeded();
+        },
         switchPlayerSides: () => {
           const {
             hostName, guestName, scores,
