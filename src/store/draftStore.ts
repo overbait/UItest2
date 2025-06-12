@@ -332,26 +332,152 @@ const useDraftStore = create<DraftStore>()(
                 // Re-attach listeners specific to an active connection
                 if (currentSocket) {
                   currentSocket.on('draft_state', (data) => {
-                    console.log('Socket.IO "draft_state" event received:', data);
-                    let stateChanged = false;
-                    if (data && typeof data === 'object') {
-                      const updates: Partial<CombinedDraftState> = {};
-                      if (typeof data.nameHost === 'string' && get().hostName !== data.nameHost) {
-                        updates.hostName = data.nameHost;
-                        stateChanged = true;
-                      }
-                      if (typeof data.nameGuest === 'string' && get().guestName !== data.nameGuest) {
-                        updates.guestName = data.nameGuest;
-                        stateChanged = true;
-                      }
-                      if (stateChanged) {
-                        set(updates);
-                      }
-                    } else {
+                    console.log('[draftStore] Socket.IO "draft_state" event received:', data);
+
+                    if (!data || typeof data !== 'object') {
                       console.warn('[draftStore] Socket.IO "draft_state": Received invalid data type or null/undefined data:', data);
+                      return;
                     }
-                    if (stateChanged) {
-                      console.log('[draftStore] Socket.IO "draft_state": State updated, calling _updateActivePresetIfNeeded.');
+
+                    let actualStateChangeOccurred = false;
+
+                    set(state => {
+                      let newNameHost = state.hostName;
+                      let newNameGuest = state.guestName;
+                      let newAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions;
+
+                      // Handle name updates
+                      if (typeof data.nameHost === 'string' && state.hostName !== data.nameHost) {
+                        newNameHost = data.nameHost;
+                        actualStateChangeOccurred = true;
+                      }
+                      if (typeof data.nameGuest === 'string' && state.guestName !== data.nameGuest) {
+                        newNameGuest = data.nameGuest;
+                        actualStateChangeOccurred = true;
+                      }
+
+                      // Handle preset options update
+                      if (data.preset && data.preset.draftOptions && Array.isArray(data.preset.draftOptions)) {
+                        if (JSON.stringify(state.aoe2cmRawDraftOptions) !== JSON.stringify(data.preset.draftOptions)) {
+                          newAoe2cmRawDraftOptions = data.preset.draftOptions;
+                          actualStateChangeOccurred = true;
+                        }
+                      }
+
+                      // Initialize temporary pick/ban arrays from current state
+                      let tempCivPicksHost = [...state.civPicksHost];
+                      let tempCivBansHost = [...state.civBansHost];
+                      let tempCivPicksGuest = [...state.civPicksGuest];
+                      let tempCivBansGuest = [...state.civBansGuest];
+                      let tempMapPicksHost = [...state.mapPicksHost];
+                      let tempMapBansHost = [...state.mapBansHost];
+                      let tempMapPicksGuest = [...state.mapPicksGuest];
+                      let tempMapBansGuest = [...state.mapBansGuest];
+                      let tempMapPicksGlobal = [...state.mapPicksGlobal];
+                      let tempMapBansGlobal = [...state.mapBansGlobal];
+
+                      let eventsProcessedCausingChange = false;
+                      if (data.events && Array.isArray(data.events)) {
+                        console.log('[draftStore] Socket.IO "draft_state": Processing historical events count:', data.events.length);
+                        const currentSocketDraftType = state.socketDraftType; // Consistent draft type for event processing
+
+                        data.events.forEach(event => {
+                          if (!event || typeof event !== 'object' || !event.actionType || !event.hasOwnProperty('chosenOptionId')) {
+                            console.warn('[draftStore] Socket.IO "draft_state": Skipping invalid event in historical event array:', event);
+                            return;
+                          }
+                          const { executingPlayer, chosenOptionId, actionType } = event;
+                          const optionName = (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") ? "Hidden Ban" :
+                                           (typeof chosenOptionId === 'string') ? getOptionNameFromStore(chosenOptionId, newAoe2cmRawDraftOptions || state.aoe2cmRawDraftOptions) : "";
+
+                          if (optionName === "" && !(actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") && (typeof chosenOptionId !== 'string' || chosenOptionId.length === 0)) {
+                            console.warn('[draftStore] Socket.IO "draft_state": Invalid or empty chosenOptionId in historical event:', chosenOptionId, "Event:", event);
+                            return;
+                          }
+
+                          let effectiveDraftType: 'civ' | 'map' | null = null;
+                          if (chosenOptionId === "HIDDEN_BAN") effectiveDraftType = currentSocketDraftType;
+                          else if (typeof chosenOptionId === 'string' && chosenOptionId.startsWith('aoe4.')) effectiveDraftType = 'civ';
+                          else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) effectiveDraftType = 'map';
+
+                          let individualEventChangedList = false;
+                          if (effectiveDraftType === 'civ') {
+                            if (actionType === 'pick') {
+                              if (executingPlayer === 'HOST' && !tempCivPicksHost.includes(optionName)) { tempCivPicksHost.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempCivPicksGuest.includes(optionName)) { tempCivPicksGuest.push(optionName); individualEventChangedList = true; }
+                            } else if (actionType === 'ban') {
+                              if (executingPlayer === 'HOST' && !tempCivBansHost.includes(optionName)) { tempCivBansHost.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempCivBansGuest.includes(optionName)) { tempCivBansGuest.push(optionName); individualEventChangedList = true; }
+                            } else if (actionType === 'snipe') {
+                              if (executingPlayer === 'HOST' && !tempCivBansGuest.includes(optionName)) { tempCivBansGuest.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempCivBansHost.includes(optionName)) { tempCivBansHost.push(optionName); individualEventChangedList = true; }
+                            }
+                          } else if (effectiveDraftType === 'map') {
+                            if (actionType === 'pick') {
+                              if (executingPlayer === 'HOST' && !tempMapPicksHost.includes(optionName)) { tempMapPicksHost.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempMapPicksGuest.includes(optionName)) { tempMapPicksGuest.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'NONE' && !tempMapPicksGlobal.includes(optionName)) { tempMapPicksGlobal.push(optionName); individualEventChangedList = true; }
+                            } else if (actionType === 'ban') {
+                              if (executingPlayer === 'HOST' && !tempMapBansHost.includes(optionName)) { tempMapBansHost.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempMapBansGuest.includes(optionName)) { tempMapBansGuest.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'NONE' && !tempMapBansGlobal.includes(optionName)) { tempMapBansGlobal.push(optionName); individualEventChangedList = true; }
+                            } else if (actionType === 'snipe') {
+                              if (executingPlayer === 'HOST' && !tempMapBansGuest.includes(optionName)) { tempMapBansGuest.push(optionName); individualEventChangedList = true; }
+                              else if (executingPlayer === 'GUEST' && !tempMapBansHost.includes(optionName)) { tempMapBansHost.push(optionName); individualEventChangedList = true; }
+                            }
+                          } else {
+                             console.warn(`[draftStore] Socket.IO "draft_state": Could not determine type (civ/map) for historical event. chosenOptionId: ${chosenOptionId}, socketDraftType: ${currentSocketDraftType}`);
+                          }
+                          if (individualEventChangedList) eventsProcessedCausingChange = true;
+                        });
+                      }
+
+                      if (eventsProcessedCausingChange) actualStateChangeOccurred = true;
+
+                      if (!actualStateChangeOccurred) {
+                        return state; // No changes from names, options, or events
+                      }
+
+                      // If any change occurred (names, options, or events), recalculate boxSeriesGames
+                      const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
+                        state.boxSeriesFormat,
+                        state.boxSeriesGames, // Use initial state.boxSeriesGames to preserve winners if format is same
+                        tempCivPicksHost,
+                        tempCivPicksGuest,
+                        tempMapPicksHost,
+                        tempMapPicksGuest,
+                        tempMapPicksGlobal
+                      );
+
+                      // Final check if newBoxSeriesGames itself changed compared to original state's games
+                      if (JSON.stringify(newBoxSeriesGames) !== JSON.stringify(state.boxSeriesGames)) {
+                        actualStateChangeOccurred = true;
+                      } else if (!eventsProcessedCausingChange && newNameHost === state.hostName && newNameGuest === state.guestName && newAoe2cmRawDraftOptions === state.aoe2cmRawDraftOptions) {
+                        // If only boxSeriesGames were potentially the change, but they ended up being the same, and no other changes, then no actual change occurred.
+                        actualStateChangeOccurred = false;
+                      }
+
+
+                      if (actualStateChangeOccurred) {
+                        return {
+                          ...state,
+                          hostName: newNameHost,
+                          guestName: newNameGuest,
+                          aoe2cmRawDraftOptions: newAoe2cmRawDraftOptions,
+                          civPicksHost: tempCivPicksHost, civBansHost: tempCivBansHost,
+                          civPicksGuest: tempCivPicksGuest, civBansGuest: tempCivBansGuest,
+                          mapPicksHost: tempMapPicksHost, mapBansHost: tempMapBansHost,
+                          mapPicksGuest: tempMapPicksGuest, mapBansGuest: tempMapBansGuest,
+                          mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
+                          boxSeriesGames: newBoxSeriesGames
+                        };
+                      } else {
+                        return state; // No actual change
+                      }
+                    });
+
+                    if (actualStateChangeOccurred) {
+                      console.log('[draftStore] Socket.IO "draft_state": State updated due to names, options, or historical events. Calling _updateActivePresetIfNeeded.');
                       get()._updateActivePresetIfNeeded();
                     }
                   });
