@@ -877,40 +877,46 @@ const useDraftStore = create<DraftStore>()(
           const { boxSeriesFormat, boxSeriesGames, mapPicksHost, mapPicksGuest, mapPicksGlobal, civPicksHost, civPicksGuest } = get();
 
           if (!boxSeriesFormat) {
-            return; // Only update if a BoX format is active
+            return;
           }
 
           const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
           const currentCivPicksH = civPicksHost;
           const currentCivPicksG = civPicksGuest;
 
-          const updatedGamesArray: typeof boxSeriesGames = [];
-          let gamesChanged = false;
+          const newBoxSeriesArray: typeof boxSeriesGames = [];
+          let anyChangeDetected = false;
 
-          // Iterate using the length of the existing boxSeriesGames array
           for (let i = 0; i < boxSeriesGames.length; i++) {
-            const currentGame = boxSeriesGames[i];
-            const newGameData = { ...currentGame }; // Shallow copy
+            const currentGameData = boxSeriesGames[i];
+            const updatedGameSlot = { ...currentGameData }; // Shallow copy
 
-            if (newGameData.map === null && combinedMapPicks[i] !== undefined) {
-              newGameData.map = combinedMapPicks[i];
-              gamesChanged = true;
+            const expectedMap = combinedMapPicks[i] || null;
+            const expectedHostCiv = currentCivPicksH[i] || null;
+            const expectedGuestCiv = currentCivPicksG[i] || null;
+
+            if (updatedGameSlot.map !== expectedMap) {
+              updatedGameSlot.map = expectedMap;
+              anyChangeDetected = true;
             }
-            if (newGameData.hostCiv === null && currentCivPicksH[i] !== undefined) {
-              newGameData.hostCiv = currentCivPicksH[i];
-              gamesChanged = true;
+            if (updatedGameSlot.hostCiv !== expectedHostCiv) {
+              updatedGameSlot.hostCiv = expectedHostCiv;
+              anyChangeDetected = true;
             }
-            if (newGameData.guestCiv === null && currentCivPicksG[i] !== undefined) {
-              newGameData.guestCiv = currentCivPicksG[i];
-              gamesChanged = true;
+            if (updatedGameSlot.guestCiv !== expectedGuestCiv) {
+              updatedGameSlot.guestCiv = expectedGuestCiv;
+              anyChangeDetected = true;
             }
-            updatedGamesArray.push(newGameData);
+            // Preserve winner if it was already set
+            // updatedGameSlot.winner = currentGameData.winner; // This line is implicit with spread
+
+            newBoxSeriesArray.push(updatedGameSlot);
           }
 
-          if (gamesChanged) {
-            // console.log('[BoX Series Update] Automatically updating BoX series games from picks.', updatedGamesArray);
-            set({ boxSeriesGames: updatedGamesArray });
-            get()._updateActivePresetIfNeeded(); // Retain this call as per prompt if appropriate for preset persistence.
+          if (anyChangeDetected) {
+            // console.log('[BoX Series Full Refresh] Updating BoX series games.', newBoxSeriesArray);
+            set({ boxSeriesGames: newBoxSeriesArray });
+            get()._updateActivePresetIfNeeded();
           }
         },
 
