@@ -232,10 +232,18 @@ const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ
 };
 
 const getOptionNameFromStore = (optionId: string, draftOptions: Aoe2cmRawDraftData['preset']['draftOptions'] | undefined): string => {
-  if (!draftOptions) return optionId; // Fallback if options not available
+  // Ensure prefix removal even if draftOptions are not available (e.g. early live events)
+  if (!draftOptions) {
+    return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
+  }
+  // If draftOptions are available, try to find the name from them
   const option = draftOptions.find(opt => opt.id === optionId);
-  if (option?.name) return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
-  return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; // Fallback if name not found
+  if (option?.name) {
+    return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
+  }
+  // Fallback: if name not found in draftOptions, or if option itself was not found,
+  // still try to remove prefix from the optionId itself.
+  return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
 };
 
 const useDraftStore = create<DraftStore>()(
@@ -307,6 +315,7 @@ const useDraftStore = create<DraftStore>()(
                     }
                     if (stateChanged) {
                       get()._updateActivePresetIfNeeded();
+                      get()._updateBoxSeriesGamesFromPicks();
                     }
                   });
 
@@ -418,7 +427,12 @@ const useDraftStore = create<DraftStore>()(
                     if (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") {
                       optionName = "Hidden Ban";
                     } else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) {
-                      optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
+                      const rawOptionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
+                      // Example logging for prefix removal, can be removed after verification if too verbose
+                      if (chosenOptionId.startsWith('aoe4.') && !rawOptionName.startsWith('aoe4.')) {
+                        console.log(`[Prefix Removal Test in 'act'] Original chosenOptionId: ${chosenOptionId}, Cleaned optionName: ${rawOptionName}`);
+                      }
+                      optionName = rawOptionName;
                     } else if (chosenOptionId === "") {
                       optionName = "";
                     } else {
@@ -474,6 +488,7 @@ const useDraftStore = create<DraftStore>()(
                       }
                     }
                     get()._updateActivePresetIfNeeded();
+                    get()._updateBoxSeriesGamesFromPicks();
                   });
 
                   currentSocket.on('countdown', (countdownPayload) => {
@@ -584,7 +599,8 @@ const useDraftStore = create<DraftStore>()(
 
                     if (stateChanged) {
                       get()._updateActivePresetIfNeeded();
-                      // TODO: Consider if boxSeriesGames needs explicit updates here based on new picks/bans.
+                      get()._updateBoxSeriesGamesFromPicks();
+                      // No TODO needed now as _updateBoxSeriesGamesFromPicks handles it.
                     }
                   });
 
@@ -823,6 +839,49 @@ const useDraftStore = create<DraftStore>()(
             savedStudioLayouts: currentSavedStudioLayouts,
           });
         },
+
+        _updateBoxSeriesGamesFromPicks: () => {
+          const { boxSeriesFormat, boxSeriesGames, mapPicksHost, mapPicksGuest, mapPicksGlobal, civPicksHost, civPicksGuest } = get();
+
+          if (!boxSeriesFormat) {
+            return; // Only update if a BoX format is active
+          }
+
+          const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
+          let changed = false;
+
+          const newBoxSeriesGames = boxSeriesGames.map((game, index) => {
+            const updatedGame = { ...game }; // Create a new game object to avoid direct state mutation before set
+
+            // Update map if current slot is null and a map is available
+            if (updatedGame.map === null && combinedMapPicks[index] !== undefined) {
+              updatedGame.map = combinedMapPicks[index];
+              changed = true;
+            }
+
+            // Update host civ if current slot is null and a civ is available
+            if (updatedGame.hostCiv === null && civPicksHost[index] !== undefined) {
+              updatedGame.hostCiv = civPicksHost[index];
+              changed = true;
+            }
+
+            // Update guest civ if current slot is null and a civ is available
+            if (updatedGame.guestCiv === null && civPicksGuest[index] !== undefined) {
+              updatedGame.guestCiv = civPicksGuest[index];
+              changed = true;
+            }
+            return updatedGame;
+          });
+
+          if (changed) {
+            // console.log('[BoX Series Update] Automatically updating BoX series games from picks.');
+            set({ boxSeriesGames: newBoxSeriesGames });
+            // Call _updateActivePresetIfNeeded to ensure the preset is saved with the new boxSeriesGames
+            // This is important if this function is called from contexts where _updateActivePresetIfNeeded doesn't naturally follow
+            get()._updateActivePresetIfNeeded();
+          }
+        },
+
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
@@ -873,148 +932,100 @@ const useDraftStore = create<DraftStore>()(
           }
 
 
-          // Attempt WebSocket Connection First
-          get().connectToWebSocket(extractedId, draftType); // Pass draftType
-
-          // ---- START setTimeout Hack ----
-          await new Promise(resolve => setTimeout(resolve, 2500)); // Allow time for WS to connect
-          // TODO: Refactor connectToWebSocket to return a Promise for cleaner async handling
-          // ---- END setTimeout Hack ----
-
-          const currentSocketStatus = get().socketStatus;
-          const draftIdInStore = draftType === 'civ' ? get().civDraftId : get().mapDraftId;
-
-          if (currentSocketStatus === 'live' && draftIdInStore === extractedId) {
-            console.log(`Successfully connected to live ${draftType} draft via WebSocket: ${extractedId}`);
-            if (draftType === 'civ') {
-              set({ isLoadingCivDraft: false, civDraftStatus: 'live', civDraftError: null });
-              // Player names and draftOptions might be missing if only WS is used.
-              // For now, accept this. UI should handle it.
-              // Set host/guest names only if they are the initial default ones.
-              if (get().hostName === initialPlayerNameHost) set({ hostName: "Host (Live)"});
-              if (get().guestName === initialPlayerNameGuest) set({ guestName: "Guest (Live)"});
-            } else {
-              set({ isLoadingMapDraft: false, mapDraftStatus: 'live', mapDraftError: null });
-              if (get().hostName === initialPlayerNameHost) set({ hostName: "Host (Live)"});
-              if (get().guestName === initialPlayerNameGuest) set({ guestName: "Guest (Live)"});
-            }
-            // Note: civPicksHost etc. and aoe2cmRawDraftOptions will be updated by WebSocket messages.
-            // If the first message from WS contains all current state, that would be ideal.
-            // Otherwise, these will be empty until 'act' messages arrive.
-            // Ensure errors are cleared for this draft type
-            if (draftType === 'civ') set({ civDraftError: null }); else set({ mapDraftError: null });
-            return true;
-          } else {
-            console.log(`WebSocket for ${draftType} draft ${extractedId} not live (status: ${currentSocketStatus}). Attempting HTTP fallback.`);
-            // Ensure WebSocket is cleaned up if it connected for a *different* ID or is in an error state from *this* attempt.
-            // The connectToWebSocket logic already handles disconnecting previous sockets if a new one for *any* ID is made.
-            // If this attempt failed specifically for `extractedId` and it's not 'live', disconnect it.
-            if (draftIdInStore === extractedId && currentSocketStatus !== 'live') {
-                 get().disconnectWebSocket();
-            }
-          }
-
-          // Fallback to HTTP
-          if (draftType === 'civ') {
-            set({ civDraftStatus: 'connecting', isLoadingCivDraft: true, civDraftError: null }); // Reset status for HTTP attempt
-          } else {
-            set({ mapDraftStatus: 'connecting', isLoadingMapDraft: true, mapDraftError: null }); // Reset status for HTTP attempt
-          }
-
+          // HTTP First Approach: Always fetch draft data via HTTP first.
+          console.log(`[ConnectToDraft] Attempting to fetch ${draftType} draft ${extractedId} via HTTP.`);
           const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
+
           try {
             const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
+            console.log(`[ConnectToDraft] HTTP data received for ${extractedId}. Processing...`);
+
             if (!response.data || typeof response.data !== 'object') {
               throw new Error('Received invalid or empty data structure from the API.');
             }
             const rawDraftData = response.data;
             if (!rawDraftData.preset || !rawDraftData.preset.draftOptions) {
-              throw new Error('Preset data or draftOptions missing in API response.');
+              // Even if preset/draftOptions are missing, we might still want to connect to WebSocket if ongoing.
+              // For now, let's treat this as an error for data consistency, but this could be revisited.
+              console.warn(`[ConnectToDraft] Preset data or draftOptions missing in API response for ${extractedId}.`, rawDraftData);
+              // throw new Error('Preset data or draftOptions missing in API response.'); // Potentially too strict
             }
 
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
 
+            // Determine host and guest names based on fetched data, preserving existing names if they are not default/live placeholders
             let newHostName = get().hostName;
             let newGuestName = get().guestName;
-            // Only update names from HTTP if they are still the placeholder "Host (Live)"/"Guest (Live)" or initial defaults
             const isHostNameDefaultOrLive = get().hostName === initialPlayerNameHost || get().hostName === "Host (Live)";
             const isGuestNameDefaultOrLive = get().guestName === initialPlayerNameGuest || get().guestName === "Guest (Live)";
 
-            if (draftType === 'civ') {
-              newHostName = isHostNameDefaultOrLive ? (processedData.hostName || initialPlayerNameHost) : get().hostName;
-              newGuestName = isGuestNameDefaultOrLive ? (processedData.guestName || initialPlayerNameGuest) : get().guestName;
-            } else { // map draft
-              newHostName = isHostNameDefaultOrLive ? (processedData.hostName || initialPlayerNameHost) : get().hostName;
-              newGuestName = isGuestNameDefaultOrLive ? (processedData.guestName || initialPlayerNameGuest) : get().guestName;
-            }
+            if (processedData.hostName) newHostName = isHostNameDefaultOrLive ? processedData.hostName : get().hostName;
+            if (processedData.guestName) newGuestName = isGuestNameDefaultOrLive ? processedData.guestName : get().guestName;
 
-            const newCivPicksHost = draftType === 'civ' ? (processedData.civPicksHost || []) : get().civPicksHost;
-            const newCivBansHost = draftType === 'civ' ? (processedData.civBansHost || []) : get().civBansHost;
-            const newCivPicksGuest = draftType === 'civ' ? (processedData.civPicksGuest || []) : get().civPicksGuest;
-            const newCivBansGuest = draftType === 'civ' ? (processedData.civBansGuest || []) : get().civBansGuest;
 
-            const newMapPicksHost = draftType === 'map' ? (processedData.mapPicksHost || []) : get().mapPicksHost;
-            const newMapBansHost = draftType === 'map' ? (processedData.mapBansHost || []) : get().mapBansHost;
-            const newMapPicksGuest = draftType === 'map' ? (processedData.mapPicksGuest || []) : get().mapPicksGuest;
-            const newMapBansGuest = draftType === 'map' ? (processedData.mapBansGuest || []) : get().mapBansGuest;
-            const newMapPicksGlobal = draftType === 'map' ? (processedData.mapPicksGlobal || []) : get().mapPicksGlobal;
-            const newMapBansGlobal = draftType === 'map' ? (processedData.mapBansGlobal || []) : get().mapBansGlobal;
-
+            // Update store with fetched data
             set(state => ({
               ...state,
-              aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions,
+              aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions, // Preserve old options if new ones are missing
               hostName: newHostName,
               guestName: newGuestName,
-              civPicksHost: newCivPicksHost, civBansHost: newCivBansHost,
-              civPicksGuest: newCivPicksGuest, civBansGuest: newCivBansGuest,
-              mapPicksHost: newMapPicksHost, mapBansHost: newMapBansHost,
-              mapPicksGuest: newMapPicksGuest, mapBansGuest: newMapBansGuest,
-              mapPicksGlobal: newMapPicksGlobal, mapBansGlobal: newMapBansGlobal,
+              civPicksHost: draftType === 'civ' ? (processedData.civPicksHost || []) : state.civPicksHost,
+              civBansHost: draftType === 'civ' ? (processedData.civBansHost || []) : state.civBansHost,
+              civPicksGuest: draftType === 'civ' ? (processedData.civPicksGuest || []) : state.civPicksGuest,
+              civBansGuest: draftType === 'civ' ? (processedData.civBansGuest || []) : state.civBansGuest,
+              mapPicksHost: draftType === 'map' ? (processedData.mapPicksHost || []) : state.mapPicksHost,
+              mapBansHost: draftType === 'map' ? (processedData.mapBansHost || []) : state.mapBansHost,
+              mapPicksGuest: draftType === 'map' ? (processedData.mapPicksGuest || []) : state.mapPicksGuest,
+              mapBansGuest: draftType === 'map' ? (processedData.mapBansGuest || []) : state.mapBansGuest,
+              mapPicksGlobal: draftType === 'map' ? (processedData.mapPicksGlobal || []) : state.mapPicksGlobal,
+              mapBansGlobal: draftType === 'map' ? (processedData.mapBansGlobal || []) : state.mapBansGlobal,
             }));
 
-            const presetName = rawDraftData.preset.name?.toLowerCase() || '';
-            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat;
-            if (get().activePresetId === null && !get().boxSeriesFormat) {
-              if (presetName.includes('bo1')) detectedFormat = 'bo1';
-              else if (presetName.includes('bo3')) detectedFormat = 'bo3';
-              else if (presetName.includes('bo5')) detectedFormat = 'bo5';
-              else if (presetName.includes('bo7')) detectedFormat = 'bo7';
-            }
-            if (detectedFormat && get().boxSeriesFormat !== detectedFormat) {
-              get().setBoxSeriesFormat(detectedFormat);
+            // Update draft status based on HTTP fetch
+            if (draftType === 'civ') {
+              set({ isLoadingCivDraft: false, civDraftStatus: 'connected', civDraftError: null });
+            } else {
+              set({ isLoadingMapDraft: false, mapDraftStatus: 'connected', mapDraftError: null });
             }
 
-            set(state => {
-              let finalBoxSeriesGames = state.boxSeriesGames;
-              if (state.boxSeriesFormat) {
-                const currentMapPicksH = state.mapPicksHost;
-                const currentMapPicksG = state.mapPicksGuest;
-                const currentMapPicksGl = state.mapPicksGlobal;
-                const currentCivPicksH = state.civPicksHost;
-                const currentCivPicksG = state.civPicksGuest;
-                const combinedMapPicks = Array.from(new Set([...currentMapPicksH, ...currentMapPicksG, ...currentMapPicksGl]));
-                finalBoxSeriesGames = state.boxSeriesGames.map((game, index) => ({
-                  ...game,
-                  map: draftType === 'map' ? (combinedMapPicks[index] !== undefined ? combinedMapPicks[index] : game.map) : game.map,
-                  hostCiv: draftType === 'civ' ? (currentCivPicksH[index] !== undefined ? currentCivPicksH[index] : game.hostCiv) : game.hostCiv,
-                  guestCiv: draftType === 'civ' ? (currentCivPicksG[index] !== undefined ? currentCivPicksG[index] : game.guestCiv) : game.guestCiv,
-                }));
-              } else {
-                finalBoxSeriesGames = [];
+            // Auto-detect Box Series Format if not already set by user or preset
+            if (rawDraftData.preset?.name) {
+              const presetName = rawDraftData.preset.name.toLowerCase();
+              let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = get().boxSeriesFormat;
+              if (get().activePresetId === null && !get().boxSeriesFormat) { // Only if no active preset and no format set
+                if (presetName.includes('bo1')) detectedFormat = 'bo1';
+                else if (presetName.includes('bo3')) detectedFormat = 'bo3';
+                else if (presetName.includes('bo5')) detectedFormat = 'bo5';
+                else if (presetName.includes('bo7')) detectedFormat = 'bo7';
+
+                if (detectedFormat && get().boxSeriesFormat !== detectedFormat) {
+                    console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormat} for ${extractedId}`);
+                    get().setBoxSeriesFormat(detectedFormat); // This will initialize boxSeriesGames
+                }
               }
+            }
 
-              if (draftType === 'civ') {
-                return { ...state, civDraftStatus: 'connected', isLoadingCivDraft: false, civDraftError: null, boxSeriesGames: finalBoxSeriesGames };
+            get()._updateBoxSeriesGamesFromPicks(); // Populate BoX series from fetched picks
+            get()._updateActivePresetIfNeeded();    // Save to preset if active
+
+            // Conditional WebSocket Connection
+            if (rawDraftData.ongoing === true) {
+              console.log(`[ConnectToDraft] Draft ${extractedId} is ongoing. Attempting WebSocket connection.`);
+              get().connectToWebSocket(extractedId, draftType);
+            } else {
+              console.log(`[ConnectToDraft] Draft ${extractedId} is not ongoing (completed or status unknown). WebSocket connection will not be attempted.`);
+              // Ensure any existing WebSocket connection for this ID (if any) is disconnected
+              // and socket status is appropriate.
+              if (get().socketDraftType === draftType && (get().civDraftId === extractedId || get().mapDraftId === extractedId)) {
+                 get().disconnectWebSocket(); // This sets socketStatus to 'disconnected'
               } else {
-                return { ...state, mapDraftStatus: 'connected', isLoadingMapDraft: false, mapDraftError: null, boxSeriesGames: finalBoxSeriesGames };
+                // If no specific socket was active for this draft, ensure general socket status is clear
+                set({socketStatus: 'disconnected', socketError: null, socketDraftType: null});
               }
-            });
+            }
+            return true; // HTTP fetch was successful
 
-            get()._updateActivePresetIfNeeded();
-            // DO NOT call connectToWebSocket again here, as it was the fallback path.
-            return true;
-
-          } catch (error) { // This is the HTTP error
+          } catch (error) {
             let httpErrorMessage = "Failed to fetch draft data via HTTP.";
             if (axios.isAxiosError(error)) {
               httpErrorMessage = `Server responded with status ${error.response?.status || 'N/A'}: ${error.message}`;
@@ -1022,23 +1033,16 @@ const useDraftStore = create<DraftStore>()(
               httpErrorMessage = error.message;
             }
 
-            const finalErrorMessage = `Live connection attempt failed or was not available. Fallback attempt to load completed draft also failed: ${httpErrorMessage}`;
+            const finalErrorMessage = `Failed to connect to draft ${extractedId}: ${httpErrorMessage}`;
+            console.error(`[ConnectToDraft] ${finalErrorMessage}`, error);
 
             if (draftType === 'civ') {
-              set({
-                isLoadingCivDraft: false,
-                civDraftStatus: 'error',
-                civDraftError: finalErrorMessage,
-                activePresetId: null
-              });
+              set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: finalErrorMessage, activePresetId: null });
             } else { // map draft
-              set({
-                isLoadingMapDraft: false,
-                mapDraftStatus: 'error',
-                mapDraftError: finalErrorMessage,
-                activePresetId: null
-              });
+              set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: finalErrorMessage, activePresetId: null });
             }
+            // Ensure WebSocket is disconnected on HTTP error too
+            get().disconnectWebSocket();
             return false;
           }
         },
