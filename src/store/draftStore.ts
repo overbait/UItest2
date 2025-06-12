@@ -277,7 +277,10 @@ const useDraftStore = create<DraftStore>()(
               const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
               // Ensure this connection is still the one expected by the store
               if (get().socketDraftType === draftType && currentStoreDraftId === draftId) {
-                set({ socketStatus: 'live', socketError: null });
+                const loadStatusUpdate = draftType === 'civ' ?
+                    { isLoadingCivDraft: false, civDraftStatus: 'live' as ConnectionStatus } :
+                    { isLoadingMapDraft: false, mapDraftStatus: 'live' as ConnectionStatus };
+                set({ socketStatus: 'live', socketError: null, ...loadStatusUpdate });
 
                 // Add event listeners after successful connection and context validation
                 if (currentSocket) {
@@ -713,8 +716,19 @@ const useDraftStore = create<DraftStore>()(
               console.error(`Socket.IO connection error for draft ${draftId} (type ${draftType}):`, err.message, err.cause);
               const errorMessage = `Socket.IO connection error: ${err.message}. Real-time updates unavailable.`;
               const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
+              const draftStatusField = draftType === 'civ' ? 'civDraftStatus' : 'mapDraftStatus';
+              const loadingFlagField = draftType === 'civ' ? 'isLoadingCivDraft' : 'isLoadingMapDraft';
+              const errorField = draftType === 'civ' ? 'civDraftError' : 'mapDraftError';
+
               if (get().socketDraftType === draftType && currentStoreDraftId === draftId) {
-                set({ socketStatus: 'error', socketError: errorMessage, socketDraftType: null });
+                set({
+                  socketStatus: 'error',
+                  socketError: errorMessage,
+                  socketDraftType: null,
+                  [draftStatusField]: 'error',
+                  [loadingFlagField]: false,
+                  [errorField]: errorMessage,
+                });
               }
               if (currentSocket && currentSocket.io.opts.query?.draftId === draftId) {
                  currentSocket.disconnect();
@@ -743,8 +757,26 @@ const useDraftStore = create<DraftStore>()(
                   statusUpdate.socketStatus = 'error';
                   // Log the potential error when statusUpdate.socketError is set
                   console.warn(`Socket.IO for ${localDraftType} draft ${localDraftId} disconnected with potential error. New status: ${statusUpdate.socketStatus}, Error: ${statusUpdate.socketError}`);
+                  // Also update the main draft status to 'error' and turn off loading.
+                  const draftErrorStatusUpdate = localDraftType === 'civ' ?
+                    { isLoadingCivDraft: false, civDraftStatus: 'error' as ConnectionStatus, civDraftError: statusUpdate.socketError } :
+                    { isLoadingMapDraft: false, mapDraftStatus: 'error' as ConnectionStatus, mapDraftError: statusUpdate.socketError };
+                  statusUpdate = { ...statusUpdate, ...draftErrorStatusUpdate };
+                } else {
+                  // For client or server initiated disconnects that are not errors, ensure loading is false.
+                  const draftLoadingUpdate = localDraftType === 'civ' ?
+                    { isLoadingCivDraft: false } : { isLoadingMapDraft: false };
+                  statusUpdate = { ...statusUpdate, ...draftLoadingUpdate };
                 }
                 set(statusUpdate);
+              } else {
+                 // If the disconnect is not for the currently active draft type/ID, still ensure loading flags are reset
+                 // if this socket instance was responsible for that draft type.
+                 if (currentSocket && currentSocket.io.opts.query?.draftId === localDraftId && get().socketDraftType === localDraftType) {
+                    const draftLoadingUpdate = localDraftType === 'civ' ?
+                        { isLoadingCivDraft: false } : { isLoadingMapDraft: false };
+                    set(draftLoadingUpdate);
+                 }
               }
 
               // Nullify currentSocket if this specific instance is the one that disconnected.
