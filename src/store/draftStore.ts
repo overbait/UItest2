@@ -1614,5 +1614,3 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
-
-[end of src/store/draftStore.ts]
