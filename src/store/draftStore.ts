@@ -874,50 +874,41 @@ const useDraftStore = create<DraftStore>()(
         },
 
         _updateBoxSeriesGamesFromPicks: () => {
-          const { boxSeriesFormat, boxSeriesGames, mapPicksHost, mapPicksGuest, mapPicksGlobal, civPicksHost, civPicksGuest } = get();
+          set(state => {
+            const { boxSeriesFormat, boxSeriesGames, mapPicksHost, mapPicksGuest, mapPicksGlobal, civPicksHost, civPicksGuest } = state;
 
-          if (!boxSeriesFormat) {
-            return;
-          }
-
-          const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
-          const currentCivPicksH = civPicksHost;
-          const currentCivPicksG = civPicksGuest;
-
-          const newBoxSeriesArray: typeof boxSeriesGames = [];
-          let anyChangeDetected = false;
-
-          for (let i = 0; i < boxSeriesGames.length; i++) {
-            const currentGameData = boxSeriesGames[i];
-            const updatedGameSlot = { ...currentGameData }; // Shallow copy
-
-            const expectedMap = combinedMapPicks[i] || null;
-            const expectedHostCiv = currentCivPicksH[i] || null;
-            const expectedGuestCiv = currentCivPicksG[i] || null;
-
-            if (updatedGameSlot.map !== expectedMap) {
-              updatedGameSlot.map = expectedMap;
-              anyChangeDetected = true;
+            if (!boxSeriesFormat) {
+              return state;
             }
-            if (updatedGameSlot.hostCiv !== expectedHostCiv) {
-              updatedGameSlot.hostCiv = expectedHostCiv;
-              anyChangeDetected = true;
-            }
-            if (updatedGameSlot.guestCiv !== expectedGuestCiv) {
-              updatedGameSlot.guestCiv = expectedGuestCiv;
-              anyChangeDetected = true;
-            }
-            // Preserve winner if it was already set
-            // updatedGameSlot.winner = currentGameData.winner; // This line is implicit with spread
 
-            newBoxSeriesArray.push(updatedGameSlot);
-          }
+            const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
+            const currentCivPicksH = civPicksHost;
+            const currentCivPicksG = civPicksGuest;
 
-          if (anyChangeDetected) {
-            // console.log('[BoX Series Full Refresh] Updating BoX series games.', newBoxSeriesArray);
-            set({ boxSeriesGames: newBoxSeriesArray });
-            get()._updateActivePresetIfNeeded();
-          }
+            const newBoxSeriesArray: typeof boxSeriesGames = [];
+            // The anyChangeDetected flag is removed.
+
+            for (let i = 0; i < boxSeriesGames.length; i++) {
+              const currentGameData = boxSeriesGames[i];
+
+              const expectedMap = combinedMapPicks[i] || null;
+              const expectedHostCiv = currentCivPicksH[i] || null;
+              const expectedGuestCiv = currentCivPicksG[i] || null;
+
+              const updatedGameSlot = {
+                winner: currentGameData.winner, // Preserve winner
+                map: expectedMap,
+                hostCiv: expectedHostCiv,
+                guestCiv: expectedGuestCiv,
+              };
+              newBoxSeriesArray.push(updatedGameSlot);
+            }
+
+            // Unconditionally return the new array structure.
+            // The _updateActivePresetIfNeeded call is removed from here as per subtask step 3.
+            return { ...state, boxSeriesGames: newBoxSeriesArray };
+          });
+          // Direct call to _updateActivePresetIfNeeded removed from the outer scope of _updateBoxSeriesGamesFromPicks as well.
         },
 
         _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
