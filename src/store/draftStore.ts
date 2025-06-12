@@ -240,39 +240,20 @@ const _calculateUpdatedBoxSeriesGames = (
 
   if (numGames === 0) return [];
 
+  if (numGames === 0) return [];
+
+  // Create a combined list of unique map picks, prioritizing host, then guest, then global.
+  const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
+
   const newBoxSeriesArray = Array(numGames).fill(null).map((_, index) => {
     const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null };
 
-    let mapForGame: string | null = null;
-    // Prioritize global map picks if available for the current game index
-    if (mapPicksGlobal && mapPicksGlobal[index]) {
-      mapForGame = mapPicksGlobal[index];
-    } else if (mapPicksHost && mapPicksGuest) {
-      // Fallback to alternating host/guest picks if global picks are not sufficient
-      // This logic assumes a specific pick order (e.g., Host P1, Guest P1, Host P2, Guest P2...)
-      // Adjust if actual pick order for BoX maps differs
-      const hostPickIndex = Math.floor(index / 2);
-      const guestPickIndex = Math.floor(index / 2);
-      if (index % 2 === 0) { // Host's turn to have picked for this game slot (0, 2, 4...)
-        mapForGame = mapPicksHost[hostPickIndex] || null;
-      } else { // Guest's turn (1, 3, 5...)
-        mapForGame = mapPicksGuest[guestPickIndex] || null;
-      }
-      // If one player runs out of picks, the other might still fill remaining slots
-      if (!mapForGame && index < mapPicksHost.length) mapForGame = mapPicksHost[index];
-      if (!mapForGame && index < mapPicksGuest.length) mapForGame = mapPicksGuest[index];
-
-    } else if (mapPicksHost && index < mapPicksHost.length) { // Only host picks available
-        mapForGame = mapPicksHost[index];
-    } else if (mapPicksGuest && index < mapPicksGuest.length) { // Only guest picks available
-        mapForGame = mapPicksGuest[index];
-    }
-    // If no map pick is found for the index (e.g. fewer maps picked than numGames), it remains null.
+    const mapForGame = combinedMapPicks[index] || null;
 
     return {
       map: mapForGame,
-      hostCiv: civPicksHost[index] || null, // Assign host civ if available for this game index
-      guestCiv: civPicksGuest[index] || null, // Assign guest civ
+      hostCiv: civPicksHost[index] || null,
+      guestCiv: civPicksGuest[index] || null,
       winner: existingGame.winner || null, // Preserve winner if already set
     };
   });
