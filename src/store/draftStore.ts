@@ -273,18 +273,141 @@ const useDraftStore = create<DraftStore>()(
 
                 // Add event listeners after successful connection and context validation
                 if (currentSocket) {
-                  currentSocket.off('act'); // Remove previous listeners, if any
+                  // Comprehensive removal of listeners before re-adding
+                  currentSocket.off('connect');
+                  currentSocket.off('draft_state');
+                  currentSocket.off('playerEvent');
+                  currentSocket.off('act');
+                  currentSocket.off('adminEvent');
+                  currentSocket.off('draft_update');
                   currentSocket.off('countdown');
+                  currentSocket.off('draft_finished');
+                  currentSocket.off('connect_error');
+                  currentSocket.off('disconnect');
+                  // currentSocket.off('onAny'); // Typically not removed explicitly
+
+                  // The existing .on('act', ...) and other listeners will follow.
+                  // This change only adds the .off() calls.
+                  // The original .off('act') and .off('countdown') are now covered by the comprehensive list.
+
+                  currentSocket.on('draft_state', (data) => {
+                    console.log('Socket.IO "draft_state" event received:', data);
+                    let stateChanged = false;
+                    if (data && typeof data === 'object') {
+                      if (typeof data.nameHost === 'string') {
+                        set({ hostName: data.nameHost });
+                        stateChanged = true;
+                      }
+                      if (typeof data.nameGuest === 'string') {
+                        set({ guestName: data.nameGuest });
+                        stateChanged = true;
+                      }
+                    } else {
+                      console.warn('Socket.IO "draft_state" event received invalid data:', data);
+                    }
+                    if (stateChanged) {
+                      get()._updateActivePresetIfNeeded();
+                    }
+                  });
+
+                  currentSocket.on('playerEvent', (eventPayload) => {
+                    console.log('Socket.IO "playerEvent" event received:', eventPayload);
+                    if (!eventPayload || typeof eventPayload !== 'object' ||
+                        !eventPayload.hasOwnProperty('player') ||
+                        !eventPayload.hasOwnProperty('actionType') ||
+                        !eventPayload.hasOwnProperty('chosenOptionId')) {
+                      console.warn('Socket.IO "playerEvent": Received event with invalid or missing properties (player, actionType, chosenOptionId):', eventPayload);
+                      return;
+                    }
+
+                    const { player, actionType, chosenOptionId } = eventPayload;
+                    // Normalize the player field (e.g., if server sends 'host', store might use 'HOST')
+                    const executingPlayer = typeof player === 'string' ? player.toUpperCase() as 'HOST' | 'GUEST' | 'NONE' : player;
+
+                    let optionName: string;
+                    const currentDraftOptions = get().aoe2cmRawDraftOptions;
+                    const currentSocketDraftType = get().socketDraftType;
+
+                    if (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") {
+                      optionName = "Hidden Ban";
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) {
+                      optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
+                    } else if (chosenOptionId === "") { // Allow empty string for chosenOptionId (e.g. skip pick/ban)
+                      optionName = "";
+                    } else {
+                      console.warn('Socket.IO "playerEvent": Received event with invalid chosenOptionId:', chosenOptionId, "Payload:", eventPayload);
+                      return;
+                    }
+
+                    let effectiveDraftType: 'civ' | 'map' | null = null;
+                    if (chosenOptionId === "HIDDEN_BAN") {
+                      effectiveDraftType = currentSocketDraftType;
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.startsWith('aoe4.')) {
+                      effectiveDraftType = 'civ';
+                    } else if (typeof chosenOptionId === 'string' && chosenOptionId.length > 0) { // Covers non-aoe4 string IDs
+                      effectiveDraftType = 'map';
+                    } else if (chosenOptionId === "" && currentSocketDraftType) { // For skip actions, rely on current draft type
+                        effectiveDraftType = currentSocketDraftType;
+                    }
+
+                    let stateChanged = false;
+                    if (effectiveDraftType === 'civ') {
+                      stateChanged = true;
+                      if (actionType === 'pick') {
+                        if (executingPlayer === 'HOST') set(state => ({ civPicksHost: [...new Set([...state.civPicksHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ civPicksGuest: [...new Set([...state.civPicksGuest, optionName])] }));
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for civ pick.`); }
+                      } else if (actionType === 'ban') {
+                        if (executingPlayer === 'HOST') set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] }));
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for civ ban.`); }
+                      } else if (actionType === 'snipe') {
+                        if (executingPlayer === 'HOST') set(state => ({ civBansGuest: [...new Set([...state.civBansGuest, optionName])] })); // Host snipes Guest
+                        else if (executingPlayer === 'GUEST') set(state => ({ civBansHost: [...new Set([...state.civBansHost, optionName])] })); // Guest snipes Host
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for civ snipe.`); }
+                      } else { stateChanged = false; /* Unknown actionType for civ */ }
+                    } else if (effectiveDraftType === 'map') {
+                      stateChanged = true;
+                      if (actionType === 'pick') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapPicksHost: [...new Set([...state.mapPicksHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapPicksGuest: [...new Set([...state.mapPicksGuest, optionName])] }));
+                        else if (executingPlayer === 'NONE') set(state => ({ mapPicksGlobal: [...new Set([...state.mapPicksGlobal, optionName])] }));
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for map pick.`); }
+                      } else if (actionType === 'ban') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] }));
+                        else if (executingPlayer === 'NONE') set(state => ({ mapBansGlobal: [...new Set([...state.mapBansGlobal, optionName])] }));
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for map ban.`); }
+                      } else if (actionType === 'snipe') {
+                        if (executingPlayer === 'HOST') set(state => ({ mapBansGuest: [...new Set([...state.mapBansGuest, optionName])] })); // Host snipes Guest
+                        else if (executingPlayer === 'GUEST') set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] })); // Guest snipes Host
+                        else { stateChanged = false; console.warn(`Socket.IO "playerEvent": Invalid executingPlayer '${executingPlayer}' for map snipe.`); }
+                      } else { stateChanged = false; /* Unknown actionType for map */ }
+                    } else {
+                      if (chosenOptionId === "HIDDEN_BAN") {
+                        console.warn(`Socket.IO "playerEvent": Could not determine type (civ/map) for HIDDEN_BAN. socketDraftType: ${currentSocketDraftType}. Event not applied.`);
+                      } else if (chosenOptionId === "") {
+                        console.warn(`Socket.IO "playerEvent": Could not determine type (civ/map) for empty chosenOptionId (skip). socketDraftType: ${currentSocketDraftType}. Event not applied.`);
+                      } else {
+                        console.warn(`Socket.IO "playerEvent": Could not determine type (civ/map) for event with chosenOptionId: ${chosenOptionId}. Event not applied. socketDraftType: ${currentSocketDraftType}`);
+                      }
+                    }
+
+                    if (stateChanged) {
+                      get()._updateActivePresetIfNeeded();
+                    }
+                  });
 
                   currentSocket.on('act', (eventPayload) => {
-                    console.log('Socket.IO "act" event received:', eventPayload);
+                    console.log('Socket.IO "act" event received:', eventPayload); // Already present
                     if (!eventPayload || typeof eventPayload !== 'object') {
-                      console.warn('Received "act" event with invalid payload:', eventPayload);
+                      console.warn('Socket.IO "act": Received event with invalid payload:', eventPayload);
                       return;
                     }
                     const { executingPlayer, chosenOptionId, actionType } = eventPayload;
-                    if (!actionType || chosenOptionId === undefined) {
-                      console.warn('Received "act" event with missing actionType or chosenOptionId property:', eventPayload);
+                    // Ensure chosenOptionId property is present, even if its value is null or empty string
+                    if (!actionType || !eventPayload.hasOwnProperty('chosenOptionId')) {
+                      console.warn('Socket.IO "act": Received event with missing actionType or chosenOptionId property:', eventPayload);
                       return;
                     }
 
@@ -313,6 +436,7 @@ const useDraftStore = create<DraftStore>()(
                     } else if (chosenOptionId === "" && currentSocketDraftType) {
                       effectiveDraftType = currentSocketDraftType;
                     }
+                    // No change to chosenOptionId === "" handling, it's valid for skips.
 
                     if (effectiveDraftType === 'civ') {
                       if (actionType === 'pick') {
@@ -340,9 +464,13 @@ const useDraftStore = create<DraftStore>()(
                       }
                     } else {
                       if (chosenOptionId === "HIDDEN_BAN") {
-                        console.warn(`Could not determine type (civ/map) for HIDDEN_BAN. socketDraftType: ${currentSocketDraftType}. "act" event not applied for HIDDEN_BAN.`);
+                        console.warn(`Socket.IO "act": Could not determine type (civ/map) for HIDDEN_BAN. socketDraftType: ${currentSocketDraftType}. Event not applied for HIDDEN_BAN.`);
+                      } else if (chosenOptionId === "") {
+                        // This case means effectiveDraftType was null AND chosenOptionId was ""
+                        // This implies currentSocketDraftType was also null.
+                        console.warn(`Socket.IO "act": Could not determine type (civ/map) for skip action (empty chosenOptionId) because socketDraftType is null. Event not applied.`);
                       } else {
-                        console.warn(`Could not determine type (civ/map) for "act" event with chosenOptionId: ${chosenOptionId}. Event not applied. socketDraftType: ${currentSocketDraftType}`);
+                        console.warn(`Socket.IO "act": Could not determine type (civ/map) for event with chosenOptionId: ${chosenOptionId}. Event not applied. socketDraftType: ${currentSocketDraftType}`);
                       }
                     }
                     get()._updateActivePresetIfNeeded();
@@ -354,7 +482,7 @@ const useDraftStore = create<DraftStore>()(
                       // Placeholder for state update:
                       // set({ currentCountdownValue: countdownPayload.value, currentCountdownDisplay: countdownPayload.display });
                     } else {
-                      console.warn('Received "countdown" event with invalid payload:', countdownPayload);
+                      console.warn('Socket.IO "countdown": Received event with invalid payload:', countdownPayload);
                     }
                   });
 
@@ -365,10 +493,10 @@ const useDraftStore = create<DraftStore>()(
 
                   currentSocket.off('draft_update'); // Remove previous listener if any
                   currentSocket.on('draft_update', (data) => {
-                    console.log('Socket.IO "draft_update" event received:', data);
+                    console.log('Socket.IO "draft_update" event received:', data); // Already present
 
                     if (typeof data !== 'object' || data === null) {
-                      console.warn('Invalid data type received for draft_update:', data);
+                      console.warn('Socket.IO "draft_update": Invalid data type received:', data);
                       return;
                     }
 
@@ -396,8 +524,8 @@ const useDraftStore = create<DraftStore>()(
                       const currentSocketDraftType = get().socketDraftType;
 
                       data.events.forEach(event => {
-                        if (!event || typeof event !== 'object' || !event.actionType || event.chosenOptionId === undefined) {
-                          console.warn('Skipping invalid event in draft_update processing:', event);
+                        if (!event || typeof event !== 'object' || !event.actionType || !event.hasOwnProperty('chosenOptionId')) {
+                          console.warn('Socket.IO "draft_update": Skipping invalid event in event array processing:', event);
                           return; // continue to next event
                         }
 
@@ -409,7 +537,7 @@ const useDraftStore = create<DraftStore>()(
                         } else if (typeof chosenOptionId === 'string') { // Allow empty string for chosenOptionId
                           optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
                         } else {
-                          console.warn('Invalid chosenOptionId in draft_update event:', chosenOptionId, "Event:", event);
+                          console.warn('Socket.IO "draft_update": Invalid chosenOptionId in event array item:', chosenOptionId, "Event:", event);
                           return;
                         }
 
@@ -449,7 +577,7 @@ const useDraftStore = create<DraftStore>()(
                             else if (executingPlayer === 'GUEST') set(state => ({ mapBansHost: [...new Set([...state.mapBansHost, optionName])] }));
                           } else { stateChanged = false; } // No valid action type for map
                         } else {
-                          console.warn(`draft_update: Could not determine type for event processing. chosenOptionId: ${chosenOptionId}, socketDraftType: ${currentSocketDraftType}`);
+                          console.warn(`Socket.IO "draft_update": Could not determine type (civ/map) for event processing. chosenOptionId: ${chosenOptionId}, socketDraftType: ${currentSocketDraftType}`);
                         }
                       });
                     }
@@ -460,11 +588,11 @@ const useDraftStore = create<DraftStore>()(
                     }
                   });
 
-                  currentSocket.off('adminEvent');
+                  // currentSocket.off('adminEvent'); // Already handled by comprehensive .off() at the start
                   currentSocket.on('adminEvent', (data) => {
-                    console.log('Socket.IO "adminEvent" received:', data);
+                    console.log('Socket.IO "adminEvent" received:', data); // Already present
                     if (data && data.action === "REVEAL_BANS" && data.events && Array.isArray(data.events)) {
-                      console.log('Processing REVEAL_BANS event:', data.events);
+                      console.log('Socket.IO "adminEvent": Processing REVEAL_BANS action with events:', data.events);
                       let stateChanged = false;
                       const currentDraftOptions = get().aoe2cmRawDraftOptions;
                       const currentSocketDraftType = get().socketDraftType; // Used for context if HIDDEN_BAN was ambiguous
@@ -472,8 +600,9 @@ const useDraftStore = create<DraftStore>()(
                       data.events.forEach(revealedBanEvent => {
                         if (!revealedBanEvent || typeof revealedBanEvent !== 'object' ||
                             !revealedBanEvent.actionType || revealedBanEvent.actionType !== 'ban' ||
-                            revealedBanEvent.chosenOptionId === undefined || revealedBanEvent.chosenOptionId === "HIDDEN_BAN") {
-                          console.warn('Skipping invalid or already hidden ban event in REVEAL_BANS:', revealedBanEvent);
+                            !revealedBanEvent.hasOwnProperty('chosenOptionId') || // Check for presence
+                            revealedBanEvent.chosenOptionId === "HIDDEN_BAN") { // Still skip if it's a placeholder
+                          console.warn('Socket.IO "adminEvent" (REVEAL_BANS): Skipping invalid, non-ban, or already hidden ban event:', revealedBanEvent);
                           return;
                         }
 
@@ -510,19 +639,25 @@ const useDraftStore = create<DraftStore>()(
                             set(state => ({ ...state, [targetBanListKey as string]: currentBanList }));
                             stateChanged = true;
                           } else {
-                            console.warn(`REVEAL_BANS: "Hidden Ban" placeholder not found in ${targetBanListKey} for revealed ban:`, revealedBanEvent, `List was:`, currentBanList);
-                            // Optionally, add if not found, though replacement is ideal.
-                            // For example: set(state => ({ ...state, [targetBanListKey]: [...new Set([...currentBanList, optionName])] }));
-                            // This would add it if missing, ensuring it's at least present.
+                            console.warn(`Socket.IO "adminEvent" (REVEAL_BANS): "Hidden Ban" placeholder not found in ${targetBanListKey} for revealed ban:`, revealedBanEvent, `List was:`, currentBanList);
                           }
                         } else {
-                          console.warn(`REVEAL_BANS: Could not determine target ban list for event:`, revealedBanEvent, `EffectiveDraftType: ${effectiveDraftType}`);
+                          console.warn(`Socket.IO "adminEvent" (REVEAL_BANS): Could not determine target ban list for event:`, revealedBanEvent, `EffectiveDraftType: ${effectiveDraftType}`);
                         }
                       });
 
                       if (stateChanged) {
+                        console.log('Socket.IO "adminEvent" (REVEAL_BANS): State updated due to revealed bans.');
                         get()._updateActivePresetIfNeeded();
+                      } else {
+                        console.log('Socket.IO "adminEvent" (REVEAL_BANS): No state changes made from REVEAL_BANS event (e.g., no hidden bans found or events were invalid).');
                       }
+                    } else if (data && data.action === "REVEAL_BANS") {
+                        console.warn('Socket.IO "adminEvent": REVEAL_BANS action received but "events" array is missing or invalid.', data);
+                    } else if (data) { // Log for other admin events if any
+                        console.log('Socket.IO "adminEvent": Received admin event of type:', data.action, data);
+                    } else {
+                        console.warn('Socket.IO "adminEvent": Received invalid data for adminEvent:', data);
                     }
                   });
 
@@ -537,72 +672,7 @@ const useDraftStore = create<DraftStore>()(
                   });
                   // Developer Note: The exact event names ('join_draft', 'player_ready') and their
                   // payloads are educated guesses. These may need adjustment based on server expectations.
-
-                  currentSocket.off('adminEvent');
-                  currentSocket.on('adminEvent', (data) => {
-                    console.log('Socket.IO "adminEvent" received:', data);
-                    if (data && data.action === "REVEAL_BANS" && data.events && Array.isArray(data.events)) {
-                      console.log('Processing REVEAL_BANS event:', data.events);
-                      let stateChanged = false;
-                      const currentDraftOptions = get().aoe2cmRawDraftOptions;
-                      const currentSocketDraftType = get().socketDraftType; // Used for context if HIDDEN_BAN was ambiguous
-
-                      data.events.forEach(revealedBanEvent => {
-                        if (!revealedBanEvent || typeof revealedBanEvent !== 'object' ||
-                            !revealedBanEvent.actionType || revealedBanEvent.actionType !== 'ban' ||
-                            revealedBanEvent.chosenOptionId === undefined || revealedBanEvent.chosenOptionId === "HIDDEN_BAN") {
-                          console.warn('Skipping invalid or already hidden ban event in REVEAL_BANS:', revealedBanEvent);
-                          return;
-                        }
-
-                        const { executingPlayer, chosenOptionId } = revealedBanEvent;
-                        const optionName = getOptionNameFromStore(chosenOptionId, currentDraftOptions);
-
-                        let effectiveDraftType: 'civ' | 'map' | null = null;
-                        if (typeof chosenOptionId === 'string' && chosenOptionId.startsWith('aoe4.')) {
-                          effectiveDraftType = 'civ';
-                        } else if (typeof chosenOptionId === 'string') { // If not 'aoe4.' and is a string, assume map.
-                          effectiveDraftType = 'map';
-                        } else {
-                           // Fallback to socketDraftType if chosenOptionId is not a string or not decisive
-                           effectiveDraftType = currentSocketDraftType;
-                        }
-
-                        let targetBanListKey: keyof CombinedDraftState | null = null;
-
-                        if (effectiveDraftType === 'civ') {
-                          if (executingPlayer === 'HOST') targetBanListKey = 'civBansHost';
-                          else if (executingPlayer === 'GUEST') targetBanListKey = 'civBansGuest';
-                        } else if (effectiveDraftType === 'map') {
-                          if (executingPlayer === 'HOST') targetBanListKey = 'mapBansHost';
-                          else if (executingPlayer === 'GUEST') targetBanListKey = 'mapBansGuest';
-                          else if (executingPlayer === 'NONE') targetBanListKey = 'mapBansGlobal';
-                        }
-
-                        if (targetBanListKey) {
-                          const currentBanList = [...(get()[targetBanListKey] as string[])];
-                          const hiddenBanIndex = currentBanList.indexOf("Hidden Ban");
-
-                          if (hiddenBanIndex !== -1) {
-                            currentBanList[hiddenBanIndex] = optionName;
-                            set(state => ({ ...state, [targetBanListKey as string]: currentBanList }));
-                            stateChanged = true;
-                          } else {
-                            console.warn(`REVEAL_BANS: "Hidden Ban" placeholder not found in ${targetBanListKey} for revealed ban:`, revealedBanEvent, `List was:`, currentBanList);
-                            // Optionally, add if not found, though replacement is ideal.
-                            // For example: set(state => ({ ...state, [targetBanListKey]: [...new Set([...currentBanList, optionName])] }));
-                            // This would add it if missing, ensuring it's at least present.
-                          }
-                        } else {
-                          console.warn(`REVEAL_BANS: Could not determine target ban list for event:`, revealedBanEvent, `EffectiveDraftType: ${effectiveDraftType}`);
-                        }
-                      });
-
-                      if (stateChanged) {
-                        get()._updateActivePresetIfNeeded();
-                      }
-                    }
-                  });
+                  // The duplicated adminEvent listener block that followed here has been removed.
                 } // End if(currentSocket) for adding listeners
 
               } else { // Context changed or old socket
@@ -611,17 +681,18 @@ const useDraftStore = create<DraftStore>()(
               }
 
               // Add draft_finished listener
-              if (currentSocket) {
-                currentSocket.off('draft_finished'); // Prevent duplicates
+              if (currentSocket) { // This check is important as currentSocket might have been disconnected if context changed
+                // currentSocket.off('draft_finished'); // Already handled by bulk .off() at the start of connect handler's `if (currentSocket)`
                 currentSocket.on('draft_finished', (data) => {
-                  console.log('Socket.IO "draft_finished" event received:', data);
+                  console.log('Socket.IO "draft_finished" event received:', data); // Log already present, prefix verified
                   // This event signals the draft is over from the server side.
                   // We set a flag that the 'disconnect' handler can check.
                   set({ draftIsLikelyFinished: true });
                 });
               }
-            });
+            }); // End of currentSocket.on('connect', () => { ... })
 
+            // currentSocket.off('connect_error'); // Already handled by bulk .off() at the start of connectToWebSocket
             currentSocket.on('connect_error', (err) => {
               console.error(`Socket.IO connection error for draft ${draftId} (type ${draftType}):`, err.message, err.cause);
               const errorMessage = `Socket.IO connection error: ${err.message}. Real-time updates unavailable.`;
@@ -654,6 +725,8 @@ const useDraftStore = create<DraftStore>()(
                 if (reason !== 'io server disconnect' && reason !== 'io client disconnect') {
                   statusUpdate.socketError = `Live connection closed: ${reason}. Updates stopped.`;
                   statusUpdate.socketStatus = 'error';
+                  // Log the potential error when statusUpdate.socketError is set
+                  console.warn(`Socket.IO for ${localDraftType} draft ${localDraftId} disconnected with potential error. New status: ${statusUpdate.socketStatus}, Error: ${statusUpdate.socketError}`);
                 }
                 set(statusUpdate);
               }
@@ -672,7 +745,10 @@ const useDraftStore = create<DraftStore>()(
               const shouldAttemptHttpFallback = wasLikelyFinished || reason === 'io server disconnect' || reason === 'transport close';
 
               if (shouldAttemptHttpFallback && localDraftId && localDraftType) {
-                console.log(`WebSocket for ${localDraftType} draft ${localDraftId} disconnected (reason: ${reason}, wasLikelyFinished: ${wasLikelyFinished}). Attempting HTTP fallback.`);
+                // Enhanced log for triggering HTTP fallback
+                console.log(`[HTTP Fallback Triggered] Attempting HTTP fallback for ${localDraftType} draft ${localDraftId} due to disconnect reason: '${reason}' and wasLikelyFinished: ${wasLikelyFinished}.`);
+                // The existing log below also serves a similar purpose, but the one above is more specific to the trigger condition.
+                // console.log(`WebSocket for ${localDraftType} draft ${localDraftId} disconnected (reason: ${reason}, wasLikelyFinished: ${wasLikelyFinished}). Attempting HTTP fallback.`);
                 setTimeout(() => {
                     const currentStatus = get()[localDraftType === 'civ' ? 'civDraftStatus' : 'mapDraftStatus'];
                     if (currentStatus !== 'connecting' && currentStatus !== 'live') {
