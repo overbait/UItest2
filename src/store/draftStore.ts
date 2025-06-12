@@ -1165,24 +1165,37 @@ const useDraftStore = create<DraftStore>()(
             const httpMapBansGlobal = processedData.mapBansGlobal || [];
 
             // Handle BoX Format Detection (before the main set call)
-            let detectedFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null = null;
+            let detectedFormatDuringLoad: CombinedDraftState['boxSeriesFormat'] = null;
             const currentBoxSeriesFormat = get().boxSeriesFormat; // Get current format from state
 
             if (rawDraftData.preset?.name) {
               const presetName = rawDraftData.preset.name.toLowerCase();
               // Only auto-detect if no active preset is loaded and no format is currently set by the user
               if (get().activePresetId === null && !currentBoxSeriesFormat) {
-                if (presetName.includes('bo1')) detectedFormat = 'bo1';
-                else if (presetName.includes('bo3')) detectedFormat = 'bo3';
-                else if (presetName.includes('bo5')) detectedFormat = 'bo5';
-                else if (presetName.includes('bo7')) detectedFormat = 'bo7';
+                if (presetName.includes('best of 1')) {
+                    detectedFormatDuringLoad = 'bo1';
+                } else if (presetName.includes('best of 3')) {
+                    detectedFormatDuringLoad = 'bo3';
+                } else if (presetName.includes('best of 5')) {
+                    detectedFormatDuringLoad = 'bo5';
+                } else if (presetName.includes('best of 7')) {
+                    detectedFormatDuringLoad = 'bo7';
+                } else if (presetName.includes('bo1')) { // Fallback to short forms
+                    detectedFormatDuringLoad = 'bo1';
+                } else if (presetName.includes('bo3')) {
+                    detectedFormatDuringLoad = 'bo3';
+                } else if (presetName.includes('bo5')) {
+                    detectedFormatDuringLoad = 'bo5';
+                } else if (presetName.includes('bo7')) {
+                    detectedFormatDuringLoad = 'bo7';
+                }
 
-                if (detectedFormat) {
-                    console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormat} for ${extractedId} from preset name: "${rawDraftData.preset.name}"`);
+                if (detectedFormatDuringLoad) {
+                    console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormatDuringLoad} for ${extractedId} from preset name: "${rawDraftData.preset.name}"`);
                 }
               }
             }
-            const formatToUse = detectedFormat || currentBoxSeriesFormat;
+            const formatToUse = detectedFormatDuringLoad || currentBoxSeriesFormat;
 
             // Single, consolidated set call
             set(state => {
@@ -1201,7 +1214,7 @@ const useDraftStore = create<DraftStore>()(
 
                 // If format changes due to detection, currentBoxSeriesGames should be empty to rebuild fresh
                 // otherwise, use state.boxSeriesGames to preserve winners.
-                const baseGamesForCalc = (detectedFormat && detectedFormat !== state.boxSeriesFormat) ? [] : state.boxSeriesGames;
+                const baseGamesForCalc = (detectedFormatDuringLoad && detectedFormatDuringLoad !== state.boxSeriesFormat) ? [] : state.boxSeriesGames;
 
                 const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
                     formatToUse,
@@ -1229,8 +1242,8 @@ const useDraftStore = create<DraftStore>()(
                 };
 
                 // If a new format was detected and it's different from current state, apply it
-                if (detectedFormat && detectedFormat !== state.boxSeriesFormat) {
-                    updatePayload.boxSeriesFormat = detectedFormat;
+                if (detectedFormatDuringLoad && detectedFormatDuringLoad !== state.boxSeriesFormat) {
+                    updatePayload.boxSeriesFormat = detectedFormatDuringLoad;
                 }
 
                 // Update status and loading flags
