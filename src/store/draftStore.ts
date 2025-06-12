@@ -253,6 +253,7 @@ const useDraftStore = create<DraftStore>()(
         ...initialCombinedState,
 
         connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => {
+          console.log(`[connectToWebSocket] Attempting connection for draft ID: ${draftId}, type: ${draftType}`);
           if (currentSocket) {
             console.log("Disconnecting previous socket before creating a new one. Old socket draft ID:", currentSocket.io.opts.query?.draftId);
             currentSocket.disconnect();
@@ -1065,17 +1066,23 @@ const useDraftStore = create<DraftStore>()(
               httpErrorMessage = error.message;
             }
 
-            const finalErrorMessage = `Failed to connect to draft ${extractedId}: ${httpErrorMessage}`;
-            console.error(`[ConnectToDraft] ${finalErrorMessage}`, error);
+            const finalErrorMessage = `Failed to connect to draft ${extractedId} via HTTP: ${httpErrorMessage}`;
+            // Log the HTTP error, but indicate that we are now attempting WebSocket.
+            console.warn(`[ConnectToDraft] ${finalErrorMessage}. Proceeding with WebSocket connection attempt.`);
 
-            if (draftType === 'civ') {
-              set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: finalErrorMessage, activePresetId: null });
-            } else { // map draft
-              set({ isLoadingMapDraft: false, mapDraftStatus: 'error', mapDraftError: finalErrorMessage, activePresetId: null });
-            }
-            // Ensure WebSocket is disconnected on HTTP error too
-            get().disconnectWebSocket();
-            return false;
+            // DO NOT set draftStatus to 'error' or isLoading to false here.
+            // Instead, keep isLoadingCivDraft/MapDraft as true, and civDraftStatus/MapDraftStatus as 'connecting'.
+            // The connectToWebSocket function will now be responsible for the final status.
+
+            // If draftType is 'civ', isLoadingCivDraft is already true, civDraftStatus is 'connecting'.
+            // If draftType is 'map', isLoadingMapDraft is already true, mapDraftStatus is 'connecting'.
+            // These states correctly reflect that a connection attempt is still ongoing (now via WebSocket).
+
+            get().connectToWebSocket(extractedId, draftType);
+
+            // connectToDraft should still return true because a connection attempt (WebSocket) is being made.
+            // The success/failure of this attempt will be reflected by connectToWebSocket updating the store.
+            return true;
           }
         },
         disconnectDraft: (draftType: 'civ' | 'map') => {
