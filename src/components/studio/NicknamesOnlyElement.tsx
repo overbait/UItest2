@@ -5,9 +5,10 @@ import { StudioElement } from '../../types/draft';
 interface NicknamesOnlyElementProps {
   element: StudioElement;
   isBroadcast?: boolean;
+  isSelected?: boolean;
 }
 
-const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, isBroadcast }) => {
+const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, isBroadcast, isSelected }) => {
   const {
     fontFamily,
     backgroundColor,
@@ -41,6 +42,8 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
     left: '50%',
     top: '50%',
     transform: 'translate(-50%, -50%)',
+    opacity: 1,
+    color: 'inherit',
   };
 
   const hostNameDisplay = <span style={nameSpanStyle}>{liveHostName || 'Host'}</span>;
@@ -104,6 +107,9 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
   console.log('element.borderColor:', element.borderColor);
   console.log('element.textColor:', element.textColor);
   console.log('isBroadcast:', isBroadcast);
+  console.log('element.size.width:', element.size.width);
+  console.log('element.size.height:', element.size.height);
+  console.log('dynamicFontSize:', dynamicFontSize);
 
   return (
     <div style={baseDivStyle}>
@@ -120,7 +126,7 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
         {guestNameDisplay}
       </div>
 
-      {isPivotLocked && <div style={pivotLineStyle}></div>}
+      {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
 
       {!namesPresent && !isBroadcast && (
           <span style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.8em', opacity: 0.7}}>(Names Hidden)</span>

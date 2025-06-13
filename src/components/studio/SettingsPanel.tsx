@@ -181,6 +181,38 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          {/* Specific centering options for NicknamesOnly might be added later */}
        </>
      )}
+
+     {selectedElement.type === 'CountryFlags' && (
+       <>
+         <h4 style={sectionHeaderStyle}>Country Flags Options</h4>
+         <div style={settingRowStyle}>
+           <label htmlFor="countryFlagsScaleSlider" style={labelStyle}>Scale:</label>
+           <input
+             type="range"
+             id="countryFlagsScaleSlider"
+             style={rangeInputStyle}
+             min="0.2"
+             max="5"
+             step="0.05"
+             value={selectedElement.scale || 1}
+             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+           />
+           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="countryFlagsPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+           <input
+             type="checkbox"
+             id="countryFlagsPivotLockCheckbox"
+             style={checkboxStyle}
+             checked={!!selectedElement.isPivotLocked}
+             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+           />
+         </div>
+         {/* pivotInternalOffset could be added here if needed */}
+       </>
+     )}
+
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>

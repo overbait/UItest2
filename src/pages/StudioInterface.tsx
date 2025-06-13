@@ -3,6 +3,7 @@ import useDraftStore from '../store/draftStore';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement'; // New
 import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement'; // New
 import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement';
+import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -51,6 +52,7 @@ const StudioInterface: React.FC = () => {
   const handleAddScoreOnly = () => { addStudioElement("ScoreOnly"); };
   const handleAddNicknamesOnly = () => { addStudioElement("NicknamesOnly"); };
   const handleAddBoXSeriesOverview = () => { addStudioElement("BoXSeriesOverview"); };
+  const handleAddCountryFlags = () => { addStudioElement("CountryFlags"); };
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
@@ -197,6 +199,7 @@ const StudioInterface: React.FC = () => {
               <button onClick={handleAddScoreOnly} style={buttonStyle}>Add Score</button>
               <button onClick={handleAddNicknamesOnly} style={buttonStyle}>Add Nicknames</button>
               <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
+              <button onClick={handleAddCountryFlags} style={buttonStyle}>Add Country Flags</button>
            </>
          )}
         </div>
@@ -438,9 +441,10 @@ const StudioInterface: React.FC = () => {
             const currentScale = element.scale || 1;
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
             let content = null;
-            if (element.type === "ScoreOnly") { content = <ScoreOnlyElement element={element} />; }
-            else if (element.type === "NicknamesOnly") { content = <NicknamesOnlyElement element={element} />; }
+            if (element.type === "ScoreOnly") { content = <ScoreOnlyElement element={element} isSelected={isSelected} />; }
+            else if (element.type === "NicknamesOnly") { content = <NicknamesOnlyElement element={element} isSelected={isSelected} />; }
             else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; }
+            else if (element.type === "CountryFlags") { content = <CountryFlagsElement element={element} isSelected={isSelected} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (

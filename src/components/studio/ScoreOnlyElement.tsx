@@ -5,9 +5,10 @@ import { StudioElement } from '../../types/draft';
 interface ScoreOnlyElementProps {
   element: StudioElement;
   isBroadcast?: boolean;
+  isSelected?: boolean;
 }
 
-const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcast }) => {
+const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcast, isSelected }) => {
   const {
     fontFamily,
     backgroundColor,
@@ -108,7 +109,7 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcas
         </div>
       ) : ( <div></div> )}
 
-      {isPivotLocked && <div style={pivotLineStyle}></div>}
+      {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
 
       {!scoresPresent && !isBroadcast && (
           <span style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.8em', opacity: 0.7}}>(Scores Hidden)</span>
