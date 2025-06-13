@@ -75,6 +75,7 @@ interface DraftStore extends CombinedDraftState {
   connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => void;
   disconnectWebSocket: () => void;
   // handleWebSocketMessage: (messageData: any) => void; // Removed
+  resetActiveCanvasLayout: () => void; // New action
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -1694,15 +1695,6 @@ const useDraftStore = create<DraftStore>()(
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
-        updateCanvasName: (canvasId: string, newName: string) => {
-          set(state => ({
-            ...state,
-            currentCanvases: state.currentCanvases.map(c =>
-              c.id === canvasId ? { ...c, name: newName } : c
-            ),
-          }));
-          get()._autoSaveOrUpdateActiveStudioLayout();
-        },
       updateCanvasName: (canvasId: string, newName: string) => {
         set(state => ({
           ...state,
@@ -1715,6 +1707,31 @@ const useDraftStore = create<DraftStore>()(
       },
         setActiveStudioLayoutId: (layoutId: string | null) => {
           set({ activeStudioLayoutId: layoutId });
+        },
+
+        resetActiveCanvasLayout: () => {
+          set(state => {
+            const updatedCanvases = state.currentCanvases.map(canvas =>
+              canvas.id === state.activeCanvasId
+                ? { ...canvas, layout: [] } // Reset layout for the active canvas
+                : canvas
+            );
+            // If the active canvas was found and its layout reset, update relevant state
+            // Check if the layout actually changed to prevent unnecessary updates
+            const originalActiveCanvas = state.currentCanvases.find(sc => sc.id === state.activeCanvasId);
+            const newActiveCanvas = updatedCanvases.find(uc => uc.id === state.activeCanvasId);
+
+            if (originalActiveCanvas && newActiveCanvas && originalActiveCanvas.layout.length > 0 && newActiveCanvas.layout.length === 0) {
+              return {
+                ...state,
+                currentCanvases: updatedCanvases,
+                selectedElementId: null, // Also clear selected element
+                layoutLastUpdated: Date.now()
+              };
+            }
+            return state; // Return original state if active canvas not found or no change made
+          });
+          get()._autoSaveOrUpdateActiveStudioLayout();
         },
 
         _autoSaveOrUpdateActiveStudioLayout: () => {

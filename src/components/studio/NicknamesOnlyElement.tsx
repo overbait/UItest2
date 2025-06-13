@@ -4,50 +4,90 @@ import { StudioElement } from '../../types/draft';
 
 interface NicknamesOnlyElementProps {
   element: StudioElement;
-  isBroadcast?: boolean;
   isSelected?: boolean;
+  isBroadcast?: boolean; // Keep for prop consistency, though not actively used for major logic here
 }
 
-const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, isBroadcast, isSelected }) => {
+const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, isSelected, isBroadcast }) => {
   const {
     fontFamily,
-    backgroundColor,
-    borderColor,
     textColor,
     isPivotLocked,
     pivotInternalOffset,
-    size
+    size,
+    // Destructure other props like backgroundColor, borderColor if they are to be used on baseDivStyle directly
+    // For now, focusing on text visibility and centering.
   } = element;
 
-  const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40;
-  const BASELINE_FONT_SIZE_PX = 18;
+  const liveHostName = useDraftStore((state) => state.hostName);
+  const liveGuestName = useDraftStore((state) => state.guestName); // Corrected: useDraftStore
 
+  // Default values
+  const currentFontFamily = fontFamily || 'Arial, sans-serif';
+  const currentTextColor = textColor || 'white';
+  const currentPivotOffset = pivotInternalOffset || 0;
+  const currentBackgroundColor = element.backgroundColor || 'transparent'; // Example if used
+  const currentBorderColor = element.borderColor || 'transparent';     // Example if used
+
+  // Dynamic font size calculation
+  const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40; // Adjust if base design assumes different ref
+  const BASELINE_FONT_SIZE_PX = 18;         // Adjust if base design assumes different ref
   const dynamicFontSize = Math.max(8, (size.height / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
 
-  const currentFontFamily = fontFamily || 'Arial, sans-serif';
-  const currentBackgroundColor = backgroundColor || 'transparent';
-  const currentBorderColor = borderColor || 'transparent';
-  const currentPivotOffset = pivotInternalOffset || 0;
+  // Logging for diagnostics
+  // console.log('NicknamesOnlyElement Render:', {
+  //   liveHostName,
+  //   liveGuestName,
+  //   fontFamily: currentFontFamily,
+  //   textColor: currentTextColor,
+  //   isPivotLocked,
+  //   pivotInternalOffset: currentPivotOffset,
+  //   'size.width': size.width,
+  //   'size.height': size.height,
+  //   dynamicFontSize,
+  //   isSelected,
+  //   backgroundColor: currentBackgroundColor,
+  //   borderColor: currentBorderColor,
+  // });
 
-  const liveHostName = useDraftStore((state) => state.hostName);
-  const liveGuestName = useDraftStore((state) => state.guestName);
+  const baseDivStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+    fontFamily: currentFontFamily,
+    fontSize: `${dynamicFontSize}px`,
+    color: currentTextColor,
+    backgroundColor: currentBackgroundColor, // Apply if needed
+    border: `1px solid ${currentBorderColor}`,   // Apply if needed, ensure transparent by default
+    display: 'grid',
+    gridTemplateColumns: (isPivotLocked && currentPivotOffset > 0) ? `1fr ${currentPivotOffset}px 1fr` : '1fr 1fr',
+    columnGap: (!isPivotLocked && currentPivotOffset > 0) ? `${currentPivotOffset}px` : '0px',
+    alignItems: 'stretch', // Make cells take full height
+    justifyItems: 'stretch', // Make cells take full width
+    overflow: 'hidden',
+    position: 'relative', // For the pivot line
+  };
 
-  const nameSpanStyle: React.CSSProperties = {
-    display: 'inline-block',
+  const cellStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    width: '100%', // Should be redundant due to justifyItems: 'stretch' on parent
+    height: '100%', // Should be redundant due to alignItems: 'stretch' on parent
+    overflow: 'hidden',
+    padding: '0 2px', // Minimal horizontal padding within cell
+    boxSizing: 'border-box',
+  };
+
+  const nameTextStyle: React.CSSProperties = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    maxWidth: '100%', // Text itself can be as wide as its container
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    opacity: 1,
-    color: 'inherit',
+    display: 'inline-block', // Important for ellipsis to work correctly with width/maxWidth
+    maxWidth: '100%',      // Ensure text does not overflow its flex container
+    // No absolute positioning needed if flex centering works well
   };
-
-  const hostNameDisplay = <span style={nameSpanStyle}>{liveHostName || 'Host'}</span>;
-  const guestNameDisplay = <span style={nameSpanStyle}>{liveGuestName || 'Guest'}</span>;
 
   const pivotLineStyle: React.CSSProperties = {
     position: 'absolute',
@@ -60,76 +100,38 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
     zIndex: 1,
   };
 
-  const baseDivStyle: React.CSSProperties = {
-    border: `1px solid ${currentBorderColor}`,
-    padding: '10px',
-    borderRadius: '5px',
-    backgroundColor: currentBackgroundColor,
-    color: textColor || 'white',
-    fontFamily: currentFontFamily,
-    fontSize: `${dynamicFontSize}px`,
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    display: 'grid',
-    gridTemplateColumns: `1fr ${currentPivotOffset}px 1fr`, // Use 1fr for name areas
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  };
+  // Conditional rendering for "(Names Hidden)" if names are blank and not in broadcast mode
+  const namesActuallyPresent = (liveHostName && liveHostName.trim() !== "") || (liveGuestName && liveGuestName.trim() !== "");
+  const showHiddenPlaceholder = !namesActuallyPresent && !isBroadcast;
 
-  // Styles for the content within grid cells
-  const nameContainerStyle: React.CSSProperties = {
-    display: 'flex', // Keep flex for vertical centering via alignItems
-    alignItems: 'center', // Vertically center content
-    overflow: 'hidden',
-    position: 'relative', // For absolute positioning of the name span
-    // text-align will be managed by child or specific centering logic in next step
-  };
-
-  const hostNameContainerStyle: React.CSSProperties = {
-    ...nameContainerStyle,
-    // justifyContent: 'flex-end', // Removed, centering handled by child span
-  };
-
-  const guestNameContainerStyle: React.CSSProperties = {
-    ...nameContainerStyle,
-    // justifyContent: 'flex-start', // Removed, centering handled by child span
-  };
-
-  const namesPresent = (liveHostName && liveHostName.trim() !== "") || (liveGuestName && liveGuestName.trim() !== "");
-
-  console.log('NicknamesOnlyElement rendering with:');
-  console.log('liveHostName:', liveHostName);
-  console.log('liveGuestName:', liveGuestName);
-  console.log('element.fontFamily:', element.fontFamily);
-  console.log('element.backgroundColor:', element.backgroundColor);
-  console.log('element.borderColor:', element.borderColor);
-  console.log('element.textColor:', element.textColor);
-  console.log('isBroadcast:', isBroadcast);
-  console.log('element.size.width:', element.size.width);
-  console.log('element.size.height:', element.size.height);
-  console.log('dynamicFontSize:', dynamicFontSize);
 
   return (
     <div style={baseDivStyle}>
-      {/* Host Name Cell */}
-      <div style={hostNameContainerStyle}>
-        {hostNameDisplay}
+      <div style={cellStyle}>
+        <span style={nameTextStyle}>{liveHostName || 'Host'}</span>
       </div>
 
-      {/* Middle Spacer Cell (explicitly sized by currentPivotOffset) */}
-      <div></div>
+      {isPivotLocked && currentPivotOffset > 0 && <div></div>} {/* Spacer Cell */}
 
-      {/* Guest Name Cell */}
-      <div style={guestNameContainerStyle}>
-        {guestNameDisplay}
+      <div style={cellStyle}>
+        <span style={nameTextStyle}>{liveGuestName || 'Guest'}</span>
       </div>
 
       {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
 
-      {!namesPresent && !isBroadcast && (
-          <span style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '0.8em', opacity: 0.7}}>(Names Hidden)</span>
+      {showHiddenPlaceholder && (
+          <span style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '0.8em', // Smaller than main text
+              opacity: 0.7,
+              color: currentTextColor // Ensure it respects textColor setting
+            }}
+          >
+            (Names Hidden)
+          </span>
       )}
     </div>
   );

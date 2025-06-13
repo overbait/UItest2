@@ -25,7 +25,8 @@ const StudioInterface: React.FC = () => {
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
     addCanvas,
     setActiveCanvas,
-    removeCanvas
+    removeCanvas,
+    resetActiveCanvasLayout
   } = useDraftStore(state => state);
 
   // Logging for savedStudioLayouts and activeStudioLayoutId
@@ -44,6 +45,7 @@ const StudioInterface: React.FC = () => {
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
+  const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -81,10 +83,17 @@ const StudioInterface: React.FC = () => {
 
         // Convert screen drag delta to an equivalent unscaled drag for one edge
         const effectiveUnscaledDrag = data.deltaX / currentScale;
+        let actualEffectiveUnscaledDrag = effectiveUnscaledDrag;
+
+        if (dragStartContext && dragStartContext.elementId === elementId) {
+          if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) { // Drag started on left half
+            actualEffectiveUnscaledDrag = -effectiveUnscaledDrag;
+          }
+          // If drag started on right half, actualEffectiveUnscaledDrag remains effectiveUnscaledDrag
+        }
 
         // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH
-        // MODIFIED: Changed subtraction to addition for finalUnscaledWidth calculation
-        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, currentUnscaledWidth + (2 * effectiveUnscaledDrag));
+        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, currentUnscaledWidth + (2 * actualEffectiveUnscaledDrag));
 
         // Calculate the actual change applied to one edge in unscaled units
         // This is based on the difference between current width and the (potentially clamped) final width.
@@ -320,21 +329,22 @@ const StudioInterface: React.FC = () => {
                    value={editingCanvasName}
                    onChange={(e) => setEditingCanvasName(e.target.value)}
                    onBlur={() => {
-                     if (editingCanvasName.trim() !== "") {
-                       updateCanvasName(canvas.id, editingCanvasName);
+                     const trimmedName = editingCanvasName.trim();
+                     if (trimmedName !== "" && trimmedName !== canvas.name) { // Only update if non-empty and changed
+                       updateCanvasName(canvas.id, trimmedName);
                      }
-                     setEditingCanvasId(null);
+                     setEditingCanvasId(null); // Always exit editing mode
                    }}
                    onKeyDown={(e) => {
                      if (e.key === 'Enter') {
-                       if (editingCanvasName.trim() !== "") {
-                         updateCanvasName(canvas.id, editingCanvasName);
+                       const trimmedName = editingCanvasName.trim();
+                       if (trimmedName !== "" && trimmedName !== canvas.name) { // Only update if non-empty and changed
+                         updateCanvasName(canvas.id, trimmedName);
                        }
-                       setEditingCanvasId(null);
-                       e.currentTarget.blur(); // Optional: remove focus
+                       setEditingCanvasId(null); // Exit editing mode
+                       // e.currentTarget.blur(); // Not strictly necessary as input will be removed
                      } else if (e.key === 'Escape') {
-                       setEditingCanvasId(null);
-                       setEditingCanvasName(""); // Reset temp name
+                       setEditingCanvasId(null); // Exit editing mode, changes in editingCanvasName are discarded
                      }
                    }}
                    autoFocus
@@ -411,6 +421,30 @@ const StudioInterface: React.FC = () => {
           </div>
           <button
             onClick={() => {
+              if (activeCanvas && activeCanvas.layout.length > 0) {
+                if (confirm(`Are you sure you want to remove all elements from canvas "${activeCanvas.name}"?`)) {
+                  resetActiveCanvasLayout();
+                }
+              }
+            }}
+            style={{
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '6px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9em',
+              marginLeft: '10px', // Spacing from the tab list
+              flexShrink: 0
+            }}
+            title="Remove all elements from current canvas"
+            disabled={!activeCanvas || activeCanvas.layout.length === 0}
+          >
+            Reset 🗑️
+          </button>
+          <button
+            onClick={() => {
               addCanvas();
             }}
             style={{
@@ -436,6 +470,21 @@ const StudioInterface: React.FC = () => {
             margin: 'auto',
           }}
         >
+          {/* Visual Center Guide Line */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              top: '0px', // Starts from the top edge of the canvas container
+              width: '1px',
+              height: '20px', // A short line
+              backgroundColor: '#555', // A visible gray color
+              pointerEvents: 'none', // Non-interactive
+              zIndex: 0, // Ensure it's behind elements if they get higher z-index
+            }}
+            aria-hidden="true" // Decorative element
+          />
           {activeLayout.map((element: StudioElement) => {
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
@@ -453,6 +502,22 @@ const StudioInterface: React.FC = () => {
                   handle=".drag-handle"
                   position={{ x: element.position.x, y: element.position.y }}
                   onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
+                  onStart={(e: DraggableEvent, data: DraggableData) => {
+                    const currentElement = activeLayout.find(el => el.id === element.id);
+                    if (currentElement && currentElement.isPivotLocked) {
+                      const eventAsMouseEvent = e as MouseEvent;
+                      const scale = currentElement.scale || 1;
+                      const elementCenterX = currentElement.position.x + (currentElement.size.width * scale / 2);
+                      setDragStartContext({
+                        elementId: currentElement.id,
+                        initialMouseX: eventAsMouseEvent.clientX,
+                        elementCenterX: elementCenterX
+                      });
+                    }
+                  }}
+                  onStop={() => {
+                    setDragStartContext(null);
+                  }}
                   >
                 <ResizableBox
                     width={element.size.width * currentScale}
