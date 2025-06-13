@@ -1,0 +1,100 @@
+/* src/components/studio/BoXSeriesOverviewElement.module.css */
+
+.baseElement {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around; /* Distribute games vertically */
+  font-family: 'Arial', sans-serif; /* Default, can be overridden by element props */
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black;
+  padding: 5px; /* Add some internal padding */
+}
+
+.gameRow {
+  display: grid;
+  /* gridTemplateColumns will be set dynamically in the component based on isPivotLocked */
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  padding: 2px 0;
+  position: relative; /* For absolute positioning of gameTitle */
+  min-height: 30px; /* Minimum height for a game row */
+}
+
+.gameTitle {
+  text-align: center;
+  font-weight: bold;
+  /* fontSize will be set dynamically in the component */
+  position: absolute;
+  top: -10px; /* Adjust to position above images, depends on font size */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 3;
+  padding: 0 3px;
+  background-color: rgba(0, 0, 0, 0.3); /* Slight background for readability */
+  border-radius: 2px;
+}
+
+.civCell {
+  position: relative; /* For potential future overlays or absolute positioning within cell */
+}
+
+.leftCivCell {
+  justify-self: end; /* Align to the right of its grid column */
+}
+
+.rightCivCell {
+  justify-self: start; /* Align to the left of its grid column */
+}
+
+.mapCell {
+  justify-self: center; /* Center in its grid column */
+  position: relative;
+  z-index: 1; /* Map is typically in the middle, default stacking */
+}
+
+.civImage {
+  /* width, height will be set dynamically in component */
+  object-fit: cover;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background-color: #333; /* Fallback */
+  display: block; /* Remove extra space below image */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.mapImage {
+  /* width, height will be set dynamically in component */
+  object-fit: cover;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background-color: #444; /* Fallback */
+  display: block;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.winnerGlow {
+  box-shadow: 0 0 7px 2px #00dd00, 0 0 4px 1px #00dd00 inset, 0 1px 2px rgba(0,0,0,0.5); /* Green glow + original shadow */
+  border-color: #00cc00;
+}
+
+.noGamesMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 12px; /* Adjust as needed */
+  color: #888;
+}
+
+/* Spacers for pivot lock - their width is controlled by grid-template-columns */
+.spacer {
+  /* This class is mainly for semantic distinction if needed, actual spacing is by grid column width */
+  /* No visual styling needed unless for debugging */
+}

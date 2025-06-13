@@ -73,6 +73,37 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
           </div>
         </>
       )}
+
+      {selectedElement.type === 'BoXSeriesOverview' && (
+        <>
+          <h4 style={sectionHeaderStyle}>BoX Series Overview Options</h4>
+          <div style={settingRowStyle}>
+            <label htmlFor="boxScaleSlider" style={labelStyle}>Scale:</label>
+            <input
+              type="range"
+              id="boxScaleSlider"
+              style={rangeInputStyle}
+              min="0.2" // BoX overview might need smaller scales
+              max="5"   // And perhaps not as large
+              step="0.05"
+              value={selectedElement.scale || 1}
+              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="boxPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+            <input
+              type="checkbox"
+              id="boxPivotLockCheckbox"
+              style={checkboxStyle}
+              checked={!!selectedElement.isPivotLocked}
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+            />
+          </div>
+          {/* Add other BoXSeriesOverview specific settings here if any in the future */}
+        </>
+      )}
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>

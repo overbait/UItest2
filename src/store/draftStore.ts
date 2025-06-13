@@ -1483,18 +1483,40 @@ const useDraftStore = create<DraftStore>()(
             }
 
             const initialX_px = 10;
-            const initialY_px = 10 + (activeCanvas.layout.length * 20);
-            const initialWidth_px = 250;
-            const initialHeight_px = 40;
+            const initialY_px = 10 + (activeCanvas.layout.length * 20); // Basic stacking
 
-            const newElement: StudioElement = {
-              id: Date.now().toString(), type: elementType,
-              position: { x: initialX_px, y: initialY_px },
-              size: { width: initialWidth_px, height: initialHeight_px },
-              fontFamily: 'Arial', showName: true, showScore: true,
-              backgroundColor: 'transparent', borderColor: 'transparent',
-              scale: 1, isPivotLocked: false, pivotInternalOffset: 0,
-            };
+            let newElement: StudioElement;
+
+            if (elementType === "BoXSeriesOverview") {
+              newElement = {
+                id: Date.now().toString(),
+                type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 350, height: 120 }, // Adjusted default size
+                fontFamily: 'Arial, sans-serif', // Default font
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                pivotInternalOffset: 10, // Default gap for spacers
+                // BoXSeriesOverview doesn't use showName or showScore
+              };
+            } else { // Default for ScoreDisplay or other types
+              newElement = {
+                id: Date.now().toString(),
+                type: elementType, // Typically "ScoreDisplay" if not specified
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 250, height: 40 }, // Original defaults
+                fontFamily: 'Arial',
+                showName: true,
+                showScore: true,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                pivotInternalOffset: 0,
+              };
+            }
             const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
                 ? { ...canvas, layout: [...canvas.layout, newElement] }

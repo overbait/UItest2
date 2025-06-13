@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
+import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement'; // Added
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -42,6 +43,7 @@ const StudioInterface: React.FC = () => {
   const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
 
   const handleAddScoreDisplay = () => { addStudioElement("ScoreDisplay"); };
+  const handleAddBoXSeriesOverview = () => { addStudioElement("BoXSeriesOverview"); }; // Added
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
@@ -83,7 +85,20 @@ const StudioInterface: React.FC = () => {
         finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
 
         // Calculate the new unscaled pivot offset
-        finalPivotOffset_unscaled = currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge);
+        if (element.type === "ScoreDisplay") {
+          // For ScoreDisplay, pivotInternalOffset is the width of the central score column.
+          // If element width shrinks (actualUnscaledChangePerEdge > 0), pivot offset must shrink.
+          // If element width grows (actualUnscaledChangePerEdge < 0), pivot offset can grow.
+          // Change in pivot offset is 2 * actualUnscaledChangePerEdge (since width change is total)
+          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledChangePerEdge));
+        } else if (element.type === "BoXSeriesOverview") {
+          // For BoXSeriesOverview, pivotInternalOffset is the width of EACH of the two spacer columns
+          // next to the central map.
+          // If element width shrinks (actualUnscaledChangePerEdge > 0), these spacers must shrink.
+          // If element width grows (actualUnscaledChangePerEdge < 0), these spacers can grow.
+          // The change to each spacer is actualUnscaledChangePerEdge.
+          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledChangePerEdge);
+        }
     }
 
     // Update the element's state
@@ -160,7 +175,11 @@ const StudioInterface: React.FC = () => {
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
-        <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Elements</h3><button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button></div>
+        <div style={toolboxSectionStyle}>
+          <h3 style={toolboxHeaderStyle}>Elements</h3>
+          <button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button>
+          <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
+        </div>
         <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Save Current Layout</h3><input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/><button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button></div>
         <div style={{flexGrow: 1, overflowY: 'auto'}}><h3 style={toolboxHeaderStyle}>Saved Layouts</h3>{savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (
           <li
@@ -308,6 +327,7 @@ const StudioInterface: React.FC = () => {
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
             let content = null;
             if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
+            else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; } // Added
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (
