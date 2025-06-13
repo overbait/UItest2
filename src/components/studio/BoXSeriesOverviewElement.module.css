@@ -15,7 +15,7 @@
 }
 
 .gameEntryContainer {
-  margin-bottom: 15px; /* Space between full game entries */
+  margin-bottom: 10px; /* Was 15px. Matches gap in .box-games-list */
   /* Add other styles if needed, e.g., width: 100%; */
 }
 
@@ -23,55 +23,61 @@
   margin-bottom: 0; /* No margin for the last item */
 }
 
-.imageTextOverlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+.selectorDisplay {
+  padding: 5px; /* Matches select padding */
+  border: 1px solid #c19a49; /* --aoe-gold-accent */
+  border-radius: 3px;
+  background-color: #4a3b2a; /* --aoe-button-bg */
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  position: relative; /* For text overlay and other potential absolute elements */
+  box-sizing: border-box;
+
+  /* Default text properties for children, like the overlay */
+  color: white; /* or #f0e6d2 --aoe-text-light */
+  text-shadow: 0 0 3px black, 0 0 3px black;
+
+  display: flex; /* To help center text overlay if not absolutely positioned */
+  justify-content: center;
+  align-items: flex-end; /* Align text to bottom by default */
+}
+
+.selectorTextOverlay {
+  /* position: absolute; */ /* Let's try without absolute first, relying on flex align-items:flex-end */
+  /* bottom: 0; */
+  /* left: 0; */
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background for readability */
-  color: white;
-  font-size: 0.75em; /* Smaller font for overlay text, relative to element's base font */
-  padding: 2px 4px;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: white; /* Explicitly set for overlay */
+  font-family: 'Cinzel', serif; /* --font-medieval */
+  font-size: 0.70em; /* Smaller, relative to element's base font. Was 0.75em. Adjust as needed */
+  padding: 1px 3px; /* Minimal padding */
   box-sizing: border-box;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-bottom-left-radius: 2px; /* Match container's border-radius if any */
-  border-bottom-right-radius: 2px;
-  /* Text shadow is inherited from .baseElement or can be specified here */
+  /* border-bottom-left-radius: 2px; /* Match container if not full width overlay */
+  /* border-bottom-right-radius: 2px; */
+  /* If not absolutely positioned, margin might be needed if it's not at bottom */
+  align-self: flex-end; /* Ensure it's at the bottom if flex container */
 }
 
 .gameTitle {
-  font-family: 'Cinzel', serif; /* Default Game X font */
+  font-family: 'Cinzel', serif;
   font-weight: bold;
   text-align: center;
-  padding-top: 10px;    /* Space above title (especially for first title) */
-  padding-bottom: 5px;  /* Space between title and its image row */
+  padding-top: 5px;    /* Retain some padding above title, or remove if not needed */
+  margin-bottom: 8px;  /* Matches .game-slot-title margin-bottom */
   /* fontSize is applied via inline style in the component */
   /* background-color: rgba(0, 0, 0, 0.3); /* Optional: for readability */
   /* border-radius: 2px; */ /* Optional */
 }
 
-.imageContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 1px solid #555;
-  border-radius: 3px;
-  background-color: #282828; /* Darker fallback for container */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  overflow: hidden; /* Crucial for letterboxing */
-  position: relative; /* For winnerGlow pseudo-element or if text overlay comes later */
-}
-
-.letterboxedImage {
-  width: 100%;
-  height: 70%;  /* 100% - 15% top - 15% bottom */
-  margin-top: 15%;
-  object-fit: contain; /* Show whole image, letterboxed */
-  display: block;
-}
+/* .imageContainer and .letterboxedImage are removed */
 
 .gameImageRow { /* Renamed from gameRow */
   display: grid;
@@ -101,16 +107,13 @@
   z-index: 1; /* Map is typically in the middle, default stacking */
 }
 
-.civImage {
-  /* Specific overrides for civ images if any, beyond letterboxedImage */
-}
-.mapImage {
-  /* Specific overrides for map images if any, beyond letterboxedImage */
-}
+/* .civImage and .mapImage are removed or empty */
+.civImage {}
+.mapImage {}
 
-.winnerGlow { /* This class will be added to the imageContainer */
-  box-shadow: 0 0 7px 2px #00dd00, 0 0 4px 1px #00dd00 inset, 0 1px 2px rgba(0,0,0,0.5);
-  border-color: #00cc00;
+.winnerGlow { /* This class will be added to the selectorDisplay */
+  box-shadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset; /* Keep a strong glow */
+  border-color: #00ff00 !important; /* Ensure winner border color overrides default */
 }
 
 .noGamesMessage {
