@@ -1492,13 +1492,15 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 350, height: 120 }, // Adjusted default size
+                size: { width: 350, height: 170 }, // Increased default height
                 fontFamily: 'Arial, sans-serif', // Default font
+                fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
                 scale: 1,
                 isPivotLocked: false,
                 pivotInternalOffset: 10, // Default gap for spacers
+                showImageText: true, // Default to show names on images
                 // BoXSeriesOverview doesn't use showName or showScore
               };
             } else { // Default for ScoreDisplay or other types

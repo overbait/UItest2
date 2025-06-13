@@ -4,40 +4,83 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-y: auto; /* Allow vertical scrolling */
   display: flex;
   flex-direction: column;
-  justify-content: space-around; /* Distribute games vertically */
+  justify-content: flex-start; /* Stack games from the top */
   font-family: 'Arial', sans-serif; /* Default, can be overridden by element props */
   color: white;
   text-shadow: 0 0 2px black, 0 0 2px black;
   padding: 5px; /* Add some internal padding */
 }
 
-.gameRow {
-  display: grid;
-  /* gridTemplateColumns will be set dynamically in the component based on isPivotLocked */
-  align-items: center;
-  text-align: center;
+.gameEntryContainer {
+  margin-bottom: 15px; /* Space between full game entries */
+  /* Add other styles if needed, e.g., width: 100%; */
+}
+
+.gameEntryContainer:last-child {
+  margin-bottom: 0; /* No margin for the last item */
+}
+
+.imageTextOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  padding: 2px 0;
-  position: relative; /* For absolute positioning of gameTitle */
-  min-height: 30px; /* Minimum height for a game row */
+  background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background for readability */
+  color: white;
+  font-size: 0.75em; /* Smaller font for overlay text, relative to element's base font */
+  padding: 2px 4px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom-left-radius: 2px; /* Match container's border-radius if any */
+  border-bottom-right-radius: 2px;
+  /* Text shadow is inherited from .baseElement or can be specified here */
 }
 
 .gameTitle {
-  text-align: center;
+  font-family: 'Cinzel', serif; /* Default Game X font */
   font-weight: bold;
-  /* fontSize will be set dynamically in the component */
-  position: absolute;
-  top: -10px; /* Adjust to position above images, depends on font size */
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  z-index: 3;
-  padding: 0 3px;
-  background-color: rgba(0, 0, 0, 0.3); /* Slight background for readability */
-  border-radius: 2px;
+  text-align: center;
+  padding-top: 10px;    /* Space above title (especially for first title) */
+  padding-bottom: 5px;  /* Space between title and its image row */
+  /* fontSize is applied via inline style in the component */
+  /* background-color: rgba(0, 0, 0, 0.3); /* Optional: for readability */
+  /* border-radius: 2px; */ /* Optional */
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background-color: #282828; /* Darker fallback for container */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  overflow: hidden; /* Crucial for letterboxing */
+  position: relative; /* For winnerGlow pseudo-element or if text overlay comes later */
+}
+
+.letterboxedImage {
+  width: 100%;
+  height: 70%;  /* 100% - 15% top - 15% bottom */
+  margin-top: 15%;
+  object-fit: contain; /* Show whole image, letterboxed */
+  display: block;
+}
+
+.gameImageRow { /* Renamed from gameRow */
+  display: grid;
+  /* gridTemplateColumns will be set dynamically in the component */
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  /* padding: 2px 0; /* Original padding, can adjust/remove if .gameTitle padding handles it */
+  min-height: 30px;
 }
 
 .civCell {
@@ -59,27 +102,14 @@
 }
 
 .civImage {
-  /* width, height will be set dynamically in component */
-  object-fit: cover;
-  border: 1px solid #555;
-  border-radius: 3px;
-  background-color: #333; /* Fallback */
-  display: block; /* Remove extra space below image */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  /* Specific overrides for civ images if any, beyond letterboxedImage */
 }
-
 .mapImage {
-  /* width, height will be set dynamically in component */
-  object-fit: cover;
-  border: 1px solid #555;
-  border-radius: 3px;
-  background-color: #444; /* Fallback */
-  display: block;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  /* Specific overrides for map images if any, beyond letterboxedImage */
 }
 
-.winnerGlow {
-  box-shadow: 0 0 7px 2px #00dd00, 0 0 4px 1px #00dd00 inset, 0 1px 2px rgba(0,0,0,0.5); /* Green glow + original shadow */
+.winnerGlow { /* This class will be added to the imageContainer */
+  box-shadow: 0 0 7px 2px #00dd00, 0 0 4px 1px #00dd00 inset, 0 1px 2px rgba(0,0,0,0.5);
   border-color: #00cc00;
 }
 

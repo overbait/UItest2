@@ -68,6 +68,7 @@ export interface StudioElement {
   position: { x: number; y: number };
   size: { width: number; height: number };
   fontFamily?: string;
+      fontFamilyGameTitle?: string; // Specific for "Game X" title
   showName?: boolean;
   showScore?: boolean;
   backgroundColor?: string;
@@ -75,6 +76,7 @@ export interface StudioElement {
   scale?: number;
   isPivotLocked?: boolean; // New property for mirror/pivot functionality
   pivotInternalOffset?: number;
+  showImageText?: boolean; // For toggling civ/map names on images
   [key: string]: any;
 }
 

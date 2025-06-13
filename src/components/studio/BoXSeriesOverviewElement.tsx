@@ -25,6 +25,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     pivotInternalOffset = 0,
     size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
+    showImageText = true, // Default from element prop, store will set initial true
   } = element;
 
   // State to track images that have attempted fallback
@@ -53,39 +54,60 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
 
   // Calculate image dimensions based on the unscaled game row height.
-  const civImageWidth = gameRowHeight * 1.2;
-  const civImageHeight = gameRowHeight;
-  const mapImageWidth = gameRowHeight * 1.6;
-  const mapImageHeight = gameRowHeight;
+  // const civImageWidth = gameRowHeight * 1.2; // Old direct image width
+  // const civImageHeight = gameRowHeight; // Old direct image height
+  // const mapImageWidth = gameRowHeight * 1.6; // Old direct image width
+  // const mapImageHeight = gameRowHeight; // Old direct image height
+
+  const civImageContainerHeight = REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX;
+  const mapImageContainerHeight = REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX;
+  const civImageContainerWidth = civImageContainerHeight * (4/3); // Approx 40px
+  const mapImageContainerWidth = mapImageContainerHeight * (16/9); // Approx 53px, using 16:9 for maps as common
+
 
   // Calculate font size and positioning for the "Game X" title.
   const gameTitleFontSize = dynamicFontSize * 0.9; // Slightly smaller than base text.
   // Adjust top offset for "Game X" title to position it above the images.
   // This might need fine-tuning based on actual font rendering and line height.
-  const gameTitleTopOffset = -(dynamicFontSize * 1.2);
+  const gameTitleTopOffset = -(dynamicFontSize * 1.2); // This might be less relevant or need adjustment
 
-  // Dynamic style for the game row, primarily for grid layout and applying custom font.
-  const gameRowDynamicStyle: React.CSSProperties = {
+  // Dynamic style for the game image row, primarily for grid layout and applying custom font.
+  // The fontFamily for the overall element is set on styles.baseElement,
+  // so it should cascade unless overridden here.
+  const gameImageRowDynamicStyle: React.CSSProperties = {
     gridTemplateColumns: isPivotLocked
       ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
       : '1fr auto 1fr',
-    fontFamily: fontFamily, // Apply fontFamily from element props to ensure it cascades.
+    // fontFamily: fontFamily, // fontFamily is now on the baseElement, inherited unless overridden
   };
 
   // Dynamic styles for images, setting their unscaled width and height.
-  const dynamicCivImageStyle: React.CSSProperties = {
-    width: `${civImageWidth}px`,
-    height: `${civImageHeight}px`,
+  // const dynamicCivImageStyle: React.CSSProperties = { // Old, applied to <img>
+  //   width: `${civImageWidth}px`,
+  //   height: `${civImageHeight}px`,
+  // };
+  // const dynamicMapImageStyle: React.CSSProperties = { // Old, applied to <img>
+  //   width: `${mapImageWidth}px`,
+  //   height: `${mapImageHeight}px`,
+  // };
+
+  // Styles for the image containers
+  const dynamicCivImageContainerStyle: React.CSSProperties = {
+    width: `${civImageContainerWidth}px`,
+    height: `${civImageContainerHeight}px`,
   };
-  const dynamicMapImageStyle: React.CSSProperties = {
-    width: `${mapImageWidth}px`,
-    height: `${mapImageHeight}px`,
+  const dynamicMapImageContainerStyle: React.CSSProperties = {
+    width: `${mapImageContainerWidth}px`,
+    height: `${mapImageContainerHeight}px`,
   };
 
   // Dynamic styles for the "Game X" title, setting its font size and positioning.
+   const gameTitleFont = element.fontFamilyGameTitle || undefined; // Use undefined to let CSS take over if not set
+
    const dynamicGameTitleStyle: React.CSSProperties = {
     fontSize: `${gameTitleFontSize}px`,
-    top: `${gameTitleTopOffset}px`,
+    // top: `${gameTitleTopOffset}px`, // Removed as it's no longer absolutely positioned
+    fontFamily: gameTitleFont,
   };
 
   // Fallback display if no games are available.
@@ -113,25 +135,42 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
-        return (
-        // Container for each game row, applying dynamic grid layout.
-        <div key={index} className={styles.gameRow} style={gameRowDynamicStyle}>
-          {/* "Game X" title, positioned absolutely above the row. */}
-          <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
-            Game {index + 1}
-          </div>
+        // gameRowDynamicStyle is now gameImageRowDynamicStyle
+        // const gameImageRowDynamicStyle: React.CSSProperties = { // Defined above
+        //   gridTemplateColumns: isPivotLocked
+        //     ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
+        //     : '1fr auto 1fr',
+        // };
+        // dynamicGameTitleStyle remains for fontSize, potentially custom fontFamily later
+        // const gameTitleFont = element.fontFamilyGameTitle || undefined; // Defined above
+        // const dynamicGameTitleStyle: React.CSSProperties = { // Defined above
+        //   fontSize: `${gameTitleFontSize}px`,
+        //   fontFamily: gameTitleFont,
+        // };
 
-          {/* Left civilization display. */}
-          <div className={`${styles.civCell} ${styles.leftCivCell}`}>
-            <img
-              key={hostCivKey} // ADDED REACT KEY
-              src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png`}
-              alt={game.hostCiv || 'N/A'}
-              // Apply base image style, and winnerGlow style if host is the winner.
-              className={`${styles.civImage} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-              style={dynamicCivImageStyle} // Apply dynamic width/height.
-              onError={(e) => handleImageError(e, hostCivKey, '/assets/civflags_normal/random.png')}
-            />
+        return (
+         <div key={index} className={styles.gameEntryContainer}>
+            <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
+              Game {index + 1}
+            </div>
+           <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
+              {/* Left civilization display. */}
+              <div className={`${styles.civCell} ${styles.leftCivCell}`}>
+           <div
+             className={`${styles.imageContainer} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+             style={dynamicCivImageContainerStyle}
+           >
+              <img
+                key={hostCivKey}
+                src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png`}
+                alt={game.hostCiv || 'N/A'}
+               className={`${styles.civImage} ${styles.letterboxedImage}`}
+                onError={(e) => handleImageError(e, hostCivKey, '/assets/civflags_normal/random.png')}
+              />
+             {showImageText && game.hostCiv && (
+               <div className={styles.imageTextOverlay}>{game.hostCiv}</div>
+             )}
+           </div>
           </div>
 
           {/* Spacer element, shown if pivot is locked. */}
@@ -139,14 +178,21 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
           {/* Map display. */}
           <div className={styles.mapCell}>
-            <img
-              key={mapKey} // ADDED REACT KEY
-              src={`/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png`}
-              alt={game.map || 'N/A'}
-              className={styles.mapImage} // Maps typically don't have a winner glow.
-              style={dynamicMapImageStyle} // Apply dynamic width/height.
-              onError={(e) => handleImageError(e, mapKey, '/assets/maps/random.png')}
-            />
+           <div
+             className={styles.imageContainer}
+             style={dynamicMapImageContainerStyle}
+           >
+              <img
+                key={mapKey}
+                src={`/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png`}
+                alt={game.map || 'N/A'}
+               className={`${styles.mapImage} ${styles.letterboxedImage}`}
+                onError={(e) => handleImageError(e, mapKey, '/assets/maps/random.png')}
+              />
+             {showImageText && game.map && (
+               <div className={styles.imageTextOverlay}>{game.map}</div>
+             )}
+           </div>
           </div>
 
           {/* Spacer element, shown if pivot is locked. */}
@@ -154,16 +200,23 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
           {/* Right civilization display. */}
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>
-            <img
-              key={guestCivKey} // ADDED REACT KEY
-              src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png`}
-              alt={game.guestCiv || 'N/A'}
-              // Apply base image style, and winnerGlow style if guest is the winner.
-              className={`${styles.civImage} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-              style={dynamicCivImageStyle} // Apply dynamic width/height.
-              onError={(e) => handleImageError(e, guestCivKey, '/assets/civflags_normal/random.png')}
-            />
+           <div
+             className={`${styles.imageContainer} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+             style={dynamicCivImageContainerStyle}
+           >
+              <img
+                key={guestCivKey}
+                src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png`}
+                alt={game.guestCiv || 'N/A'}
+               className={`${styles.civImage} ${styles.letterboxedImage}`}
+                onError={(e) => handleImageError(e, guestCivKey, '/assets/civflags_normal/random.png')}
+              />
+             {showImageText && game.guestCiv && (
+               <div className={styles.imageTextOverlay}>{game.guestCiv}</div>
+             )}
+           </div>
           </div>
+           </div> {/* End of gameImageRow */}
         </div>
       )})}
     </div>

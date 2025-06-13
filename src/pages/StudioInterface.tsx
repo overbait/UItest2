@@ -87,17 +87,17 @@ const StudioInterface: React.FC = () => {
         // Calculate the new unscaled pivot offset
         if (element.type === "ScoreDisplay") {
           // For ScoreDisplay, pivotInternalOffset is the width of the central score column.
-          // If element width shrinks (actualUnscaledChangePerEdge > 0), pivot offset must shrink.
-          // If element width grows (actualUnscaledChangePerEdge < 0), pivot offset can grow.
-          // Change in pivot offset is 2 * actualUnscaledChangePerEdge (since width change is total)
-          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledChangePerEdge));
+          // If element width shrinks (actualUnscaledDragAppliedToEdge > 0), pivot offset must shrink.
+          // If element width grows (actualUnscaledDragAppliedToEdge < 0), pivot offset can grow.
+          // Change in pivot offset is 2 * actualUnscaledDragAppliedToEdge (since width change is total)
+          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge));
         } else if (element.type === "BoXSeriesOverview") {
           // For BoXSeriesOverview, pivotInternalOffset is the width of EACH of the two spacer columns
           // next to the central map.
-          // If element width shrinks (actualUnscaledChangePerEdge > 0), these spacers must shrink.
-          // If element width grows (actualUnscaledChangePerEdge < 0), these spacers can grow.
-          // The change to each spacer is actualUnscaledChangePerEdge.
-          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledChangePerEdge);
+          // If element width shrinks (actualUnscaledDragAppliedToEdge > 0), these spacers must shrink.
+          // If element width grows (actualUnscaledDragAppliedToEdge < 0), these spacers can grow.
+          // The change to each spacer is actualUnscaledDragAppliedToEdge.
+          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledDragAppliedToEdge);
         }
     }
 

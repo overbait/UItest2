@@ -101,6 +101,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
             />
           </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="gameXFontFamilyInput" style={labelStyle}>Game X Font:</label>
+            <input
+              type="text"
+              id="gameXFontFamilyInput"
+              style={inputStyle}
+              value={selectedElement.fontFamilyGameTitle || ''}
+              onChange={(e) => handleSettingChange('fontFamilyGameTitle', e.target.value)}
+              placeholder="e.g., Cinzel, serif"
+            />
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="boxShowImageTextCheckbox" style={labelStyle}>Show Names on Images:</label>
+            <input
+              type="checkbox"
+              id="boxShowImageTextCheckbox"
+              style={checkboxStyle}
+              checked={selectedElement.showImageText === undefined ? true : selectedElement.showImageText} // Default to true if undefined
+              onChange={(e) => handleSettingChange('showImageText', e.target.checked)}
+            />
+          </div>
           {/* Add other BoXSeriesOverview specific settings here if any in the future */}
         </>
       )}
