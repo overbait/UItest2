@@ -124,6 +124,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           {/* Left civilization display. */}
           <div className={`${styles.civCell} ${styles.leftCivCell}`}>
             <img
+              key={hostCivKey} // ADDED REACT KEY
               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png`}
               alt={game.hostCiv || 'N/A'}
               // Apply base image style, and winnerGlow style if host is the winner.
@@ -139,6 +140,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           {/* Map display. */}
           <div className={styles.mapCell}>
             <img
+              key={mapKey} // ADDED REACT KEY
               src={`/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png`}
               alt={game.map || 'N/A'}
               className={styles.mapImage} // Maps typically don't have a winner glow.
@@ -153,6 +155,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           {/* Right civilization display. */}
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>
             <img
+              key={guestCivKey} // ADDED REACT KEY
               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png`}
               alt={game.guestCiv || 'N/A'}
               // Apply base image style, and winnerGlow style if guest is the winner.
