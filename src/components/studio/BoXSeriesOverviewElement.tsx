@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; // Import useState
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
 import styles from './BoXSeriesOverviewElement.module.css'; // IMPORT CSS MODULE
@@ -26,6 +26,9 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
   } = element;
+
+  // State to track images that have attempted fallback
+  const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set());
 
   const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
     hostName: state.hostName,
@@ -105,7 +108,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
       className={styles.baseElement}
       style={{ fontFamily, fontSize: `${dynamicFontSize}px` }}
     >
-      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => (
+      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
+        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+        const mapKey = `map-${index}-${game.map || 'random'}`;
+        const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
+
+        return (
         // Container for each game row, applying dynamic grid layout.
         <div key={index} className={styles.gameRow} style={gameRowDynamicStyle}>
           {/* "Game X" title, positioned absolutely above the row. */}
@@ -121,7 +129,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               // Apply base image style, and winnerGlow style if host is the winner.
               className={`${styles.civImage} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
               style={dynamicCivImageStyle} // Apply dynamic width/height.
-              onError={(e) => (e.currentTarget.src = '/assets/civflags_normal/random.png')}
+              onError={(e) => handleImageError(e, hostCivKey, '/assets/civflags_normal/random.png')}
             />
           </div>
 
@@ -135,7 +143,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               alt={game.map || 'N/A'}
               className={styles.mapImage} // Maps typically don't have a winner glow.
               style={dynamicMapImageStyle} // Apply dynamic width/height.
-              onError={(e) => (e.currentTarget.src = '/assets/maps/random.png')}
+              onError={(e) => handleImageError(e, mapKey, '/assets/maps/random.png')}
             />
           </div>
 
@@ -150,11 +158,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               // Apply base image style, and winnerGlow style if guest is the winner.
               className={`${styles.civImage} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
               style={dynamicCivImageStyle} // Apply dynamic width/height.
-              onError={(e) => (e.currentTarget.src = '/assets/civflags_normal/random.png')}
+              onError={(e) => handleImageError(e, guestCivKey, '/assets/civflags_normal/random.png')}
             />
           </div>
         </div>
-      ))}
+      )})}
     </div>
   );
 };
