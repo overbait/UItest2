@@ -180,6 +180,7 @@ const StudioInterface: React.FC = () => {
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
+
         <div style={toolboxSectionStyle}>
          <h3
            style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
@@ -195,6 +196,7 @@ const StudioInterface: React.FC = () => {
            </>
          )}
         </div>
+
         <div style={toolboxSectionStyle}>
          <h3
            style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
@@ -210,6 +212,7 @@ const StudioInterface: React.FC = () => {
            </>
          )}
         </div>
+
         <div style={{flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}> {/* Outer container for flex behavior */}
          <h3
            style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', flexShrink: 0}}
@@ -222,61 +225,65 @@ const StudioInterface: React.FC = () => {
            <div style={{flexGrow: 1, overflowY: 'auto'}}> {/* This inner div is now the scrollable part */}
              {savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}
              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (
-          <li
-            key={layout.id}
-            style={{
-              ...listItemStyle,
-              backgroundColor: layout.id === activeStudioLayoutId ? '#2a2a4a' : (listItemStyle.backgroundColor || 'transparent'),
-              borderLeft: layout.id === activeStudioLayoutId ? '3px solid #00dd00' : (listItemStyle.borderLeft || 'none'),
-              paddingLeft: layout.id === activeStudioLayoutId ? '12px' : (listItemStyle.paddingLeft || '5px'),
-            }}
-          >
-            <span
-              style={{
-                ...layoutNameStyle,
-                fontWeight: layout.id === activeStudioLayoutId ? 'bold' : (layoutNameStyle.fontWeight || 'normal')
-              }}
-              title={layout.name}
-            >
-              {layout.name} {layout.id === activeStudioLayoutId && <em style={{fontSize: '0.9em', color: '#00dd00'}}> (auto-saving)</em>}
-            </span>
-            <div>
-              <button onClick={() => loadStudioLayout(layout.id)} style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}} title="Load">Load</button>
-              {layout.name !== "(auto)" && (
-                <button
-                  onClick={() => {
-                    const currentName = layout.name;
-                    const newName = prompt("Enter new name for layout:", currentName);
-                    if (newName && newName.trim() !== "" && newName.trim() !== currentName) {
-                      updateStudioLayoutName(layout.id, newName.trim());
-                    }
-                  }}
+                <li
+                  key={layout.id}
                   style={{
-                    ...actionButtonStyle,
-                    backgroundColor: '#6c757d',
+                    ...listItemStyle,
+                    backgroundColor: layout.id === activeStudioLayoutId ? '#2a2a4a' : (listItemStyle.backgroundColor || 'transparent'),
+                    borderLeft: layout.id === activeStudioLayoutId ? '3px solid #00dd00' : (listItemStyle.borderLeft || 'none'),
+                    paddingLeft: layout.id === activeStudioLayoutId ? '12px' : (listItemStyle.paddingLeft || '5px'),
                   }}
-                  title="Rename layout"
                 >
-                  Rename
-                </button>
-              )}
-              <button onClick={() => { if(confirm('Delete?')) deleteStudioLayout(layout.id)}} style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}} title="Delete">Del</button>
-              {layout.id === activeStudioLayoutId && layout.name !== "(auto)" && (
-                <button
-                  onClick={() => setActiveStudioLayoutId(null)}
-                  style={{
-                    ...actionButtonStyle,
-                    backgroundColor: '#ffc107',
-                    color: 'black',
-                  }}
-                  title="Stop auto-saving to this layout (will use/create '(auto)' next)"
-                >
-                  Detach
-                </button>
-              )}
-            </div>
-          </li>
-        ))}</ul></div>
+                  <span
+                    style={{
+                      ...layoutNameStyle,
+                      fontWeight: layout.id === activeStudioLayoutId ? 'bold' : (layoutNameStyle.fontWeight || 'normal')
+                    }}
+                    title={layout.name}
+                  >
+                    {layout.name} {layout.id === activeStudioLayoutId && <em style={{fontSize: '0.9em', color: '#00dd00'}}> (auto-saving)</em>}
+                  </span>
+                  <div>
+                    <button onClick={() => loadStudioLayout(layout.id)} style={{...actionButtonStyle, backgroundColor: '#28a745', color: 'white'}} title="Load">Load</button>
+                    {layout.name !== "(auto)" && (
+                      <button
+                        onClick={() => {
+                          const currentName = layout.name;
+                          const newName = prompt("Enter new name for layout:", currentName);
+                          if (newName && newName.trim() !== "" && newName.trim() !== currentName) {
+                            updateStudioLayoutName(layout.id, newName.trim());
+                          }
+                        }}
+                        style={{
+                          ...actionButtonStyle,
+                          backgroundColor: '#6c757d',
+                        }}
+                        title="Rename layout"
+                      >
+                        Rename
+                      </button>
+                    )}
+                    <button onClick={() => { if(confirm('Delete?')) deleteStudioLayout(layout.id)}} style={{...actionButtonStyle, backgroundColor: '#dc3545', color: 'white'}} title="Delete">Del</button>
+                    {layout.id === activeStudioLayoutId && layout.name !== "(auto)" && (
+                      <button
+                        onClick={() => setActiveStudioLayoutId(null)}
+                        style={{
+                          ...actionButtonStyle,
+                          backgroundColor: '#ffc107',
+                          color: 'black',
+                        }}
+                        title="Stop auto-saving to this layout (will use/create '(auto)' next)"
+                      >
+                        Detach
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}</ul>
+           </div>
+         )} {/* Corrected closing for isLayoutsListOpen */}
+        </div> {/* Corrected closing for the Saved Layouts main div */}
+
         {/* New section for Settings Panel */}
         <div style={toolboxSectionStyle}>
           {/* The SettingsPanel will only render its content if selectedElement is not null */}
