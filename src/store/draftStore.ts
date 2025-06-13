@@ -1492,7 +1492,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 410, height: 310 }, // Reverted to size for 130px wide selectors
+                size: { width: 420, height: 320 }, // New W/H to account for padding and Bo5
                 fontFamily: 'Arial, sans-serif', // Default font
                 fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
                 backgroundColor: 'transparent',

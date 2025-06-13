@@ -30,7 +30,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
   } = element;
 
-  const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set());
+  // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
 
   const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
     hostName: state.hostName,
@@ -113,12 +113,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     fontFamily: gameTitleFont,
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: string, fallbackSrc: string) => {
-    if (!failedImageFallbacks.has(imageKey)) {
-      setFailedImageFallbacks(prev => new Set(prev).add(imageKey));
-      e.currentTarget.src = fallbackSrc;
-    }
-  };
+  // const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: string, fallbackSrc: string) => { // Removed
+  //   if (!failedImageFallbacks.has(imageKey)) {
+  //     setFailedImageFallbacks(prev => new Set(prev).add(imageKey));
+  //     e.currentTarget.src = fallbackSrc;
+  //   }
+  // };
 
   // Fallback display if no games are available.
   if (!boxSeriesGames || boxSeriesGames.length === 0) {
@@ -173,15 +173,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             <div
               key={hostCivKey + '-container'}
               className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-              style={civSelectorStyle}
+              style={{
+                ...civSelectorStyle,
+                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
+              }}
             >
-             <img
-               key={hostCivKey}
-               className={styles.selectorImage}
-               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png`}
-               alt={game.hostCiv || 'N/A'}
-               onError={(e) => handleImageError(e, hostCivKey, '/assets/civflags_normal/random.png')}
-             />
               {showCivNames && game.hostCiv && (
                 <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
               )}
@@ -196,15 +192,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             <div
               key={mapKey + '-container'}
               className={styles.selectorDisplay}
-              style={mapSelectorStyle}
+              style={{
+                ...mapSelectorStyle,
+                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
+              }}
             >
-             <img
-               key={mapKey}
-               className={styles.selectorImage}
-               src={`/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png`}
-               alt={game.map || 'N/A'}
-               onError={(e) => handleImageError(e, mapKey, '/assets/maps/random.png')}
-             />
               {showMapNames && game.map && (
                 <div className={styles.selectorTextOverlay}>{game.map}</div>
               )}
@@ -219,15 +211,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             <div
               key={guestCivKey + '-container'}
               className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-              style={civSelectorStyle}
+              style={{
+                ...civSelectorStyle,
+                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
+              }}
             >
-             <img
-               key={guestCivKey}
-               className={styles.selectorImage}
-               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png`}
-               alt={game.guestCiv || 'N/A'}
-               onError={(e) => handleImageError(e, guestCivKey, '/assets/civflags_normal/random.png')}
-             />
               {showCivNames && game.guestCiv && (
                 <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
               )}
