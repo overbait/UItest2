@@ -1492,7 +1492,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 350, height: 310 }, // Accommodate Bo5 by default
+                size: { width: 410, height: 310 }, // New width: 3*130 (selectors) + 2*10 (spacers)
                 fontFamily: 'Arial, sans-serif', // Default font
                 fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
                 backgroundColor: 'transparent',
@@ -1501,6 +1501,7 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10, // Default gap for spacers
                 showImageText: true, // Default to show names on images
+                gameEntrySpacing: 10, // Default vertical spacing between game entries
                 // BoXSeriesOverview doesn't use showName or showScore
               };
             } else { // Default for ScoreDisplay or other types

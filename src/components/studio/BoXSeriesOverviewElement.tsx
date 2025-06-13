@@ -26,6 +26,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
     showImageText = true, // Default from element prop, store will set initial true
+    gameEntrySpacing = 10, // Default from element prop, store will set initial 10
   } = element;
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
@@ -64,8 +65,9 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // const mapImageContainerWidth = mapImageContainerHeight * (16/9); // Renamed to mapSelectorWidth
 
   const selectorHeight = REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX;
-  const civSelectorWidth = selectorHeight * (4/3); // Approx 40px
-  const mapSelectorWidth = selectorHeight * (16/9); // Approx 53.33px
+  // const civSelectorWidth = selectorHeight * (4/3); // Approx 40px - Replaced by uniform selectorWidth
+  // const mapSelectorWidth = selectorHeight * (16/9); // Approx 53.33px - Replaced by uniform selectorWidth
+  const selectorWidth = 130; // New uniform width for civ and map selectors
 
   // Calculate font size and positioning for the "Game X" title.
   const gameTitleFontSize = dynamicFontSize * 0.9; // Slightly smaller than base text.
@@ -95,11 +97,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // Styles for the selector display divs
   const civSelectorStyle: React.CSSProperties = {
-    width: `${civSelectorWidth}px`,
+    width: `${selectorWidth}px`,
     height: `${selectorHeight}px`,
   };
   const mapSelectorStyle: React.CSSProperties = {
-    width: `${mapSelectorWidth}px`,
+    width: `${selectorWidth}px`,
     height: `${selectorHeight}px`,
   };
 
@@ -158,7 +160,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         // };
 
         return (
-         <div key={index} className={styles.gameEntryContainer}>
+         <div
+           key={index}
+           className={styles.gameEntryContainer}
+           style={{ marginBottom: index === boxSeriesGames.length - 1 ? '0px' : `${gameEntrySpacing}px` }}
+         >
             <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
               Game {index + 1}
             </div>

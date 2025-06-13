@@ -122,6 +122,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               onChange={(e) => handleSettingChange('showImageText', e.target.checked)}
             />
           </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="boxGameSpacingSlider" style={labelStyle}>Game Spacing (px):</label>
+            <input
+              type="range"
+              id="boxGameSpacingSlider"
+              style={rangeInputStyle}
+              min="0"
+              max="30"
+              step="1"
+              value={selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing}
+              onChange={(e) => handleSettingChange('gameEntrySpacing', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing)}px</span>
+          </div>
           {/* Add other BoXSeriesOverview specific settings here if any in the future */}
         </>
       )}

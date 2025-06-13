@@ -5,6 +5,7 @@
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto; /* Allow vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   display: flex;
   flex-direction: column;
   justify-content: flex-start; /* Stack games from the top */
@@ -15,12 +16,12 @@
 }
 
 .gameEntryContainer {
-  margin-bottom: 10px; /* Was 15px. Matches gap in .box-games-list */
+  /* Margin-bottom is now controlled by inline style in the component */
   /* Add other styles if needed, e.g., width: 100%; */
 }
 
 .gameEntryContainer:last-child {
-  margin-bottom: 0; /* No margin for the last item */
+  /* This is now handled by conditional inline style to ensure 0px for the last item */
 }
 
 .selectorDisplay {
@@ -53,7 +54,7 @@
   background-color: rgba(0, 0, 0, 0.65);
   color: white; /* Explicitly set for overlay */
   font-family: 'Cinzel', serif; /* --font-medieval */
-  font-size: 0.70em; /* Smaller, relative to element's base font. Was 0.75em. Adjust as needed */
+  font-size: 1.0em; /* Relative to parent .selectorDisplay, which inherits from .baseElement's dynamicFontSize (10px unscaled) */
   padding: 1px 3px; /* Minimal padding */
   box-sizing: border-box;
   text-align: center;
