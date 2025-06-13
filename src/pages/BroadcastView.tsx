@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
-import ScoreDisplayElement from '../components/studio/ScoreDisplayElement'; // Assuming this is needed
+import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
+import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement';
+// BoXSeriesOverviewElement would need to be imported here if it's intended for broadcast
 
 interface BroadcastViewProps {
   targetCanvasId: string;
@@ -79,8 +81,11 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         };
 
         let content = null;
-        if (element.type === "ScoreDisplay") {
-          content = <ScoreDisplayElement element={element} isBroadcast={true} />;
+        if (element.type === "ScoreOnly") {
+          content = <ScoreOnlyElement element={element} isBroadcast={true} />;
+        } else if (element.type === "NicknamesOnly") {
+          content = <NicknamesOnlyElement element={element} isBroadcast={true} />;
+        // BoXSeriesOverviewElement would need a case here if it's intended for broadcast
         } else {
           content = (
             <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555', color: '#ccc' }}>
