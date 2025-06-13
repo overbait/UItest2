@@ -81,8 +81,8 @@ const StudioInterface: React.FC = () => {
         const effectiveUnscaledDrag = data.deltaX / currentScale;
 
         // Determine the new unscaled width, constrained by MIN_ELEMENT_WIDTH
-        const targetUnconstrainedWidth = currentUnscaledWidth - (2 * effectiveUnscaledDrag);
-        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, targetUnconstrainedWidth);
+        // MODIFIED: Changed subtraction to addition for finalUnscaledWidth calculation
+        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, currentUnscaledWidth + (2 * effectiveUnscaledDrag));
 
         // Calculate the actual change applied to one edge in unscaled units
         // This is based on the difference between current width and the (potentially clamped) final width.
@@ -92,8 +92,9 @@ const StudioInterface: React.FC = () => {
         finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
 
         // Calculate the new unscaled pivot offset
-        if (element.type === "ScoreDisplay") {
-          // For ScoreDisplay, pivotInternalOffset is the width of the central score column.
+        // MODIFIED: Changed "ScoreDisplay" to "ScoreOnly"
+        if (element.type === "ScoreOnly") {
+          // For ScoreOnly, pivotInternalOffset is the width of the central score column.
           // If element width shrinks (actualUnscaledDragAppliedToEdge > 0), pivot offset must shrink.
           // If element width grows (actualUnscaledDragAppliedToEdge < 0), pivot offset can grow.
           // Change in pivot offset is 2 * actualUnscaledDragAppliedToEdge (since width change is total)
@@ -344,16 +345,33 @@ const StudioInterface: React.FC = () => {
                    }}
                  />
                ) : (
-                 <span
-                   onDoubleClick={() => {
-                     setEditingCanvasId(canvas.id);
-                     setEditingCanvasName(canvas.name);
-                   }}
-                   style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}}
-                   title={`${canvas.name} (Double-click to rename)`}
-                 >
-                   {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
-                 </span>
+                 <>
+                   <span
+                     style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}}
+                     title={canvas.name}
+                   >
+                     {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
+                   </span>
+                   <button
+                     title="Rename canvas"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setEditingCanvasId(canvas.id);
+                       setEditingCanvasName(canvas.name);
+                     }}
+                     style={{
+                       background: 'transparent',
+                       border: 'none',
+                       color: '#ccc',
+                       padding: '0 5px',
+                       marginLeft: '5px',
+                       cursor: 'pointer',
+                       fontSize: '1em',
+                     }}
+                   >
+                     ✏️
+                   </button>
+                 </>
                )}
                 <span
                   title="Open canvas in new window (placeholder)"

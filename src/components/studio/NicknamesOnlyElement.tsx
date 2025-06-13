@@ -12,6 +12,7 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
     fontFamily,
     backgroundColor,
     borderColor,
+    textColor,
     isPivotLocked,
     pivotInternalOffset,
     size
@@ -61,7 +62,7 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
     padding: '10px',
     borderRadius: '5px',
     backgroundColor: currentBackgroundColor,
-    color: 'white',
+    color: textColor || 'white',
     fontFamily: currentFontFamily,
     fontSize: `${dynamicFontSize}px`,
     width: '100%',
@@ -94,6 +95,15 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element, is
   };
 
   const namesPresent = (liveHostName && liveHostName.trim() !== "") || (liveGuestName && liveGuestName.trim() !== "");
+
+  console.log('NicknamesOnlyElement rendering with:');
+  console.log('liveHostName:', liveHostName);
+  console.log('liveGuestName:', liveGuestName);
+  console.log('element.fontFamily:', element.fontFamily);
+  console.log('element.backgroundColor:', element.backgroundColor);
+  console.log('element.borderColor:', element.borderColor);
+  console.log('element.textColor:', element.textColor);
+  console.log('isBroadcast:', isBroadcast);
 
   return (
     <div style={baseDivStyle}>

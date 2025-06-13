@@ -71,6 +71,7 @@ export interface StudioElement {
       fontFamilyGameTitle?: string; // Specific for "Game X" title
   backgroundColor?: string;
   borderColor?: string;
+  textColor?: string;
   scale?: number;
   isPivotLocked?: boolean; // New property for mirror/pivot functionality
   pivotInternalOffset?: number;

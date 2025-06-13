@@ -152,12 +152,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
          </div>
          <div style={settingRowStyle}>
-           <label htmlFor="scoreOnlyBgColorInput" style={labelStyle}>Background Color:</label>
-           <input type="text" id="scoreOnlyBgColorInput" style={inputStyle} value={selectedElement.backgroundColor || ''} onChange={(e) => handleSettingChange('backgroundColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
-         </div>
-         <div style={settingRowStyle}>
-           <label htmlFor="scoreOnlyBorderColorInput" style={labelStyle}>Border Color:</label>
-           <input type="text" id="scoreOnlyBorderColorInput" style={inputStyle} value={selectedElement.borderColor || ''} onChange={(e) => handleSettingChange('borderColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+           <label htmlFor="scoreOnlyTextColorInput" style={labelStyle}>Text Color:</label>
+           <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
        </>
      )}
@@ -179,12 +175,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
          </div>
          <div style={settingRowStyle}>
-           <label htmlFor="nicknamesOnlyBgColorInput" style={labelStyle}>Background Color:</label>
-           <input type="text" id="nicknamesOnlyBgColorInput" style={inputStyle} value={selectedElement.backgroundColor || ''} onChange={(e) => handleSettingChange('backgroundColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
-         </div>
-         <div style={settingRowStyle}>
-           <label htmlFor="nicknamesOnlyBorderColorInput" style={labelStyle}>Border Color:</label>
-           <input type="text" id="nicknamesOnlyBorderColorInput" style={inputStyle} value={selectedElement.borderColor || ''} onChange={(e) => handleSettingChange('borderColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+           <label htmlFor="nicknamesOnlyTextColorInput" style={labelStyle}>Text Color:</label>
+           <input type="text" id="nicknamesOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
          {/* Specific centering options for NicknamesOnly might be added later */}
        </>

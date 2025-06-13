@@ -12,6 +12,7 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcas
     fontFamily,
     backgroundColor,
     borderColor,
+    textColor,
     isPivotLocked,
     pivotInternalOffset,
     size
@@ -57,7 +58,7 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcas
     padding: '10px',
     borderRadius: '5px',
     backgroundColor: currentBackgroundColor,
-    color: 'white',
+    color: textColor || 'white',
     fontFamily: currentFontFamily,
     fontSize: `${dynamicFontSize}px`,
     width: '100%',
