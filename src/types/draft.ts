@@ -69,8 +69,6 @@ export interface StudioElement {
   size: { width: number; height: number };
   fontFamily?: string;
       fontFamilyGameTitle?: string; // Specific for "Game X" title
-  showName?: boolean;
-  showScore?: boolean;
   backgroundColor?: string;
   borderColor?: string;
   scale?: number;
@@ -79,6 +77,7 @@ export interface StudioElement {
   showCivNames?: boolean;  // For toggling civ names on civ selectors
   showMapNames?: boolean;  // For toggling map names on map selectors
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
+  // showName and showScore removed
   [key: string]: any;
 }
 

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
-import ScoreDisplayElement from '../components/studio/ScoreDisplayElement';
-import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement'; // Added
+import ScoreOnlyElement from '../components/studio/ScoreOnlyElement'; // New
+import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement'; // New
+import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -47,8 +48,9 @@ const StudioInterface: React.FC = () => {
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
   const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
 
-  const handleAddScoreDisplay = () => { addStudioElement("ScoreDisplay"); };
-  const handleAddBoXSeriesOverview = () => { addStudioElement("BoXSeriesOverview"); }; // Added
+  const handleAddScoreOnly = () => { addStudioElement("ScoreOnly"); };
+  const handleAddNicknamesOnly = () => { addStudioElement("NicknamesOnly"); };
+  const handleAddBoXSeriesOverview = () => { addStudioElement("BoXSeriesOverview"); };
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
@@ -191,7 +193,8 @@ const StudioInterface: React.FC = () => {
          </h3>
          {isElementsOpen && (
            <>
-              <button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button>
+              <button onClick={handleAddScoreOnly} style={buttonStyle}>Add Score</button>
+              <button onClick={handleAddNicknamesOnly} style={buttonStyle}>Add Nicknames</button>
               <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
            </>
          )}
@@ -417,8 +420,9 @@ const StudioInterface: React.FC = () => {
             const currentScale = element.scale || 1;
             const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
             let content = null;
-            if (element.type === "ScoreDisplay") { content = <ScoreDisplayElement element={element} />; }
-            else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; } // Added
+            if (element.type === "ScoreOnly") { content = <ScoreOnlyElement element={element} />; }
+            else if (element.type === "NicknamesOnly") { content = <NicknamesOnlyElement element={element} />; }
+            else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (

@@ -50,29 +50,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
       <h3 style={headerStyle}>Element Settings</h3>
       {/* <div style={{ marginBottom: '10px', fontSize: '0.8em', color: '#888' }}>ID: {selectedElement.id.substring(0,8)}... <br/>Type: {selectedElement.type}</div> */}
 
-      {selectedElement.type === 'ScoreDisplay' && (
-        <>
-          <h4 style={sectionHeaderStyle}>Score Display Options</h4>
-          <div style={settingRowStyle}><label htmlFor="fontFamilyInput" style={labelStyle}>Font Family:</label><input type="text" id="fontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial"/></div>
-          <div style={settingRowStyle}><label htmlFor="showNameCheckbox" style={labelStyle}>Show Names:</label><input type="checkbox" id="showNameCheckbox" style={checkboxStyle} checked={selectedElement.showName === undefined ? true : selectedElement.showName} onChange={(e) => handleSettingChange('showName', e.target.checked)}/></div>
-          <div style={settingRowStyle}><label htmlFor="showScoreCheckbox" style={labelStyle}>Show Scores:</label><input type="checkbox" id="showScoreCheckbox" style={checkboxStyle} checked={selectedElement.showScore === undefined ? true : selectedElement.showScore} onChange={(e) => handleSettingChange('showScore', e.target.checked)}/></div>
-          <div style={settingRowStyle}>
-            <label htmlFor="scaleSlider" style={labelStyle}>Scale:</label>
-            <input type="range" id="scaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
-            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
-          </div>
-          <div style={settingRowStyle}> {/* New Pivot Lock Setting */}
-            <label htmlFor="pivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
-            <input
-              type="checkbox"
-              id="pivotLockCheckbox"
-              style={checkboxStyle}
-              checked={!!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
-            />
-          </div>
-        </>
-      )}
+      {/* Old ScoreDisplay settings removed */}
 
       {selectedElement.type === 'BoXSeriesOverview' && (
         <>
@@ -156,6 +134,61 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
           {/* Add other BoXSeriesOverview specific settings here if any in the future */}
         </>
       )}
+
+     {selectedElement.type === 'ScoreOnly' && (
+       <>
+         <h4 style={sectionHeaderStyle}>Score Options</h4>
+         <div style={settingRowStyle}>
+           <label htmlFor="scoreOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
+           <input type="text" id="scoreOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="scoreOnlyScaleSlider" style={labelStyle}>Scale:</label>
+           <input type="range" id="scoreOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="scoreOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+           <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="scoreOnlyBgColorInput" style={labelStyle}>Background Color:</label>
+           <input type="text" id="scoreOnlyBgColorInput" style={inputStyle} value={selectedElement.backgroundColor || ''} onChange={(e) => handleSettingChange('backgroundColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="scoreOnlyBorderColorInput" style={labelStyle}>Border Color:</label>
+           <input type="text" id="scoreOnlyBorderColorInput" style={inputStyle} value={selectedElement.borderColor || ''} onChange={(e) => handleSettingChange('borderColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+         </div>
+       </>
+     )}
+
+     {selectedElement.type === 'NicknamesOnly' && (
+       <>
+         <h4 style={sectionHeaderStyle}>Nicknames Options</h4>
+         <div style={settingRowStyle}>
+           <label htmlFor="nicknamesOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
+           <input type="text" id="nicknamesOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="nicknamesOnlyScaleSlider" style={labelStyle}>Scale:</label>
+           <input type="range" id="nicknamesOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="nicknamesOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+           <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="nicknamesOnlyBgColorInput" style={labelStyle}>Background Color:</label>
+           <input type="text" id="nicknamesOnlyBgColorInput" style={inputStyle} value={selectedElement.backgroundColor || ''} onChange={(e) => handleSettingChange('backgroundColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="nicknamesOnlyBorderColorInput" style={labelStyle}>Border Color:</label>
+           <input type="text" id="nicknamesOnlyBorderColorInput" style={inputStyle} value={selectedElement.borderColor || ''} onChange={(e) => handleSettingChange('borderColor', e.target.value)} placeholder="e.g., #RRGGBB, transparent"/>
+         </div>
+         {/* Specific centering options for NicknamesOnly might be added later */}
+       </>
+     )}
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>

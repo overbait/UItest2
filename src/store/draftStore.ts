@@ -1499,21 +1499,40 @@ const useDraftStore = create<DraftStore>()(
                 borderColor: 'transparent',
                 scale: 1,
                 isPivotLocked: false,
-                pivotInternalOffset: 10, // Default gap for spacers
-                showCivNames: true,  // Default to show civ names
-                showMapNames: true,  // Default to show map names
-                gameEntrySpacing: 10, // Default vertical spacing between game entries
-                // BoXSeriesOverview doesn't use showName or showScore
+                // No showName or showScore here
               };
-            } else { // Default for ScoreDisplay or other types
+            } else if (elementType === "ScoreOnly") {
               newElement = {
-                id: Date.now().toString(),
-                type: elementType, // Typically "ScoreDisplay" if not specified
+                id: Date.now().toString(), type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 250, height: 40 }, // Original defaults
-                fontFamily: 'Arial',
-                showName: true,
-                showScore: true,
+                size: { width: 100, height: 40 },
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                pivotInternalOffset: 0,
+              };
+            } else if (elementType === "NicknamesOnly") {
+              newElement = {
+                id: Date.now().toString(), type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 300, height: 40 },
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: true,
+                pivotInternalOffset: 50,
+              };
+            } else {
+              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
+              // It should NOT include showName or showScore.
+              newElement = {
+                id: Date.now().toString(), type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 250, height: 40 }, // Default generic size
+                fontFamily: 'Arial, sans-serif',
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
                 scale: 1,
