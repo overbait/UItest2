@@ -1492,7 +1492,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 190, height: 350 }, // New default W & H based on content recalc
+                size: { width: 410, height: 310 }, // Reverted to size for 130px wide selectors
                 fontFamily: 'Arial, sans-serif', // Default font
                 fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
                 backgroundColor: 'transparent',
@@ -1669,6 +1669,16 @@ const useDraftStore = create<DraftStore>()(
           }));
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
+      updateCanvasName: (canvasId: string, newName: string) => {
+        set(state => ({
+          ...state,
+          currentCanvases: state.currentCanvases.map(canvas =>
+            canvas.id === canvasId ? { ...canvas, name: newName.trim() === "" ? canvas.name : newName.trim() } : canvas
+          ),
+          layoutLastUpdated: Date.now(), // To trigger auto-save if active layout
+        }));
+        get()._autoSaveOrUpdateActiveStudioLayout();
+      },
         setActiveStudioLayoutId: (layoutId: string | null) => {
           set({ activeStudioLayoutId: layoutId });
         },

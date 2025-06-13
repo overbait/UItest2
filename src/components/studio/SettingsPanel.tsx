@@ -48,7 +48,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
   return (
     <div style={panelStyle}>
       <h3 style={headerStyle}>Element Settings</h3>
-      <div style={{ marginBottom: '10px', fontSize: '0.8em', color: '#888' }}>ID: {selectedElement.id.substring(0,8)}... <br/>Type: {selectedElement.type}</div>
+      {/* <div style={{ marginBottom: '10px', fontSize: '0.8em', color: '#888' }}>ID: {selectedElement.id.substring(0,8)}... <br/>Type: {selectedElement.type}</div> */}
 
       {selectedElement.type === 'ScoreDisplay' && (
         <>

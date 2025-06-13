@@ -30,7 +30,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
   } = element;
 
-  // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
+  const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set());
 
   const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
     hostName: state.hostName,
@@ -40,7 +40,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX defines the intrinsic height of a game row's visual elements (like images)
   // before any scaling is applied by the parent's transform: scale(element.scale).
-  const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 36; // Increased height
+  const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 30;
   // BASELINE_FONT_SIZE_UNSCALED_PX is the font size that corresponds to the REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX.
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
 
@@ -66,9 +66,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // const mapImageContainerWidth = mapImageContainerHeight * (16/9); // Renamed to mapSelectorWidth
 
   const selectorHeight = REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX;
-  const civSelectorWidth = Math.round(selectorHeight * (4/3)); // e.g., 36 * 4/3 = 48px (common flag-like ratio)
-  const mapSelectorWidth = Math.round(selectorHeight * (16/9)); // e.g., 36 * 16/9 = 64px (widescreen map ratio)
-  // const selectorWidth = 130; // New uniform width for civ and map selectors // This line is removed
+  const selectorWidth = 130;
 
   // Calculate font size and positioning for the "Game X" title.
   const gameTitleFontSize = dynamicFontSize * 0.9; // Slightly smaller than base text.
@@ -97,12 +95,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // };
 
   // Styles for the selector display divs
-  const civSelectorStyle: React.CSSProperties = {
-    width: `${civSelectorWidth}px`,
+  const civSelectorStyle: React.CSSProperties = { // This will style the outer div
+    width: `${selectorWidth}px`,
     height: `${selectorHeight}px`,
   };
-  const mapSelectorStyle: React.CSSProperties = {
-    width: `${mapSelectorWidth}px`,
+  const mapSelectorStyle: React.CSSProperties = { // This will style the outer div
+    width: `${selectorWidth}px`, // Now uniform width
     height: `${selectorHeight}px`,
   };
 
@@ -115,12 +113,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     fontFamily: gameTitleFont,
   };
 
-  // const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: string, fallbackSrc: string) => { // Removed
-  //   if (!failedImageFallbacks.has(imageKey)) {
-  //     setFailedImageFallbacks(prev => new Set(prev).add(imageKey));
-  //     e.currentTarget.src = fallbackSrc;
-  //   }
-  // };
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: string, fallbackSrc: string) => {
+    if (!failedImageFallbacks.has(imageKey)) {
+      setFailedImageFallbacks(prev => new Set(prev).add(imageKey));
+      e.currentTarget.src = fallbackSrc;
+    }
+  };
 
   // Fallback display if no games are available.
   if (!boxSeriesGames || boxSeriesGames.length === 0) {
@@ -164,7 +162,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
          <div
            key={index}
            className={styles.gameEntryContainer}
-           style={{ marginBottom: index === boxSeriesGames.length - 1 ? '0px' : `${gameEntrySpacing}px` }}
+           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }} // Apply spacing as paddingTop to subsequent entries
          >
             <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
               Game {index + 1}
@@ -173,13 +171,17 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               {/* Left civilization display. */}
               <div className={`${styles.civCell} ${styles.leftCivCell}`}>
             <div
-              key={hostCivKey} // Keep key for React reconciliation if civ changes
+              key={hostCivKey + '-container'}
               className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-              style={{
-                ...civSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-              }}
+              style={civSelectorStyle}
             >
+             <img
+               key={hostCivKey}
+               className={styles.selectorImage}
+               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png`}
+               alt={game.hostCiv || 'N/A'}
+               onError={(e) => handleImageError(e, hostCivKey, '/assets/civflags_normal/random.png')}
+             />
               {showCivNames && game.hostCiv && (
                 <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
               )}
@@ -192,13 +194,17 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           {/* Map display. */}
           <div className={styles.mapCell}>
             <div
-              key={mapKey} // Keep key for React reconciliation if map changes
+              key={mapKey + '-container'}
               className={styles.selectorDisplay}
-              style={{
-                ...mapSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-              }}
+              style={mapSelectorStyle}
             >
+             <img
+               key={mapKey}
+               className={styles.selectorImage}
+               src={`/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png`}
+               alt={game.map || 'N/A'}
+               onError={(e) => handleImageError(e, mapKey, '/assets/maps/random.png')}
+             />
               {showMapNames && game.map && (
                 <div className={styles.selectorTextOverlay}>{game.map}</div>
               )}
@@ -211,13 +217,17 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           {/* Right civilization display. */}
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>
             <div
-              key={guestCivKey} // Keep key for React reconciliation if civ changes
+              key={guestCivKey + '-container'}
               className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-              style={{
-                ...civSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-              }}
+              style={civSelectorStyle}
             >
+             <img
+               key={guestCivKey}
+               className={styles.selectorImage}
+               src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png`}
+               alt={game.guestCiv || 'N/A'}
+               onError={(e) => handleImageError(e, guestCivKey, '/assets/civflags_normal/random.png')}
+             />
               {showCivNames && game.guestCiv && (
                 <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
               )}

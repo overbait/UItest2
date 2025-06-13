@@ -16,63 +16,66 @@
 }
 
 .gameEntryContainer {
-  /* Margin-bottom is now controlled by inline style in the component */
+  /* Margin-bottom and paddingTop are now controlled by inline style in the component */
   /* Add other styles if needed, e.g., width: 100%; */
 }
 
 .gameEntryContainer:last-child {
-  /* This is now handled by conditional inline style to ensure 0px for the last item */
+  /* This is now handled by conditional inline style (paddingTop for non-first, no specific style for last regarding old margin-bottom) */
 }
 
 .selectorDisplay {
-  padding: 5px; /* Matches select padding */
+  padding: 5px;
   border: 1px solid #c19a49; /* --aoe-gold-accent */
   border-radius: 3px;
   background-color: #4a3b2a; /* --aoe-button-bg */
-
-  background-size: contain; /* Show entire image, letterboxed if needed */
-  background-position: center;
-  background-repeat: no-repeat;
-
-  position: relative; /* For text overlay and other potential absolute elements */
+  /* background-size: contain; */ /* Removed */
+  /* background-position: center; */ /* Removed */
+  /* background-repeat: no-repeat; */ /* Removed */
+  position: relative;
   box-sizing: border-box;
-
-  /* Default text properties for children, like the overlay */
-  color: white; /* or #f0e6d2 --aoe-text-light */
+  color: white;
   text-shadow: 0 0 3px black, 0 0 3px black;
+  /* display: flex; */ /* Removed */
+  /* justify-content: center; */ /* Removed */
+  /* align-items: flex-end; */ /* Removed */
+  /* Ensure it can contain children correctly, e.g. if children are absolute */
+  /* Or, if img and text are block, they will stack. */
+}
 
-  display: flex; /* To help center text overlay if not absolutely positioned */
-  justify-content: center;
-  align-items: flex-end; /* Align text to bottom by default */
+.selectorImage {
+  display: block;
+  width: 100%; /* Fill the padded area of .selectorDisplay */
+  height: 90%; /* 100% of parent's inner height - 5% top - 5% bottom */
+  margin-top: 5%;
+  object-fit: contain; /* Show whole image, letterboxed/pillarboxed if necessary */
 }
 
 .selectorTextOverlay {
-  /* position: absolute; */ /* Let's try without absolute first, relying on flex align-items:flex-end */
-  /* bottom: 0; */
-  /* left: 0; */
-  width: 100%;
-  /* background-color: rgba(0, 0, 0, 0.65); */ /* Removed */
-  color: white; /* Explicitly set for overlay */
-  font-family: 'Cinzel', serif; /* --font-medieval */
-  font-size: 1.0em; /* Relative to parent .selectorDisplay, which inherits from .baseElement's dynamicFontSize (10px unscaled) */
-  padding: 1px 3px; /* Minimal padding */
+  position: absolute;
+  bottom: 5px; /* Align with bottom padding of parent */
+  left: 5px;   /* Align with left padding of parent */
+  right: 5px;  /* Align with right padding of parent */
+  /* width: 100%; */ /* Removed, width is now implicit */
+  /* align-self: flex-end; */ /* Removed */
+  /* background-color: rgba(0, 0, 0, 0.65); */ /* Already removed */
+  color: white;
+  font-family: 'Cinzel', serif;
+  font-size: 1.0em;
+  padding: 1px 3px;
   box-sizing: border-box;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* border-bottom-left-radius: 2px; /* Match container if not full width overlay */
-  /* border-bottom-right-radius: 2px; */
-  /* If not absolutely positioned, margin might be needed if it's not at bottom */
-  align-self: flex-end; /* Ensure it's at the bottom if flex container */
 }
 
 .gameTitle {
   font-family: 'Cinzel', serif;
   font-weight: bold;
   text-align: center;
-  padding-top: 5px;    /* Retain some padding above title, or remove if not needed */
-  margin-bottom: 8px;  /* Matches .game-slot-title margin-bottom */
+  /* padding-top: 5px; */    /* Removed, spacing is now on gameEntryContainer's paddingTop */
+  margin-bottom: 8px;  /* Matches .game-slot-title margin-bottom - KEEP this */
   /* fontSize is applied via inline style in the component */
   /* background-color: rgba(0, 0, 0, 0.3); /* Optional: for readability */
   /* border-radius: 2px; */ /* Optional */

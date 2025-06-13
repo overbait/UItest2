@@ -37,6 +37,11 @@ const StudioInterface: React.FC = () => {
   }, []); // Empty dependency array ensures this runs only on mount and unmount
 
   const [newLayoutName, setNewLayoutName] = useState<string>("");
+  const [isElementsOpen, setIsElementsOpen] = useState<boolean>(true);
+  const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
+  const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
+  const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
+  const [editingCanvasName, setEditingCanvasName] = useState<string>("");
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -176,12 +181,47 @@ const StudioInterface: React.FC = () => {
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
         <h2 style={{ marginBottom: '1rem', color: '#a0a0a0', fontSize: '1.1em', textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>Toolbox</h2>
         <div style={toolboxSectionStyle}>
-          <h3 style={toolboxHeaderStyle}>Elements</h3>
-          <button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button>
-          <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
+         <h3
+           style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
+           onClick={() => setIsElementsOpen(!isElementsOpen)}
+         >
+           Elements
+           <span>{isElementsOpen ? '▼' : '▶'}</span>
+         </h3>
+         {isElementsOpen && (
+           <>
+              <button onClick={handleAddScoreDisplay} style={buttonStyle}>Add Score Display</button>
+              <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
+           </>
+         )}
         </div>
-        <div style={toolboxSectionStyle}><h3 style={toolboxHeaderStyle}>Save Current Layout</h3><input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/><button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button></div>
-        <div style={{flexGrow: 1, overflowY: 'auto'}}><h3 style={toolboxHeaderStyle}>Saved Layouts</h3>{savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (
+        <div style={toolboxSectionStyle}>
+         <h3
+           style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
+           onClick={() => setIsSaveLayoutOpen(!isSaveLayoutOpen)}
+         >
+           Save Current Layout
+           <span>{isSaveLayoutOpen ? '▼' : '▶'}</span>
+         </h3>
+         {isSaveLayoutOpen && (
+           <>
+              <input type="text" placeholder="Layout Name" value={newLayoutName} onChange={(e) => setNewLayoutName(e.target.value)} style={inputStyle}/>
+              <button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button>
+           </>
+         )}
+        </div>
+        <div style={{flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}> {/* Outer container for flex behavior */}
+         <h3
+           style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', flexShrink: 0}}
+           onClick={() => setIsLayoutsListOpen(!isLayoutsListOpen)}
+         >
+           Saved Layouts
+           <span>{isLayoutsListOpen ? '▼' : '▶'}</span>
+         </h3>
+         {isLayoutsListOpen && (
+           <div style={{flexGrow: 1, overflowY: 'auto'}}> {/* This inner div is now the scrollable part */}
+             {savedStudioLayouts.length === 0 && <p style={{fontSize: '0.8em', color: '#777'}}>No saved layouts yet.</p>}
+             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>{savedStudioLayouts.map((layout: SavedStudioLayout) => (
           <li
             key={layout.id}
             style={{
@@ -260,7 +300,51 @@ const StudioInterface: React.FC = () => {
                 }}
                 title={canvas.name}
               >
-                {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
+               {editingCanvasId === canvas.id ? (
+                 <input
+                   type="text"
+                   value={editingCanvasName}
+                   onChange={(e) => setEditingCanvasName(e.target.value)}
+                   onBlur={() => {
+                     if (editingCanvasName.trim() !== "") {
+                       updateCanvasName(canvas.id, editingCanvasName);
+                     }
+                     setEditingCanvasId(null);
+                   }}
+                   onKeyDown={(e) => {
+                     if (e.key === 'Enter') {
+                       if (editingCanvasName.trim() !== "") {
+                         updateCanvasName(canvas.id, editingCanvasName);
+                       }
+                       setEditingCanvasId(null);
+                       e.currentTarget.blur(); // Optional: remove focus
+                     } else if (e.key === 'Escape') {
+                       setEditingCanvasId(null);
+                       setEditingCanvasName(""); // Reset temp name
+                     }
+                   }}
+                   autoFocus
+                   onClick={(e) => e.stopPropagation()} // Prevent tab button click when clicking input
+                   style={{
+                     padding: '2px 4px',
+                     border: '1px solid #777',
+                     backgroundColor: '#1a1a1a',
+                     color: 'white',
+                     maxWidth: '100px' // Prevent very long input
+                   }}
+                 />
+               ) : (
+                 <span
+                   onDoubleClick={() => {
+                     setEditingCanvasId(canvas.id);
+                     setEditingCanvasName(canvas.name);
+                   }}
+                   style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}}
+                   title={`${canvas.name} (Double-click to rename)`}
+                 >
+                   {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
+                 </span>
+               )}
                 <span
                   title="Open canvas in new window (placeholder)"
                   onClick={(e) => {
