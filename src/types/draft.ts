@@ -76,7 +76,8 @@ export interface StudioElement {
   scale?: number;
   isPivotLocked?: boolean; // New property for mirror/pivot functionality
   pivotInternalOffset?: number;
-  showImageText?: boolean; // For toggling civ/map names on images
+  showCivNames?: boolean;  // For toggling civ names on civ selectors
+  showMapNames?: boolean;  // For toggling map names on map selectors
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
   [key: string]: any;
 }

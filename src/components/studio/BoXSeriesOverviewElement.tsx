@@ -25,7 +25,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     pivotInternalOffset = 0,
     size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
-    showImageText = true, // Default from element prop, store will set initial true
+    showCivNames = true,  // Default from element prop
+    showMapNames = true,  // Default from element prop
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
   } = element;
 
@@ -39,7 +40,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX defines the intrinsic height of a game row's visual elements (like images)
   // before any scaling is applied by the parent's transform: scale(element.scale).
-  const REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX = 30;
+  const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 36; // Increased height
   // BASELINE_FONT_SIZE_UNSCALED_PX is the font size that corresponds to the REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX.
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
 
@@ -64,10 +65,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // const civImageContainerWidth = civImageContainerHeight * (4/3); // Renamed to civSelectorWidth
   // const mapImageContainerWidth = mapImageContainerHeight * (16/9); // Renamed to mapSelectorWidth
 
-  const selectorHeight = REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX;
-  // const civSelectorWidth = selectorHeight * (4/3); // Approx 40px - Replaced by uniform selectorWidth
-  // const mapSelectorWidth = selectorHeight * (16/9); // Approx 53.33px - Replaced by uniform selectorWidth
-  const selectorWidth = 130; // New uniform width for civ and map selectors
+  const selectorHeight = REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX;
+  const civSelectorWidth = Math.round(selectorHeight * (4/3)); // e.g., 36 * 4/3 = 48px (common flag-like ratio)
+  const mapSelectorWidth = Math.round(selectorHeight * (16/9)); // e.g., 36 * 16/9 = 64px (widescreen map ratio)
+  // const selectorWidth = 130; // New uniform width for civ and map selectors // This line is removed
 
   // Calculate font size and positioning for the "Game X" title.
   const gameTitleFontSize = dynamicFontSize * 0.9; // Slightly smaller than base text.
@@ -97,11 +98,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // Styles for the selector display divs
   const civSelectorStyle: React.CSSProperties = {
-    width: `${selectorWidth}px`,
+    width: `${civSelectorWidth}px`,
     height: `${selectorHeight}px`,
   };
   const mapSelectorStyle: React.CSSProperties = {
-    width: `${selectorWidth}px`,
+    width: `${mapSelectorWidth}px`,
     height: `${selectorHeight}px`,
   };
 
@@ -179,7 +180,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
               }}
             >
-              {showImageText && game.hostCiv && (
+              {showCivNames && game.hostCiv && (
                 <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
               )}
             </div>
@@ -198,7 +199,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
               }}
             >
-              {showImageText && game.map && (
+              {showMapNames && game.map && (
                 <div className={styles.selectorTextOverlay}>{game.map}</div>
               )}
             </div>
@@ -217,7 +218,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
               }}
             >
-              {showImageText && game.guestCiv && (
+              {showCivNames && game.guestCiv && (
                 <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
               )}
             </div>

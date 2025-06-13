@@ -112,30 +112,47 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               placeholder="e.g., Cinzel, serif"
             />
           </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="boxShowImageTextCheckbox" style={labelStyle}>Show Names on Images:</label>
-            <input
-              type="checkbox"
-              id="boxShowImageTextCheckbox"
-              style={checkboxStyle}
-              checked={selectedElement.showImageText === undefined ? true : selectedElement.showImageText} // Default to true if undefined
-              onChange={(e) => handleSettingChange('showImageText', e.target.checked)}
-            />
-          </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="boxGameSpacingSlider" style={labelStyle}>Game Spacing (px):</label>
+       <div style={settingRowStyle}>
+         <label htmlFor="boxShowCivNamesCheckbox" style={labelStyle}>Show Civ Names:</label>
+         <input
+           type="checkbox"
+           id="boxShowCivNamesCheckbox"
+           style={checkboxStyle}
+           checked={selectedElement.showCivNames === undefined ? true : selectedElement.showCivNames}
+           onChange={(e) => handleSettingChange('showCivNames', e.target.checked)}
+         />
+       </div>
+       <div style={settingRowStyle}>
+         <label htmlFor="boxShowMapNamesCheckbox" style={labelStyle}>Show Map Names:</label>
+         <input
+           type="checkbox"
+           id="boxShowMapNamesCheckbox"
+           style={checkboxStyle}
+           checked={selectedElement.showMapNames === undefined ? true : selectedElement.showMapNames}
+           onChange={(e) => handleSettingChange('showMapNames', e.target.checked)}
+         />
+       </div>
+        <div style={{ marginBottom: '12px' }}> {/* Game Spacing Slider from previous step */}
+          <label
+            htmlFor="boxGameSpacingSlider"
+           style={{...labelStyle, display: 'block', marginBottom: '5px', width: '100%' }} // Label takes full width, block display
+         >Game Spacing (px):</label>
+         <div style={{ display: 'flex', alignItems: 'center' }}> {/* New flex wrapper for slider and value */}
             <input
               type="range"
               id="boxGameSpacingSlider"
-              style={rangeInputStyle}
+             style={{ ...rangeInputStyle, flexGrow: 1, width: 'auto', marginRight: '10px' }} /* Slider takes available space */
               min="0"
               max="30"
               step="1"
               value={selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing}
               onChange={(e) => handleSettingChange('gameEntrySpacing', parseInt(e.target.value, 10))}
             />
-            <span style={rangeValueStyle}>{(selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing)}px</span>
-          </div>
+            <span style={{...rangeValueStyle, minWidth: '35px' }}> {/* Ensure value span has enough width */}
+              {(selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing)}px
+            </span>
+         </div>
+        </div>
           {/* Add other BoXSeriesOverview specific settings here if any in the future */}
         </>
       )}

@@ -1492,7 +1492,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 410, height: 310 }, // New width: 3*130 (selectors) + 2*10 (spacers)
+                size: { width: 190, height: 350 }, // New default W & H based on content recalc
                 fontFamily: 'Arial, sans-serif', // Default font
                 fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
                 backgroundColor: 'transparent',
@@ -1500,7 +1500,8 @@ const useDraftStore = create<DraftStore>()(
                 scale: 1,
                 isPivotLocked: false,
                 pivotInternalOffset: 10, // Default gap for spacers
-                showImageText: true, // Default to show names on images
+                showCivNames: true,  // Default to show civ names
+                showMapNames: true,  // Default to show map names
                 gameEntrySpacing: 10, // Default vertical spacing between game entries
                 // BoXSeriesOverview doesn't use showName or showScore
               };

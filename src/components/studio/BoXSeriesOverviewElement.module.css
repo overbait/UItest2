@@ -30,7 +30,7 @@
   border-radius: 3px;
   background-color: #4a3b2a; /* --aoe-button-bg */
 
-  background-size: cover;
+  background-size: contain; /* Show entire image, letterboxed if needed */
   background-position: center;
   background-repeat: no-repeat;
 
@@ -51,7 +51,7 @@
   /* bottom: 0; */
   /* left: 0; */
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.65);
+  /* background-color: rgba(0, 0, 0, 0.65); */ /* Removed */
   color: white; /* Explicitly set for overlay */
   font-family: 'Cinzel', serif; /* --font-medieval */
   font-size: 1.0em; /* Relative to parent .selectorDisplay, which inherits from .baseElement's dynamicFontSize (10px unscaled) */
