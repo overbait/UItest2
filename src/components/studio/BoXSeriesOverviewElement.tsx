@@ -49,7 +49,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // Calculate dimensions and font sizes for internal elements.
   // These are "unscaled" values. The actual on-screen size will be affected by element.scale applied in StudioInterface.
-  const gameRowHeight = REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX; // This is the target height for images within a row.
+  const gameRowHeight = REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX; // This is the target height for images within a row.
 
   // Base font size for text within the element, relative to its unscaled dimensions.
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
