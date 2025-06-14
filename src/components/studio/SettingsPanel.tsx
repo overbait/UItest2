@@ -223,7 +223,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              id="colorGlowScaleSlider"
              style={rangeInputStyle}
              min="0.2"
-             max="5"
+             max="10"  {/* Changed from 5 to 10 */}
              step="0.05"
              value={selectedElement.scale || 1}
              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}

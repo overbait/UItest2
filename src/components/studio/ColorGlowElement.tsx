@@ -40,14 +40,16 @@ const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element, isSelected
   const hostRgb = hexToRgb(hostColor);
   const guestRgb = hexToRgb(guestColor);
 
-  const glowStyle = (rgb: { r: number; g: number; b: number } | null): React.CSSProperties => {
+  const getGlowInstanceStyle = (rgb: { r: number; g: number; b: number } | null): React.CSSProperties => {
     if (!rgb) {
       return { display: 'none' }; // Hide if no color
     }
     return {
-      width: '100%',
-      height: '100%',
+      height: '100%', // Glow circle diameter will be based on element's height
+      width: 'auto',   // Width will be derived from height to maintain aspect ratio
+      aspectRatio: '1/1',
       background: `radial-gradient(circle, rgba(${rgb.r},${rgb.g},${rgb.b},0.4) 0%, rgba(${rgb.r},${rgb.g},${rgb.b},0.0) 70%)`,
+      maxWidth: '100%',
     };
   };
 
@@ -88,13 +90,13 @@ const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element, isSelected
   return (
     <div style={baseDivStyle}>
       <div style={cellStyle}> {/* Host Glow Cell */}
-        <div style={glowStyle(hostRgb)}></div>
+        <div style={getGlowInstanceStyle(hostRgb)}></div>
       </div>
 
       {isPivotLocked && currentPivotOffset > 0 && <div></div>} {/* Spacer Cell */}
 
       <div style={cellStyle}> {/* Guest Glow Cell */}
-        <div style={glowStyle(guestRgb)}></div>
+        <div style={getGlowInstanceStyle(guestRgb)}></div>
       </div>
 
       {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
