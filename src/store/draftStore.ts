@@ -1555,21 +1555,7 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10,
               };
-            } else {
-              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
-              // It should NOT include showName or showScore.
-              newElement = {
-                id: Date.now().toString(), type: elementType,
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 250, height: 40 }, // Default generic size
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 0,
-              };
-            } else if (elementType === "MapPool") {
+            } else if (elementType === "MapPool") { // Moved MapPool before the generic else
               newElement = {
                 id: Date.now().toString(),
                 type: elementType,
@@ -1581,6 +1567,24 @@ const useDraftStore = create<DraftStore>()(
                 textColor: 'white',
                 scale: 1,
                 isPivotLocked: false,
+              };
+            } else { // Generic fallback for unknown types
+              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
+              // It should NOT include showName or showScore.
+              console.warn(`[draftStore] addStudioElement: Unknown elementType "${elementType}". Creating a generic element.`);
+              newElement = {
+                id: Date.now().toString(), type: elementType, // Keep original type for potential debugging
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 200, height: 100 }, // Default generic size
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'rgba(255,0,0,0.3)', // Semi-transparent red to indicate unknown
+                borderColor: 'red',
+                textColor: 'white',
+                scale: 1,
+                isPivotLocked: false,
+                pivotInternalOffset: 0,
+                // Add a property to indicate it's a fallback element
+                isFallbackElement: true
               };
             }
             const updatedCanvases = state.currentCanvases.map(canvas =>
