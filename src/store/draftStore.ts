@@ -1541,6 +1541,20 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10,
               };
+            } else if (elementType === "ColorGlowElement") {
+              newElement = {
+                id: Date.now().toString(),
+                type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 200, height: 100 },
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                textColor: 'white',
+                scale: 1,
+                isPivotLocked: false,
+                pivotInternalOffset: 10,
+              };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.
@@ -1696,13 +1710,30 @@ const useDraftStore = create<DraftStore>()(
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
       updateCanvasName: (canvasId: string, newName: string) => {
-        set(state => ({
-          ...state,
-          currentCanvases: state.currentCanvases.map(canvas =>
-            canvas.id === canvasId ? { ...canvas, name: newName.trim() === "" ? canvas.name : newName.trim() } : canvas
-          ),
-          layoutLastUpdated: Date.now(), // To trigger auto-save if active layout
-        }));
+        set(state => {
+          const newTrimmedName = newName.trim();
+          let changeMade = false;
+          const updatedCanvases = state.currentCanvases.map(canvas => {
+            if (canvas.id === canvasId) {
+              const finalName = newTrimmedName === "" ? canvas.name : newTrimmedName;
+              if (canvas.name !== finalName) {
+                changeMade = true;
+                return { ...canvas, name: finalName };
+              }
+            }
+            return canvas;
+          });
+
+          if (!changeMade) {
+            return state; // No actual change in names
+          }
+
+          return {
+            ...state,
+            currentCanvases: updatedCanvases,
+            layoutLastUpdated: Date.now(),
+          };
+        });
         get()._autoSaveOrUpdateActiveStudioLayout();
       },
         setActiveStudioLayoutId: (layoutId: string | null) => {
@@ -1738,22 +1769,34 @@ const useDraftStore = create<DraftStore>()(
           const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
           const autoSavePresetName = "(auto)";
 
+          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId);
+          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] currentCanvases being processed:', JSON.parse(JSON.stringify(currentCanvases)));
+
           if (activeStudioLayoutId) {
-            const updatedLayouts = savedStudioLayouts.map(layout =>
-              layout.id === activeStudioLayoutId
-                ? { ...layout, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId } : layout
-            );
+            let updatedLayoutObject: SavedStudioLayout | null = null;
+            const updatedLayouts = savedStudioLayouts.map(layout => {
+              if (layout.id === activeStudioLayoutId) {
+                updatedLayoutObject = { ...layout, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId };
+                return updatedLayoutObject;
+              }
+              return layout;
+            });
             set({ savedStudioLayouts: updatedLayouts });
+            if (updatedLayoutObject) {
+              console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Layout updated in savedStudioLayouts (activeStudioLayoutId case):', JSON.parse(JSON.stringify(updatedLayoutObject)));
+            }
           } else {
             let autoPreset = savedStudioLayouts.find(layout => layout.name === autoSavePresetName);
             if (autoPreset) {
               const updatedAutoPreset = { ...autoPreset, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId };
               const updatedLayouts = savedStudioLayouts.map(layout => layout.id === autoPreset!.id ? updatedAutoPreset : layout);
               set({ savedStudioLayouts: updatedLayouts, activeStudioLayoutId: autoPreset.id });
+              console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Layout updated in savedStudioLayouts (autoPreset found case):', JSON.parse(JSON.stringify(updatedAutoPreset)));
             } else {
               const newAutoLayoutId = `studiolayout-auto-${Date.now()}`;
               const newAutoLayoutPreset: SavedStudioLayout = { id: newAutoLayoutId, name: autoSavePresetName, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId };
               set({ savedStudioLayouts: [...savedStudioLayouts, newAutoLayoutPreset], activeStudioLayoutId: newAutoLayoutId });
+              console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] New layout added to savedStudioLayouts (autoPreset not found case):', JSON.parse(JSON.stringify(newAutoLayoutPreset)));
             }
           }
         },

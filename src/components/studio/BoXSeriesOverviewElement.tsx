@@ -78,7 +78,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // The fontFamily for the overall element is set on styles.baseElement,
   // so it should cascade unless overridden here.
   const gameImageRowDynamicStyle: React.CSSProperties = {
-    gridTemplateColumns: isPivotLocked
+    gridTemplateColumns: (pivotInternalOffset && pivotInternalOffset > 0)
       ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
       : '1fr auto 1fr',
     // fontFamily: fontFamily, // fontFamily is now on the baseElement, inherited unless overridden
@@ -184,8 +184,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             </div>
           </div>
 
-          {/* Spacer element, shown if pivot is locked. */}
-          {isPivotLocked && <div className={styles.spacer}></div>}
+          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
+          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
           {/* Map display. */}
           <div className={styles.mapCell}>
@@ -203,8 +203,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             </div>
           </div>
 
-          {/* Spacer element, shown if pivot is locked. */}
-          {isPivotLocked && <div className={styles.spacer}></div>}
+          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
+          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
           {/* Right civilization display. */}
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>

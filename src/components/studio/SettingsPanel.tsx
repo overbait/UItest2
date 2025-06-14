@@ -213,6 +213,53 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
        </>
      )}
 
+     {selectedElement.type === 'ColorGlowElement' && (
+       <>
+         <h4 style={sectionHeaderStyle}>Color Glow Options</h4>
+         <div style={settingRowStyle}>
+           <label htmlFor="colorGlowScaleSlider" style={labelStyle}>Scale:</label>
+           <input
+             type="range"
+             id="colorGlowScaleSlider"
+             style={rangeInputStyle}
+             min="0.2"
+             max="5"
+             step="0.05"
+             value={selectedElement.scale || 1}
+             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+           />
+           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+         </div>
+         <div style={settingRowStyle}>
+           <label htmlFor="colorGlowPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+           <input
+             type="checkbox"
+             id="colorGlowPivotLockCheckbox"
+             style={checkboxStyle}
+             checked={!!selectedElement.isPivotLocked}
+             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+           />
+         </div>
+         {/*
+         <div style={settingRowStyle}>
+           <label htmlFor="colorGlowPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>,
+           <input
+             type="range"
+             id="colorGlowPivotOffsetSlider"
+             style={rangeInputStyle}
+             min="0"
+             max="100" // Adjust max as needed
+             step="1"
+             value={selectedElement.pivotInternalOffset || 0}
+             disabled={!selectedElement.isPivotLocked} // Optionally disable if pivot is not locked
+             onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+           />
+           <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
+         </div>
+         */}
+       </>
+     )}
+
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>

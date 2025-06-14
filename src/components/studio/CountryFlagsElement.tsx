@@ -37,13 +37,15 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSe
     height: '100%', // Make flag take height of its container cell
     objectFit: 'contain', // Or 'cover', 'scale-down' depending on desired look
     display: 'block', // Remove extra space below img
+    pointerEvents: 'none', // Make the image itself ignore mouse events
+    userSelect: 'none',   // Prevent selecting the image like text
   };
 
   const hostFlagPath = liveHostFlag ? `/assets/countryflags/${liveHostFlag.toLowerCase()}.png` : null;
   const guestFlagPath = liveGuestFlag ? `/assets/countryflags/${liveGuestFlag.toLowerCase()}.png` : null;
 
-  const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
-  const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
+  const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
+  const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
 
   const pivotLineStyle: React.CSSProperties = {
     position: 'absolute',
