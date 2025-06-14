@@ -1,33 +1,82 @@
 .map-pool-element {
   box-sizing: border-box;
-  /* Future global styles for map pool elements can go here */
-  /* For now, most styling is inline in the component for dynamic properties */
+  /* display: flex; and overflow: hidden; are handled by inline styles on the root element in the component */
 }
 
-/* Styling for individual map items within the pool, if needed globally */
+.map-pool-scaler {
+  /* transform and transformOrigin, width, height, display:flex are handled by inline styles in the component */
+  /* This class is here if any additional global scaler styles are needed */
+}
+
+.player-view {
+  /* height: 100% and width are handled by inline styles for dynamic sizing */
+  overflow: hidden; /* Prevent scrollbars on the view itself, scrolling is per grid */
+  box-sizing: border-box;
+  /* border: 1px dashed #555; */ /* Optional: for debugging view boundaries */
+}
+
+.player-map-grid {
+  box-sizing: border-box;
+  height: 100%; /* Ensure grid takes full height of player-view */
+  /* display: grid; and overflow: auto; are handled by inline styles in the component */
+}
+
+/* Styling for individual map items within the pool */
 .map-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-around; /* Distribute space a bit for image and text */
   overflow: hidden;
   box-sizing: border-box;
-  /* Example: Add a subtle border to map items if desired */
-  /* border: 1px solid #444; */
+  width: 100%;
+  height: 100%;
+  border: 1px solid #555; /* Default subtle border for all map items */
+  transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
+  padding: 2px; /* Small padding inside map items */
 }
 
-.map-image {
-  object-fit: contain; /* Ensures the whole image is visible */
-  /* Max width/height is handled by inline styles for responsiveness */
-  margin-bottom: 5px; /* Space between image and text */
+.map-image-container {
+  width: 90%; /* Takes most of the cell width */
+  aspect-ratio: 16 / 10; /* Rectangular aspect ratio */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Ensure image doesn't spill out */
+}
+
+.map-image-container img { /* The actual <img> tag */
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* Fit entire image within the container */
+  min-height: 20px; /* Prevent image from becoming too small */
 }
 
 .map-name {
   text-align: center;
   margin: 0;
+  margin-top: 3px; /* Small space above the name */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 95%; /* Ensure text does not overflow item width */
-  /* Font size, color, family are handled by inline styles for responsiveness and element props */
+  width: 95%;
+  min-height: 10px;
+  font-size: 0.9em; /* Base size, dynamically adjusted inline */
+}
+
+/* --- Draft State Styles --- */
+
+.map-item-banned-by-self {
+  box-shadow: 0 0 8px 2px red, inset 0 0 4px 1px red; /* Slightly reduced glow */
+  border-color: red;
+}
+
+.map-item-picked-by-self {
+  box-shadow: 0 0 8px 2px limegreen, inset 0 0 4px 1px limegreen; /* Slightly reduced glow */
+  border-color: limegreen;
+}
+
+.map-item-affected-by-opponent {
+  filter: grayscale(80%); /* Slightly less intense grayscale */
+  opacity: 0.6; /* Slightly more faded */
 }

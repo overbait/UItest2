@@ -261,6 +261,50 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
        </>
      )}
 
+      {selectedElement.type === 'MapPool' && (
+        <>
+          <h4 style={sectionHeaderStyle}>Map Pool Options</h4>
+          <div style={settingRowStyle}>
+            <label htmlFor="mapPoolScaleSlider" style={labelStyle}>Scale:</label>
+            <input
+              type="range"
+              id="mapPoolScaleSlider"
+              style={rangeInputStyle}
+              min="0.2"
+              max="3" // Max scale for map pool
+              step="0.05"
+              value={selectedElement.scale || 1}
+              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+            <input
+              type="checkbox"
+              id="mapPoolPivotLockCheckbox"
+              style={checkboxStyle}
+              checked={selectedElement.isPivotLocked === undefined ? true : !!selectedElement.isPivotLocked}
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+            />
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="mapPoolPivotOffsetSlider" style={labelStyle}>Spacing (px):</label>
+            <input
+              type="range"
+              id="mapPoolPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="0"
+              max="100" // Max spacing
+              step="1"
+              value={selectedElement.pivotInternalOffset || 0}
+              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
+          </div>
+        </>
+      )}
+
       {/* Generic Element Settings (like Background, Border, Text Color) */}
       {selectedElement && selectedElement.type !== 'ColorGlowElement' && ( // ColorGlow might not need these generic ones
         <>
