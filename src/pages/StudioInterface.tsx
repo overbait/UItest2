@@ -27,6 +27,7 @@ const StudioInterface: React.FC = () => {
     addCanvas,
     setActiveCanvas,
     removeCanvas,
+    updateCanvasName, // Added updateCanvasName
     resetActiveCanvasLayout
   } = useDraftStore(state => state);
 
