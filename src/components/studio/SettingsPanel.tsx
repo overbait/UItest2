@@ -242,7 +242,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          </div>
          {/*
          <div style={settingRowStyle}>
-           <label htmlFor="colorGlowPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>,
+           <label htmlFor="colorGlowPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
            <input
              type="range"
              id="colorGlowPivotOffsetSlider"
