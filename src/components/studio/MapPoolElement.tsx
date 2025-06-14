@@ -130,29 +130,22 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
 
   let viewContainerJustifyContent: React.CSSProperties['justifyContent'] = 'center';
   let gapWidth = 0; // This will be the actual gap used in layout (unscaled)
+  let scalerTransformOrigin: React.CSSProperties['transformOrigin'] = 'top left'; // Declare and initialize
 
   if (isPivotLocked) {
     scalerTransformOrigin = 'center center';
-    // When locked, the views are pushed apart by available space.
-    // The 'space-between' will act on the player views directly.
-    // No explicit gap div needed if player views are direct children of the flex container.
     viewContainerJustifyContent = 'space-between';
-    gapWidth = 0; // Space is handled by justify-content
+    gapWidth = 0;
   } else {
-    scalerTransformOrigin = 'top left';
-    // When not locked, they are a fixed block. Use a small fixed gap.
+    // scalerTransformOrigin remains 'top left' (already initialized)
     viewContainerJustifyContent = 'flex-start';
-    gapWidth = FIXED_GAP_WHEN_UNLOCKED / scale; // Scale the gap as it's part of the unscaled layout
+    gapWidth = FIXED_GAP_WHEN_UNLOCKED / scale;
   }
 
   // Each player view takes up available space minus the gap, divided by two.
   // This width is *within the scaled container*.
   const playerViewUnscaledWidth = ( (unscaledWidth / scale) - gapWidth ) / 2;
-  let scalerTransformOrigin = 'top left'; // Default for non-locked pivot
-
-  if (isPivotLocked) {
-    scalerTransformOrigin = 'center center';
-  }
+  // Removed redundant declaration of scalerTransformOrigin here
 
 
   const renderMapView = (playerPerspective: 'P1' | 'P2', viewSpecificWidth: number) => {
