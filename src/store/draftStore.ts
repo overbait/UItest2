@@ -1546,7 +1546,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 200, height: 100 },
+                size: { width: 250, height: 150 }, // Increased default size
                 fontFamily: 'Arial, sans-serif',
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
@@ -1734,6 +1734,9 @@ const useDraftStore = create<DraftStore>()(
             layoutLastUpdated: Date.now(),
           };
         });
+        const stateForLogging = get();
+        console.log('LOGAOEINFO: [updateCanvasName] State after set for canvas rename. currentCanvases:', JSON.parse(JSON.stringify(stateForLogging.currentCanvases.map(c => ({id: c.id, name: c.name}))))); // Log only id and name for brevity
+        console.log('LOGAOEINFO: [updateCanvasName] ActiveStudioLayoutId before calling _autoSaveOrUpdateActiveStudioLayout:', stateForLogging.activeStudioLayoutId);
         get()._autoSaveOrUpdateActiveStudioLayout();
       },
         setActiveStudioLayoutId: (layoutId: string | null) => {

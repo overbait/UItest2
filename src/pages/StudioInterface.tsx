@@ -206,13 +206,13 @@ const StudioInterface: React.FC = () => {
            <span>{isElementsOpen ? '▼' : '▶'}</span>
          </h3>
          {isElementsOpen && (
-           <>
-              <button onClick={handleAddScoreOnly} style={buttonStyle}>Add Score</button>
-              <button onClick={handleAddNicknamesOnly} style={buttonStyle}>Add Nicknames</button>
-              <button onClick={handleAddBoXSeriesOverview} style={buttonStyle}>Add BoX Series Overview</button>
-              <button onClick={handleAddCountryFlags} style={buttonStyle}>Add Country Flags</button>
-              <button onClick={handleAddColorGlowElement} style={buttonStyle}>Add Color Glow</button>
-           </>
+           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}> {/* New wrapper div */}
+             <button onClick={handleAddScoreOnly} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Score</button>
+             <button onClick={handleAddNicknamesOnly} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Nicknames</button>
+             <button onClick={handleAddBoXSeriesOverview} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add BoX Series Overview</button>
+             <button onClick={handleAddCountryFlags} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Country Flags</button>
+             <button onClick={handleAddColorGlowElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Color Glow</button>
+           </div>
          )}
         </div>
 
@@ -331,33 +331,26 @@ const StudioInterface: React.FC = () => {
                    type="text"
                    value={editingCanvasName}
                    onChange={(e) => setEditingCanvasName(e.target.value)}
-                   onBlur={() => {
-                     const trimmedName = editingCanvasName.trim();
-                     if (trimmedName !== "" && trimmedName !== canvas.name) { // Only update if non-empty and changed
-                       updateCanvasName(canvas.id, trimmedName);
-                     }
-                     setEditingCanvasId(null); // Always exit editing mode
-                   }}
+                   // onBlur is removed/modified to prevent auto-save on blur
                    onKeyDown={(e) => {
                      if (e.key === 'Enter') {
                        const trimmedName = editingCanvasName.trim();
-                       if (trimmedName !== "" && trimmedName !== canvas.name) { // Only update if non-empty and changed
+                       if (trimmedName !== "" && trimmedName !== canvas.name) {
                          updateCanvasName(canvas.id, trimmedName);
                        }
-                       setEditingCanvasId(null); // Exit editing mode
-                       // e.currentTarget.blur(); // Not strictly necessary as input will be removed
+                       setEditingCanvasId(null);
                      } else if (e.key === 'Escape') {
-                       setEditingCanvasId(null); // Exit editing mode, changes in editingCanvasName are discarded
+                       setEditingCanvasId(null);
                      }
                    }}
                    autoFocus
-                   onClick={(e) => e.stopPropagation()} // Prevent tab button click when clicking input
+                   onClick={(e) => e.stopPropagation()}
                    style={{
                      padding: '2px 4px',
                      border: '1px solid #777',
                      backgroundColor: '#1a1a1a',
                      color: 'white',
-                     maxWidth: '100px' // Prevent very long input
+                     maxWidth: '80px' // Adjusted width to make space for buttons
                    }}
                  />
                ) : (
@@ -373,25 +366,55 @@ const StudioInterface: React.FC = () => {
                      onClick={(e) => {
                        e.stopPropagation();
                        setEditingCanvasId(canvas.id);
-                       setEditingCanvasName(canvas.name);
+                       setEditingCanvasName(canvas.name); // Initialize input with current name
                      }}
                      style={{
                        background: 'transparent',
                        border: 'none',
                        color: '#ccc',
-                       padding: '0 5px',
-                       marginLeft: '5px',
+                       padding: '0 3px', // Reduced padding
+                       marginLeft: '4px', // Adjusted margin
                        cursor: 'pointer',
-                       fontSize: '1em',
+                       fontSize: '0.9em', // Adjusted font size
                      }}
                    >
                      ✏️
                    </button>
                  </>
                )}
-                <span
-                  title="Open canvas in new window (placeholder)"
-                  onClick={(e) => {
+               {/* Conditional rendering for Confirm/Cancel or other icons */}
+               {editingCanvasId === canvas.id ? (
+                 <>
+                   <button
+                     title="Confirm rename"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       const trimmedName = editingCanvasName.trim();
+                       if (trimmedName !== "" && trimmedName !== canvas.name) {
+                         updateCanvasName(canvas.id, trimmedName);
+                       }
+                       setEditingCanvasId(null);
+                     }}
+                     style={{ background: 'transparent', border: 'none', color: '#4CAF50', padding: '0 3px', marginLeft: '4px', cursor: 'pointer', fontSize: '0.9em' }}
+                   >
+                     ✔️
+                   </button>
+                   <button
+                     title="Cancel rename"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setEditingCanvasId(null);
+                     }}
+                     style={{ background: 'transparent', border: 'none', color: '#F44336', padding: '0 3px', marginLeft: '2px', cursor: 'pointer', fontSize: '0.9em' }}
+                   >
+                     ❌
+                   </button>
+                 </>
+               ) : (
+                 <>
+                   <span
+                     title="Open canvas in new window (placeholder)"
+                     onClick={(e) => {
                     e.stopPropagation();
                     const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`;
                     window.open(broadcastUrl, '_blank');
@@ -488,10 +511,23 @@ const StudioInterface: React.FC = () => {
             }}
             aria-hidden="true" // Decorative element
           />
-          {activeLayout.map((element: StudioElement) => {
+          {activeLayout.map((element: StudioElement, index: number) => { // Added index here
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;
-            const selectionStyle: React.CSSProperties = isSelected ? { zIndex: 1 } : { zIndex: 0 };
+
+            // Determine a base z-index based on render order.
+            // Later elements in the array get a higher base z-index.
+            // Adding 1 to ensure zIndex starts from 1, not 0.
+            const baseZIndex = index + 1;
+
+            // Set a significantly higher z-index for the selected element.
+            const zIndexValue = isSelected ? 999 : baseZIndex;
+
+            const elementSpecificStyle: React.CSSProperties = {
+              zIndex: zIndexValue,
+              position: 'absolute',
+            };
+
             let content = null;
             if (element.type === "ScoreOnly") { content = <ScoreOnlyElement element={element} isSelected={isSelected} />; }
             else if (element.type === "NicknamesOnly") { content = <NicknamesOnlyElement element={element} isSelected={isSelected} />; }
@@ -529,7 +565,7 @@ const StudioInterface: React.FC = () => {
                     onResizeStop={(e, data) => handleResizeStop(element.id, data)}
                     minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
                     maxConstraints={[800 / currentScale, 600 / currentScale]}
-                    style={{ ...selectionStyle, position: 'absolute' }}
+                    style={elementSpecificStyle} // Apply new style here
                     className="drag-handle">
                   <div
                        onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
