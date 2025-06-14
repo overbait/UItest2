@@ -10,6 +10,7 @@ interface SettingsPanelProps {
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose }) => {
   const updateStudioElementSettings = useDraftStore(state => state.updateStudioElementSettings);
   const removeStudioElement = useDraftStore(state => state.removeStudioElement);
+  const addStudioElement = useDraftStore(state => state.addStudioElement); // Added for new button
 
   if (!selectedElement) { return null; }
 
@@ -260,8 +261,63 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
        </>
      )}
 
-      <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
-      <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
+      {/* Generic Element Settings (like Background, Border, Text Color) */}
+      {selectedElement && selectedElement.type !== 'ColorGlowElement' && ( // ColorGlow might not need these generic ones
+        <>
+          <h4 style={sectionHeaderStyle}>Appearance</h4>
+          <div style={settingRowStyle}>
+            <label htmlFor="elementBgColorInput" style={labelStyle}>Background Color:</label>
+            <input
+              type="text"
+              id="elementBgColorInput"
+              style={inputStyle}
+              value={selectedElement.backgroundColor || ''}
+              onChange={(e) => handleSettingChange('backgroundColor', e.target.value)}
+              placeholder="e.g., #RRGGBB, transparent"
+            />
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="elementBorderColorInput" style={labelStyle}>Border Color:</label>
+            <input
+              type="text"
+              id="elementBorderColorInput"
+              style={inputStyle}
+              value={selectedElement.borderColor || ''}
+              onChange={(e) => handleSettingChange('borderColor', e.target.value)}
+              placeholder="e.g., #RRGGBB, transparent"
+            />
+          </div>
+          {/* Text Color for MapPool - assuming MapPool might have text */}
+          {selectedElement.type === "MapPool" && (
+            <div style={settingRowStyle}>
+              <label htmlFor="elementTextColorInput" style={labelStyle}>Text Color:</label>
+              <input
+                type="text"
+                id="elementTextColorInput"
+                style={inputStyle}
+                value={selectedElement.textColor || ''}
+                onChange={(e) => handleSettingChange('textColor', e.target.value)}
+                placeholder="e.g., #FFFFFF, black"
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}>
+        <button
+          onClick={handleDeleteElement}
+          style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white', marginBottom: '10px'}}
+        >
+          Delete Element
+        </button>
+      </div>
+      <button
+        onClick={onClose}
+        style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '0px'}}
+      >
+        Close Panel
+      </button>
     </div>
   );
 };

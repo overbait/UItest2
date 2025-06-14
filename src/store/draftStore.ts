@@ -1569,6 +1569,19 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 0,
               };
+            } else if (elementType === "MapPool") {
+              newElement = {
+                id: Date.now().toString(),
+                type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 300, height: 400 }, // Default size for MapPool
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: '#cccccc', // Default border color
+                textColor: 'white',
+                scale: 1,
+                isPivotLocked: false,
+              };
             }
             const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId

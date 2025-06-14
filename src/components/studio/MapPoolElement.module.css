@@ -1,0 +1,33 @@
+.map-pool-element {
+  box-sizing: border-box;
+  /* Future global styles for map pool elements can go here */
+  /* For now, most styling is inline in the component for dynamic properties */
+}
+
+/* Styling for individual map items within the pool, if needed globally */
+.map-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Example: Add a subtle border to map items if desired */
+  /* border: 1px solid #444; */
+}
+
+.map-image {
+  object-fit: contain; /* Ensures the whole image is visible */
+  /* Max width/height is handled by inline styles for responsiveness */
+  margin-bottom: 5px; /* Space between image and text */
+}
+
+.map-name {
+  text-align: center;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 95%; /* Ensure text does not overflow item width */
+  /* Font size, color, family are handled by inline styles for responsiveness and element props */
+}
