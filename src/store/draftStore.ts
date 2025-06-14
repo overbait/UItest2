@@ -1486,10 +1486,11 @@ const useDraftStore = create<DraftStore>()(
             const initialX_px = 10;
             const initialY_px = 10 + (activeCanvas.layout.length * 20); // Basic stacking
 
-            let newElement: StudioElement;
+            // let newElement: StudioElement; // Will be declared inside if/else for MapPool clarity
+            let elementsToAdd: StudioElement[] = []; // Array to hold elements to be added
 
             if (elementType === "BoXSeriesOverview") {
-              newElement = {
+              const newElement: StudioElement = {
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
@@ -1567,13 +1568,24 @@ const useDraftStore = create<DraftStore>()(
                 textColor: 'white',
                 scale: 1, // Default scale
                 isPivotLocked: false, // Default is false
-                pivotInternalOffset: undefined, // Explicitly undefined, as it's not used when locked is false by default
+                pivotInternalOffset: undefined,
+                isPairMaster: true, // Master element
+                playerId: 'P1',
+                pairId: `pair-${Date.now()}`
               };
+              const elementP2: StudioElement = {
+                ...newElement, // Inherit most properties from P1
+                id: Date.now().toString() + '-P2S', // Ensure unique ID
+                isPairMaster: false,
+                playerId: 'P2',
+                position: { x: initialX_px + (newElement.size?.width || 250) + 30, y: initialY_px }, // Position next to P1
+                // Inherits fontFamily, isPivotLocked, scale, backgroundColor, borderColor, textColor from newElement (P1)
+                // pivotInternalOffset is also inherited but not primary for P2's own settings.
+              };
+              elementsToAdd.push(newElement, elementP2);
             } else { // Generic fallback for unknown types
-              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
-              // It should NOT include showName or showScore.
               console.warn(`[draftStore] addStudioElement: Unknown elementType "${elementType}". Creating a generic element.`);
-              newElement = {
+              const newElement: StudioElement = {
                 id: Date.now().toString(), type: elementType, // Keep original type for potential debugging
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 200, height: 100 }, // Default generic size
@@ -1587,13 +1599,18 @@ const useDraftStore = create<DraftStore>()(
                 // Add a property to indicate it's a fallback element
                 isFallbackElement: true
               };
+              elementsToAdd.push(newElement);
             }
-            const updatedCanvases = state.currentCanvases.map(canvas =>
-              canvas.id === state.activeCanvasId
-                ? { ...canvas, layout: [...canvas.layout, newElement] }
-                : canvas
-            );
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
+
+            if (elementsToAdd.length > 0) {
+              const updatedCanvases = state.currentCanvases.map(canvas =>
+                canvas.id === state.activeCanvasId
+                  ? { ...canvas, layout: [...canvas.layout, ...elementsToAdd] }
+                  : canvas
+              );
+              return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
+            }
+            return state; // No elements were added if elementType didn't match and wasn't MapPool
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
