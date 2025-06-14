@@ -422,6 +422,8 @@ const StudioInterface: React.FC = () => {
                     &times;
                   </button>
                 )}
+                </>
+              )}
               </button>
             ))}
           </div>
