@@ -327,34 +327,53 @@ const StudioInterface: React.FC = () => {
                 title={canvas.name}
               >
                {editingCanvasId === canvas.id ? (
-                 <input
-                   type="text"
-                   value={editingCanvasName}
-                   onChange={(e) => setEditingCanvasName(e.target.value)}
-                   // onBlur is removed/modified to prevent auto-save on blur
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter') {
+                 <> {/* Fragment for editing mode */}
+                   <input
+                     type="text"
+                     value={editingCanvasName}
+                     onChange={(e) => setEditingCanvasName(e.target.value)}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         const trimmedName = editingCanvasName.trim();
+                         if (trimmedName !== "" && trimmedName !== canvas.name) {
+                           updateCanvasName(canvas.id, trimmedName);
+                         }
+                         setEditingCanvasId(null);
+                       } else if (e.key === 'Escape') {
+                         setEditingCanvasId(null);
+                       }
+                     }}
+                     autoFocus
+                     onClick={(e) => e.stopPropagation()}
+                     style={{ padding: '2px 4px', border: '1px solid #777', backgroundColor: '#1a1a1a', color: 'white', maxWidth: '80px' }}
+                   />
+                   <button
+                     title="Confirm rename"
+                     onClick={(e) => {
+                       e.stopPropagation();
                        const trimmedName = editingCanvasName.trim();
                        if (trimmedName !== "" && trimmedName !== canvas.name) {
                          updateCanvasName(canvas.id, trimmedName);
                        }
                        setEditingCanvasId(null);
-                     } else if (e.key === 'Escape') {
+                     }}
+                     style={{ background: 'transparent', border: 'none', color: '#4CAF50', padding: '0 5px', cursor: 'pointer', fontSize: '1.2em', marginLeft: '4px' }}
+                   >
+                     ✔️
+                   </button>
+                   <button
+                     title="Cancel rename"
+                     onClick={(e) => {
+                       e.stopPropagation();
                        setEditingCanvasId(null);
-                     }
-                   }}
-                   autoFocus
-                   onClick={(e) => e.stopPropagation()}
-                   style={{
-                     padding: '2px 4px',
-                     border: '1px solid #777',
-                     backgroundColor: '#1a1a1a',
-                     color: 'white',
-                     maxWidth: '80px' // Adjusted width to make space for buttons
-                   }}
-                 />
+                     }}
+                     style={{ background: 'transparent', border: 'none', color: '#F44336', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em' }}
+                   >
+                     ❌
+                   </button>
+                 </>
                ) : (
-                 <>
+                 <> {/* Fragment for display mode */}
                    <span
                      style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}}
                      title={canvas.name}
@@ -366,52 +385,13 @@ const StudioInterface: React.FC = () => {
                      onClick={(e) => {
                        e.stopPropagation();
                        setEditingCanvasId(canvas.id);
-                       setEditingCanvasName(canvas.name); // Initialize input with current name
+                       setEditingCanvasName(canvas.name);
                      }}
-                     style={{
-                       background: 'transparent',
-                       border: 'none',
-                       color: '#ccc',
-                       padding: '0 3px', // Reduced padding
-                       marginLeft: '4px', // Adjusted margin
-                       cursor: 'pointer',
-                       fontSize: '0.9em', // Adjusted font size
-                     }}
+                     style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1em' }}
                    >
                      ✏️
                    </button>
-                 </>
-               )}
-               {/* Conditional rendering for Confirm/Cancel or other icons */}
-               {editingCanvasId === canvas.id ? (
-                 <>
-                   <button
-                     title="Confirm rename"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       const trimmedName = editingCanvasName.trim();
-                       if (trimmedName !== "" && trimmedName !== canvas.name) {
-                         updateCanvasName(canvas.id, trimmedName);
-                       }
-                       setEditingCanvasId(null);
-                     }}
-                     style={{ background: 'transparent', border: 'none', color: '#4CAF50', padding: '0 3px', marginLeft: '4px', cursor: 'pointer', fontSize: '0.9em' }}
-                   >
-                     ✔️
-                   </button>
-                   <button
-                     title="Cancel rename"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setEditingCanvasId(null);
-                     }}
-                     style={{ background: 'transparent', border: 'none', color: '#F44336', padding: '0 3px', marginLeft: '2px', cursor: 'pointer', fontSize: '0.9em' }}
-                   >
-                     ❌
-                   </button>
-                 </>
-               ) : (
-                 <>
+                   {/* Open in new window button */}
                    <span
                      title="Open canvas in new window (placeholder)"
                      onClick={(e) => {
