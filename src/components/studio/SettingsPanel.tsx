@@ -287,21 +287,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               checked={selectedElement.isPivotLocked === undefined ? true : !!selectedElement.isPivotLocked}
               onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
             />
+            {/* No span needed for checkbox value display */}
           </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="mapPoolPivotOffsetSlider" style={labelStyle}>Spacing (px):</label>
-            <input
-              type="range"
-              id="mapPoolPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="0"
-              max="100" // Max spacing
-              step="1"
-              value={selectedElement.pivotInternalOffset || 0}
-              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
-          </div>
+          {/* Spacing (pivotInternalOffset) slider is removed */}
           <div style={settingRowStyle}>
             <label htmlFor="mapPoolFontFamilySelect" style={labelStyle}>Font Family:</label>
             <select

@@ -1566,8 +1566,8 @@ const useDraftStore = create<DraftStore>()(
                 borderColor: 'transparent', // Changed default to transparent
                 textColor: 'white',
                 scale: 1, // Default scale
-                isPivotLocked: false, // Changed default to false
-                pivotInternalOffset: 10, // Default spacing
+                isPivotLocked: false, // Default is false
+                pivotInternalOffset: undefined, // Explicitly undefined, as it's not used when locked is false by default
               };
             } else { // Generic fallback for unknown types
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.

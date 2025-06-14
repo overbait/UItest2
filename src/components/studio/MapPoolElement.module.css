@@ -17,79 +17,80 @@
 }
 
 .map-item {
-  display: flex; /* Changed from flex to allow simpler positioning of text over image container */
-  flex-direction: column; /* Keep column direction for overall item structure if needed, but text will be absolute */
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center; /* Center image container */
+  justify-content: center;
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  border: 1px solid #555; /* Default subtle border */
+  /* BoX-style border: thin, slightly lighter grey, subtle rounding */
+  border: 1px solid #777;
+  border-radius: 3px; /* Subtle rounding */
   transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
-  padding: 3px; /* Slightly increased padding */
-  position: relative; /* Needed if .map-name is absolute to .map-item directly */
-  background-color: rgba(10, 10, 10, 0.3); /* Subtle dark background for items */
+  padding: 2px; /* Minimal padding, content should be tight */
+  position: relative;
+  /* BoX-style background: dark, slightly transparent */
+  background-color: rgba(20, 20, 20, 0.75);
 }
 
 .map-image-container {
-  width: 95%; /* Increased width to fill more of the item */
-  aspect-ratio: 1 / 1; /* Square aspect ratio */
+  width: 100%; /* Take full width of the padded .map-item */
+  /* aspect-ratio: 1 / 1; /* Enforce square, or slightly off-square like 10/9 or 9/8 */
+  aspect-ratio: 10 / 9; /* Slightly wider than tall, common for map thumbs */
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   position: relative; /* Anchor for the absolutely positioned map name */
-  margin: auto; /* Center the container if map-item uses flex */
+  /* margin: auto; No longer needed if map-item is flex and centers this */
 }
 
 .map-image-container img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: cover; /* Changed to cover to fill the square, might crop */
-  /* min-height: 20px; no longer needed with aspect-ratio and cover */
+  width: 100%; /* Fill container width */
+  height: 100%; /* Fill container height */
+  object-fit: cover;
 }
 
 .map-name {
   position: absolute;
-  bottom: 5px;
+  bottom: 3px; /* Adjusted for BoX style */
   left: 0;
-  right: 0; /* Or width: 100%; */
+  right: 0;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.6); /* Slightly darker for better contrast */
-  color: white; /* Default color, can be overridden by element.textColor if needed */
-  padding: 3px 0; /* Increased padding slightly */
-  font-size: 0.85em; /* Slightly reduced base size, dynamic inline style will adjust */
+  background-color: rgba(0, 0, 0, 0.7); /* BoX style text background */
+  color: white;
+  padding: 2px 0; /* BoX style padding */
+  /* Font properties will be set inline from element.fontFamily and dynamic size */
+  /* Base font size for reference, actual size is dynamic in TSX. */
+  /* font-size: 12px; (example, will be overridden) */
+  font-weight: bold; /* BoX map names are often bold */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-sizing: border-box; /* Include padding in width calculation */
-  /* fontFamily is set inline via element prop */
+  box-sizing: border-box;
+  border-top: 1px solid rgba(255,255,255,0.1); /* Subtle top border for the strip */
 }
 
 /* --- Draft State Styles --- */
-/* Glows should apply to the container that has the border and represents the "button" */
-/* This is now .map-item, as .map-image-container is inside it. */
+/* Glows applied to .map-item to make the whole "button" glow */
 
 .map-item-banned-by-self {
-  box-shadow: 0 0 10px 4px red, inset 0 0 6px 2px rgba(255, 50, 50, 0.7); /* Enhanced glow */
-  border-color: red !important; /* Ensure override */
+  /* BoX style red glow: more spread, less intense inner, distinct color */
+  box-shadow: 0 0 7px 3px rgba(255, 0, 0, 0.7);
+  border-color: rgba(255, 100, 100, 0.8) !important;
 }
 
 .map-item-picked-by-self {
-  box-shadow: 0 0 10px 4px limegreen, inset 0 0 6px 2px rgba(50, 255, 50, 0.7); /* Enhanced glow */
-  border-color: limegreen !important; /* Ensure override */
+  /* BoX style green glow: more spread, less intense inner, distinct color */
+  box-shadow: 0 0 7px 3px rgba(0, 255, 0, 0.6);
+  border-color: rgba(100, 255, 100, 0.8) !important;
 }
 
 .map-item-affected-by-opponent {
-  filter: grayscale(90%); /* More pronounced grayscale */
-  opacity: 0.5; /* More faded */
+  filter: grayscale(100%); /* Full grayscale for opponent actions */
+  opacity: 0.6; /* Slightly more faded */
 }
-
-/* If .map-image-container should get the glow instead of .map-item:
-.map-image-container.map-item-banned-by-self { ... }
-.map-image-container.map-item-picked-by-self { ... }
-.map-image-container.map-item-affected-by-opponent { ... }
-Then apply state classes to map-image-container in TSX.
-For now, applying to .map-item as it has the border.
-*/

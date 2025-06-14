@@ -118,34 +118,41 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     textColor,
     fontFamily,
     scale = 1,
-    isPivotLocked = false, // Default from store is now false
-    pivotInternalOffset = 10
+    isPivotLocked = false,
+    pivotInternalOffset // No default here, rely on store or undefined
   } = element;
 
   // Calculate dimensions for player views
-  const unscaledWidth = size.width; // Total unscaled width of the element
-  const actualPivotOffset = Math.max(0, pivotInternalOffset); // Ensure non-negative
+  const unscaledWidth = size.width;
 
-  let p1ViewWidth = (unscaledWidth - actualPivotOffset) / 2;
-  let p2ViewWidth = p1ViewWidth;
-  let p1Transform = '';
-  let p2Transform = '';
+  // Define a small, fixed internal gap when isPivotLocked is false
+  const FIXED_GAP_WHEN_UNLOCKED = 10; // Unscaled pixels
+
+  let viewContainerJustifyContent: React.CSSProperties['justifyContent'] = 'center';
+  let gapWidth = 0; // This will be the actual gap used in layout (unscaled)
+
+  if (isPivotLocked) {
+    scalerTransformOrigin = 'center center';
+    // When locked, the views are pushed apart by available space.
+    // The 'space-between' will act on the player views directly.
+    // No explicit gap div needed if player views are direct children of the flex container.
+    viewContainerJustifyContent = 'space-between';
+    gapWidth = 0; // Space is handled by justify-content
+  } else {
+    scalerTransformOrigin = 'top left';
+    // When not locked, they are a fixed block. Use a small fixed gap.
+    viewContainerJustifyContent = 'flex-start';
+    gapWidth = FIXED_GAP_WHEN_UNLOCKED / scale; // Scale the gap as it's part of the unscaled layout
+  }
+
+  // Each player view takes up available space minus the gap, divided by two.
+  // This width is *within the scaled container*.
+  const playerViewUnscaledWidth = ( (unscaledWidth / scale) - gapWidth ) / 2;
   let scalerTransformOrigin = 'top left'; // Default for non-locked pivot
 
   if (isPivotLocked) {
-    // When pivot is locked, views might adjust width and position to simulate expanding from center.
-    // This interpretation means the `pivotInternalOffset` is the fixed space, and views expand/contract around it.
-    // The visual center of the content (midpoint of pivotInternalOffset) should remain stable relative to the element's center.
-    // For now, the behavior when locked is the same as unlocked in terms of width calculation,
-    // as the "mirroring drag" is complex and depends on external drag handlers updating size.width.
-    // Transforms might be needed if the *content* within the views needs to mirror (not the case here).
-    // If the goal is that the visual center of the *entire element* is the pivot for scaling:
     scalerTransformOrigin = 'center center';
-    // The player view widths remain the same, the entire scaled block just positions differently.
-    // No specific translateX needed on player views for this interpretation of locked pivot,
-    // as the flex layout within the scaler handles their positioning around the spacer.
   }
-  const playerViewUnscaledWidth = (unscaledWidth / scale - actualPivotOffset) / 2;
 
 
   const renderMapView = (playerPerspective: 'P1' | 'P2', viewSpecificWidth: number) => {
@@ -240,10 +247,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                 <p
                   className={styles['map-name']}
                   style={{
-                    color: textColor || 'white', // Use element's textcolor prop for map names too
-                    fontFamily: fontFamily || 'Arial, sans-serif', // Use element's font prop
-                    // Font size is now primarily controlled by CSS, but dynamic part can be added if needed
-                    // fontSize: Math.min(viewTextMaxHeight, viewItemWidth / (map.name.length * 0.55), 14) + 'px',
+                    color: textColor || 'white',
+                    fontFamily: fontFamily || 'Arial, sans-serif',
+                    fontSize: Math.min(viewTextMaxHeight * 0.8, viewItemWidth / (map.name.length * 0.45), 12) + 'px', // Adjusted font size calculation
                   }}
                 >
                   {map.name}
@@ -274,34 +280,35 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
         style={{
           transform: `scale(${scale})`,
           transformOrigin: scalerTransformOrigin,
-          width: `${unscaledWidth / scale}px`, // Scaler takes up unscaled dimensions
+          width: `${unscaledWidth / scale}px`,
           height: `${size.height / scale}px`,
           display: 'flex',
-          justifyContent: 'center', // Center the player views and spacer within the scaler
+          justifyContent: viewContainerJustifyContent,
+          alignItems: 'stretch', // Ensure player views take full height of scaler
         }}
       >
         {/* Player 1 View (Left) */}
         <div
           className={styles['player-view']}
           style={{
-            width: playerViewUnscaledWidth, // Use unscaled width
+            width: playerViewUnscaledWidth,
             height: '100%',
-            transform: p1Transform, // Apply transform if needed for locked pivot
           }}
         >
           {renderMapView('P1', playerViewUnscaledWidth)}
         </div>
 
-        {/* Spacer Div (Unscaled) */}
-        <div style={{ width: actualPivotOffset, height: '100%', flexShrink: 0 }}></div>
+        {/* Conditional Spacer Div for when not locked and a fixed gap is desired */}
+        {!isPivotLocked && gapWidth > 0 && (
+          <div style={{ width: gapWidth, height: '100%', flexShrink: 0 }}></div>
+        )}
 
         {/* Player 2 View (Right) */}
         <div
           className={styles['player-view']}
           style={{
-            width: playerViewUnscaledWidth, // Use unscaled width
+            width: playerViewUnscaledWidth,
             height: '100%',
-            transform: p2Transform, // Apply transform if needed for locked pivot
           }}
         >
           {renderMapView('P2', playerViewUnscaledWidth)}
