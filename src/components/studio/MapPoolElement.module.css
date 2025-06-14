@@ -1,82 +1,95 @@
 .map-pool-element {
   box-sizing: border-box;
-  /* display: flex; and overflow: hidden; are handled by inline styles on the root element in the component */
 }
 
 .map-pool-scaler {
-  /* transform and transformOrigin, width, height, display:flex are handled by inline styles in the component */
-  /* This class is here if any additional global scaler styles are needed */
+  /* Styles for scaling are inline */
 }
 
 .player-view {
-  /* height: 100% and width are handled by inline styles for dynamic sizing */
-  overflow: hidden; /* Prevent scrollbars on the view itself, scrolling is per grid */
+  overflow: hidden;
   box-sizing: border-box;
-  /* border: 1px dashed #555; */ /* Optional: for debugging view boundaries */
 }
 
 .player-map-grid {
   box-sizing: border-box;
-  height: 100%; /* Ensure grid takes full height of player-view */
-  /* display: grid; and overflow: auto; are handled by inline styles in the component */
+  height: 100%;
 }
 
-/* Styling for individual map items within the pool */
 .map-item {
-  display: flex;
-  flex-direction: column;
+  display: flex; /* Changed from flex to allow simpler positioning of text over image container */
+  flex-direction: column; /* Keep column direction for overall item structure if needed, but text will be absolute */
   align-items: center;
-  justify-content: space-around; /* Distribute space a bit for image and text */
+  justify-content: center; /* Center image container */
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  border: 1px solid #555; /* Default subtle border for all map items */
+  border: 1px solid #555; /* Default subtle border */
   transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
-  padding: 2px; /* Small padding inside map items */
+  padding: 3px; /* Slightly increased padding */
+  position: relative; /* Needed if .map-name is absolute to .map-item directly */
+  background-color: rgba(10, 10, 10, 0.3); /* Subtle dark background for items */
 }
 
 .map-image-container {
-  width: 90%; /* Takes most of the cell width */
-  aspect-ratio: 16 / 10; /* Rectangular aspect ratio */
+  width: 95%; /* Increased width to fill more of the item */
+  aspect-ratio: 1 / 1; /* Square aspect ratio */
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Ensure image doesn't spill out */
+  overflow: hidden;
+  position: relative; /* Anchor for the absolutely positioned map name */
+  margin: auto; /* Center the container if map-item uses flex */
 }
 
-.map-image-container img { /* The actual <img> tag */
+.map-image-container img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain; /* Fit entire image within the container */
-  min-height: 20px; /* Prevent image from becoming too small */
+  object-fit: cover; /* Changed to cover to fill the square, might crop */
+  /* min-height: 20px; no longer needed with aspect-ratio and cover */
 }
 
 .map-name {
+  position: absolute;
+  bottom: 5px;
+  left: 0;
+  right: 0; /* Or width: 100%; */
   text-align: center;
-  margin: 0;
-  margin-top: 3px; /* Small space above the name */
-  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.6); /* Slightly darker for better contrast */
+  color: white; /* Default color, can be overridden by element.textColor if needed */
+  padding: 3px 0; /* Increased padding slightly */
+  font-size: 0.85em; /* Slightly reduced base size, dynamic inline style will adjust */
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 95%;
-  min-height: 10px;
-  font-size: 0.9em; /* Base size, dynamically adjusted inline */
+  white-space: nowrap;
+  box-sizing: border-box; /* Include padding in width calculation */
+  /* fontFamily is set inline via element prop */
 }
 
 /* --- Draft State Styles --- */
+/* Glows should apply to the container that has the border and represents the "button" */
+/* This is now .map-item, as .map-image-container is inside it. */
 
 .map-item-banned-by-self {
-  box-shadow: 0 0 8px 2px red, inset 0 0 4px 1px red; /* Slightly reduced glow */
-  border-color: red;
+  box-shadow: 0 0 10px 4px red, inset 0 0 6px 2px rgba(255, 50, 50, 0.7); /* Enhanced glow */
+  border-color: red !important; /* Ensure override */
 }
 
 .map-item-picked-by-self {
-  box-shadow: 0 0 8px 2px limegreen, inset 0 0 4px 1px limegreen; /* Slightly reduced glow */
-  border-color: limegreen;
+  box-shadow: 0 0 10px 4px limegreen, inset 0 0 6px 2px rgba(50, 255, 50, 0.7); /* Enhanced glow */
+  border-color: limegreen !important; /* Ensure override */
 }
 
 .map-item-affected-by-opponent {
-  filter: grayscale(80%); /* Slightly less intense grayscale */
-  opacity: 0.6; /* Slightly more faded */
+  filter: grayscale(90%); /* More pronounced grayscale */
+  opacity: 0.5; /* More faded */
 }
+
+/* If .map-image-container should get the glow instead of .map-item:
+.map-image-container.map-item-banned-by-self { ... }
+.map-image-container.map-item-picked-by-self { ... }
+.map-image-container.map-item-affected-by-opponent { ... }
+Then apply state classes to map-image-container in TSX.
+For now, applying to .map-item as it has the border.
+*/

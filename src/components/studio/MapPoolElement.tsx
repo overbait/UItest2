@@ -118,18 +118,37 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     textColor,
     fontFamily,
     scale = 1,
-    // isPivotLocked is not directly used for layout here yet, but good to have
-    // isPivotLocked = element.isPivotLocked === undefined ? true : element.isPivotLocked,
-    pivotInternalOffset = 10 // Default from store is 10
+    isPivotLocked = false, // Default from store is now false
+    pivotInternalOffset = 10
   } = element;
 
-  // Calculate dimensions for player views based on pivotInternalOffset
-  // pivotInternalOffset is treated as the central gap width
-  const actualPivotOffset = Math.max(0, pivotInternalOffset); // Ensure offset is not negative for calculation
-  const playerViewWidth = (size.width - actualPivotOffset) / 2;
+  // Calculate dimensions for player views
+  const unscaledWidth = size.width; // Total unscaled width of the element
+  const actualPivotOffset = Math.max(0, pivotInternalOffset); // Ensure non-negative
+
+  let p1ViewWidth = (unscaledWidth - actualPivotOffset) / 2;
+  let p2ViewWidth = p1ViewWidth;
+  let p1Transform = '';
+  let p2Transform = '';
+  let scalerTransformOrigin = 'top left'; // Default for non-locked pivot
+
+  if (isPivotLocked) {
+    // When pivot is locked, views might adjust width and position to simulate expanding from center.
+    // This interpretation means the `pivotInternalOffset` is the fixed space, and views expand/contract around it.
+    // The visual center of the content (midpoint of pivotInternalOffset) should remain stable relative to the element's center.
+    // For now, the behavior when locked is the same as unlocked in terms of width calculation,
+    // as the "mirroring drag" is complex and depends on external drag handlers updating size.width.
+    // Transforms might be needed if the *content* within the views needs to mirror (not the case here).
+    // If the goal is that the visual center of the *entire element* is the pivot for scaling:
+    scalerTransformOrigin = 'center center';
+    // The player view widths remain the same, the entire scaled block just positions differently.
+    // No specific translateX needed on player views for this interpretation of locked pivot,
+    // as the flex layout within the scaler handles their positioning around the spacer.
+  }
+  const playerViewUnscaledWidth = (unscaledWidth / scale - actualPivotOffset) / 2;
 
 
-  const renderMapView = (playerPerspective: 'P1' | 'P2') => {
+  const renderMapView = (playerPerspective: 'P1' | 'P2', viewSpecificWidth: number) => {
     // Grid calculation per view
     const numMapsPerView = maps.length; // Both views show all maps for now
     if (numMapsPerView === 0) return null; // Should be caught by earlier checks, but good practice
@@ -137,9 +156,10 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     const viewCols = Math.ceil(Math.sqrt(numMapsPerView));
     const viewRows = Math.ceil(numMapsPerView / viewCols);
 
-    const viewItemWidth = playerViewWidth / viewCols;
-    // Height for items is based on the total element height, divided by rows per view
-    const viewItemHeight = size.height / viewRows;
+    // Use the viewSpecificWidth (which is unscaled) for item width calculation
+    const viewItemWidth = viewSpecificWidth / viewCols;
+    // Height for items is based on the total UN SCALED element height, divided by rows per view
+    const viewItemHeight = (size.height / scale) / viewRows;
 
     const viewImageMaxHeight = viewItemHeight * 0.6; // Adjusted for rectangular images
     const viewTextMaxHeight = viewItemHeight * 0.2;  // Adjusted for rectangular images
@@ -186,20 +206,28 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
               title={map.name}
               className={itemClassName}
             >
+              {/* Map Image Container now also serves as the direct parent for absolute positioning of map name */}
               <div className={styles['map-image-container']}>
                 <img
                   src={getMapImageSrc(map.name)}
                   alt={map.name}
-                  // className={styles['map-image']} // map-image class is now on the container
                   style={{
-                    // maxWidth and maxHeight are now controlled by map-image-container and its parent
+                    maxWidth: '100%', // Ensure image scales down if container is smaller
+                    maxHeight: '100%',
+                    objectFit: 'cover' // This is now explicitly set here, was in CSS
                   }}
                   onError={(e) => {
                     const imgElement = e.target as HTMLImageElement;
                     imgElement.style.display = 'none';
-                    const parent = imgElement.parentNode;
+                    const parent = imgElement.parentNode as HTMLElement | null; // Type assertion
                     if (parent) {
+                      // Remove any existing placeholder before adding a new one
+                      const existingPlaceholder = parent.querySelector('.map-image-placeholder');
+                      if (existingPlaceholder) {
+                        parent.removeChild(existingPlaceholder);
+                      }
                       const placeholder = document.createElement('span');
+                      placeholder.className = 'map-image-placeholder'; // Add a class for potential styling
                       placeholder.textContent = `${map.name} (img err)`;
                       placeholder.style.fontSize = Math.min(viewTextMaxHeight, viewItemWidth / (map.name.length * 0.6), 10) + 'px';
                       placeholder.style.color = textColor || 'grey';
@@ -208,17 +236,19 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                     }
                   }}
                 />
+                {/* Map Name is now inside map-image-container for positioning */}
+                <p
+                  className={styles['map-name']}
+                  style={{
+                    color: textColor || 'white', // Use element's textcolor prop for map names too
+                    fontFamily: fontFamily || 'Arial, sans-serif', // Use element's font prop
+                    // Font size is now primarily controlled by CSS, but dynamic part can be added if needed
+                    // fontSize: Math.min(viewTextMaxHeight, viewItemWidth / (map.name.length * 0.55), 14) + 'px',
+                  }}
+                >
+                  {map.name}
+                </p>
               </div>
-              <p
-                className={styles['map-name']}
-                style={{
-                  color: textColor || 'white',
-                  fontFamily: fontFamily || 'Arial, sans-serif',
-                  fontSize: Math.min(viewTextMaxHeight, viewItemWidth / (map.name.length * 0.55), 14) + 'px',
-                }}
-              >
-                {map.name}
-              </p>
             </div>
           );
         })}
@@ -241,31 +271,40 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     >
       <div
         className={styles['map-pool-scaler']}
-        style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: `${100/scale}%`, height: `${100/scale}%`, display: 'flex' }}
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: scalerTransformOrigin,
+          width: `${unscaledWidth / scale}px`, // Scaler takes up unscaled dimensions
+          height: `${size.height / scale}px`,
+          display: 'flex',
+          justifyContent: 'center', // Center the player views and spacer within the scaler
+        }}
       >
         {/* Player 1 View (Left) */}
         <div
           className={styles['player-view']}
           style={{
-            width: playerViewWidth,
-            height: '100%', // Height of the scaled container
+            width: playerViewUnscaledWidth, // Use unscaled width
+            height: '100%',
+            transform: p1Transform, // Apply transform if needed for locked pivot
           }}
         >
-          {renderMapView('P1')}
+          {renderMapView('P1', playerViewUnscaledWidth)}
         </div>
 
-        {/* Spacer Div */}
+        {/* Spacer Div (Unscaled) */}
         <div style={{ width: actualPivotOffset, height: '100%', flexShrink: 0 }}></div>
 
         {/* Player 2 View (Right) */}
         <div
           className={styles['player-view']}
           style={{
-            width: playerViewWidth,
-            height: '100%', // Height of the scaled container
+            width: playerViewUnscaledWidth, // Use unscaled width
+            height: '100%',
+            transform: p2Transform, // Apply transform if needed for locked pivot
           }}
         >
-          {renderMapView('P2')}
+          {renderMapView('P2', playerViewUnscaledWidth)}
         </div>
       </div>
     </div>

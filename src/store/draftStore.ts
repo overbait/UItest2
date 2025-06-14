@@ -1561,12 +1561,12 @@ const useDraftStore = create<DraftStore>()(
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 300, height: 400 }, // Default size for MapPool
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: 'Arial, sans-serif', // Default font
                 backgroundColor: 'transparent',
-                borderColor: '#cccccc', // Default border color
+                borderColor: 'transparent', // Changed default to transparent
                 textColor: 'white',
                 scale: 1, // Default scale
-                isPivotLocked: true, // Default to locked
+                isPivotLocked: false, // Changed default to false
                 pivotInternalOffset: 10, // Default spacing
               };
             } else { // Generic fallback for unknown types

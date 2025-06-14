@@ -302,6 +302,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
             />
             <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
           </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="mapPoolFontFamilySelect" style={labelStyle}>Font Family:</label>
+            <select
+              id="mapPoolFontFamilySelect"
+              style={inputStyle} // Use same style as text inputs for consistency
+              value={selectedElement.fontFamily || 'Arial, sans-serif'}
+              onChange={(e) => handleSettingChange('fontFamily', e.target.value)}
+            >
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Helvetica, sans-serif">Helvetica</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="Tahoma, sans-serif">Tahoma</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Times New Roman, Times, serif">Times New Roman</option>
+              <option value="Courier New, Courier, monospace">Courier New</option>
+              {/* Add a specific "BoX Font" if known, e.g.: */}
+              {/* <option value="'Your BoX Font Name', sans-serif">BoX Default Font</option> */}
+            </select>
+          </div>
         </>
       )}
 
