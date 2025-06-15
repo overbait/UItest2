@@ -64,21 +64,31 @@ export interface SingleDraftData {
 
 export interface StudioElement {
   id: string;
-  type: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  fontFamily?: string;
-      fontFamilyGameTitle?: string; // Specific for "Game X" title
-  backgroundColor?: string;
-  borderColor?: string;
-  textColor?: string;
-  scale?: number;
-  isPivotLocked?: boolean; // New property for mirror/pivot functionality
-  pivotInternalOffset?: number;
-  showCivNames?: boolean;  // For toggling civ names on civ selectors
-  showMapNames?: boolean;  // For toggling map names on map selectors
-  gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
-  // showName and showScore removed
+  type: string; // e.g., 'BoXSeriesOverview', 'MapPool', 'ColorGlow', 'Image', 'Text', 'LobbyHeader'
+  x: number;
+  y: number;
+  scale: number;
+  isActive?: boolean; // Optional: indicates if the element is currently selected/active in UI
+  sourceRelativePath?: string; // For ImageElement
+  text?: string; // For TextElement
+  color?: string; // For ColorGlowElement, TextElement
+  fontFamily?: string; // For TextElement, BoXSeriesOverviewElement, MapPoolElement
+  fontSize?: string; // For TextElement
+  fontFamilyGameTitle?: string; // For BoXSeriesOverviewElement
+  showCivNames?: boolean; // For BoXSeriesOverviewElement
+  showMapNames?: boolean; // For BoXSeriesOverviewElement
+  gameEntrySpacing?: number; // For BoXSeriesOverviewElement
+  isPivotLocked?: boolean; // For BoXSeriesOverviewElement, MapPoolElement
+  pivotInternalOffset?: number; // For BoXSeriesOverviewElement
+  size?: { width: number, height: number }; // For BoXSeriesOverviewElement
+  // MapPoolElement specific props
+  width?: number; // Overall width for MapPoolElement
+  height?: number; // Overall height for MapPoolElement
+  lockPivotPoint?: boolean; // From original issue spec, seems redundant with isPivotLocked
+  offset?: number; // Horizontal offset for MapPoolElement when pivot is locked
+  numColumns?: number; // Number of columns for each player's grid in MapPoolElement
+  mapNameFontSize?: string; // Font size for map names in MapPoolElement
+  // Allow any other props
   [key: string]: any;
 }
 

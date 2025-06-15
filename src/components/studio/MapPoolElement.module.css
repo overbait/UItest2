@@ -1,0 +1,125 @@
+/* src/components/studio/MapPoolElement.module.css */
+.mapPoolElement {
+  width: 100%; /* Configurable via inline style from props */
+  height: 100%; /* Configurable via inline style from props */
+  background-color: #1a1a1a;
+  color: white;
+  display: flex;
+  align-items: stretch; /* Ensures player containers take full height */
+  justify-content: space-between; /* Default, can be overridden if needed */
+  box-sizing: border-box;
+  overflow: hidden; /* Prevents content spilling during transforms */
+  padding: 2px; /* As per spec for root element, if any */
+}
+
+.playerGridOuterContainer {
+  /* width is set by inline style: calc(50% - offset) */
+  /* transform is set by inline style: translateX(offset) */
+  height: 100%;
+  display: flex; /* To allow .playerMapGrid to be centered or fill */
+  flex-direction: column; /* Stack content vertically if any before/after grid */
+  align-items: stretch; /* Make .playerMapGrid fill width */
+  justify-content: center; /* Center .playerMapGrid vertically if it's not 100% height */
+  box-sizing: border-box;
+  transition: transform 0.3s ease-out, width 0.3s ease-out;
+  position: relative; /* Added as per spec, good for future-proofing */
+}
+
+.playerMapGrid {
+  display: grid;
+  /* grid-template-columns and grid-template-rows set by inline style */
+  width: 100%; /* Fill .playerGridOuterContainer */
+  height: 100%; /* Fill .playerGridOuterContainer */
+  gap: 2px; /* As per spec */
+  padding: 2px; /* As per spec */
+  box-sizing: border-box;
+  background-color: rgba(20,20,20,0.5); /* Optional background for the grid area itself */
+}
+
+.mapItemGridCell {
+  box-sizing: border-box;
+  display: flex; /* To make .mapItemVisualContent fill the cell */
+  justify-content: center; /* Center .mapItemVisualContent if cell is wider */
+  align-items: center; /* Center .mapItemVisualContent if cell is taller */
+  min-width: 0; /* Crucial for CSS Grid item shrinking */
+  /* The content (.mapItemVisualContent) will define the visual look */
+}
+
+.mapItemVisualContent {
+  width: 100%; /* Fill .mapItemGridCell */
+  height: 100%; /* Fill .mapItemGridCell */
+  display: flex;
+  flex-direction: column;
+  /* align-items: stretch; by default for flex-items */
+  background-color: rgba(25, 25, 25, 0.8); /* As per spec */
+  border: 1px solid #666; /* Default border */
+  border-radius: 3px; /* As per spec */
+  overflow: hidden; /* Ensures border-radius clips children, good practice */
+  transition: border-color 0.3s ease, opacity 0.3s ease, filter 0.3s ease; /* As per spec */
+}
+
+/* Draft State Styles applied to .mapItemVisualContent */
+.bannedBySelf {
+  border-color: red !important; /* Ensure override */
+}
+
+.pickedBySelf {
+  border-color: green !important; /* Ensure override */
+}
+
+.pickedByAdmin {
+  border-color: #FFD700 !important; /* Gold/Yellow-gold */
+}
+
+.affectedByOpponent {
+  filter: grayscale(95%);
+  opacity: 0.55;
+}
+
+/* Applying aspect-ratio to mapImageContainer as per spec's intent */
+.mapImageContainer {
+  width: 100%;
+  /* flex-grow: 1; REMOVED - aspect-ratio will define height relative to width */
+  aspect-ratio: 10/8; /* As per spec */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+.mapImage { /* mapImage should fill this container */
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+
+.mapName {
+  /* width: 100%; Already block or fills due to flex item behavior */
+  background-color: rgba(0, 0, 0, 0.75); /* As per spec */
+  color: #f0f0f0; /* As per spec */
+  /* fontFamily, fontSize are set by inline style from props */
+  text-align: center; /* As per spec */
+  padding: 3px 5px; /* Adjusted for better visuals */
+  box-sizing: border-box;
+  white-space: nowrap; /* As per spec */
+  overflow: hidden; /* As per spec */
+  text-overflow: ellipsis; /* As per spec */
+  flex-shrink: 0; /* Prevent name from shrinking if content above is too large */
+}
+
+.noMapsMessage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 0.9em;
+  padding: 10px;
+  box-sizing: border-box;
+  text-align: center;
+}
