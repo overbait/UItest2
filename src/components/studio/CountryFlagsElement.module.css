@@ -19,7 +19,7 @@
   align-items: center;
   justify-items: center;
   /* gap: 0; /* Gap removed, pivot handles spacing */
-  overflow: hidden; /* Keep this for the grid itself */
+  overflow: visible; /* Keep this for the grid itself */
   position: relative; /* For pivot line */
   padding: 2px;
 }
@@ -30,6 +30,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   /* transition for transform if desired, will be added inline for now */
 }

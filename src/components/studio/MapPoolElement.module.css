@@ -40,7 +40,7 @@
   border-radius: 3px; /* From old .map-item */
   box-shadow: 0 0 5px transparent; /* Default shadow for transitions */
   transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease; /* From old .map-item */
-  overflow: hidden; /* Important for border-radius to clip children like map-image-container */
+  overflow: visible; /* Important for border-radius to clip children like map-image-container */
   box-sizing: border-box;
   /* Width and height will be determined by its content (image container + text container) */
   /* It will be centered by map-item-grid-cell's flex properties */
@@ -52,7 +52,7 @@
   display: flex; /* Still useful for centering placeholder text if image fails */
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Crucial for image cropping */
+  overflow: visible; /* Crucial for image cropping */
   /* position: relative; /* Not needed anymore as map-name is a direct sibling */
 }
 

@@ -199,7 +199,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             gridTemplateRows: `repeat(${viewRows}, 1fr)`,
             gap: '1px', // MODIFIED
             padding: '2px', // MODIFIED
-            overflow: 'auto',
+            overflow: 'visible',
           }}
         >
           {maps.map(map => (

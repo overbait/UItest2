@@ -19,14 +19,14 @@
   grid-template-columns: 1fr 1fr; /* Fixed columns for two scores */
   align-items: center; /* Vertically center content in cells */
   /* justify-items: center; /* Let scoreContainer handle horizontal alignment */
-  overflow: hidden; /* Keep this for the grid itself */
+  overflow: visible; /* Keep this for the grid itself */
   position: relative; /* For pivot line and hidden message */
 }
 
 .scoreContainer { /* Base style for score containers */
   display: flex;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   height: 100%;
 }
