@@ -1584,6 +1584,8 @@ const useDraftStore = create<DraftStore>()(
                 scale: 1,
                 isPivotLocked: false,
                 pivotInternalOffset: 0,
+                playerId: 'P1',
+                // pairId and isPairMaster will be undefined by default
               };
             }
             const activeCanvasById = state.currentCanvases.find(c => c.id === state.activeCanvasId);

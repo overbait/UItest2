@@ -8,6 +8,8 @@ interface MapPoolElementProps {
 }
 
 const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
+  // Defensive check removed
+  // const { ... } = useDraftStore hook remains the same
   const {
     aoe2cmRawDraftOptions,
     mapDraftStatus,
@@ -29,6 +31,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     activeCanvasId: state.activeCanvasId,
   }));
 
+  // Destructure other props directly from `element` prop
   const {
     size,
     backgroundColor,
@@ -37,16 +40,18 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     fontFamily: ownFontFamily,
     scale: ownScale,
     isPivotLocked: ownIsPivotLocked,
-    pivotInternalOffset: ownPivotInternalOffset, // Added
+    pivotInternalOffset: ownPivotInternalOffset,
     playerId,
     pairId,
     isPairMaster,
   } = element;
 
+  // Logging for defaults removed
+
   let displayFontFamily = ownFontFamily || 'Arial, sans-serif';
   let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
   let displayScale = ownScale === undefined ? 1 : ownScale;
-  let displayPivotInternalOffset = ownPivotInternalOffset === undefined ? 0 : ownPivotInternalOffset; // Added
+  let displayPivotInternalOffset = ownPivotInternalOffset === undefined ? 0 : ownPivotInternalOffset;
   let displayBackgroundColor = backgroundColor || 'transparent';
   let displayBorderColor = borderColor || 'transparent';
   let displayTextColor = textColor || 'white';
@@ -58,7 +63,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       displayFontFamily = masterElement.fontFamily || displayFontFamily;
       displayIsPivotLocked = masterElement.isPivotLocked === undefined ? displayIsPivotLocked : masterElement.isPivotLocked;
       displayScale = masterElement.scale === undefined ? displayScale : masterElement.scale;
-      displayPivotInternalOffset = masterElement.pivotInternalOffset === undefined ? displayPivotInternalOffset : masterElement.pivotInternalOffset; // Added
+      displayPivotInternalOffset = masterElement.pivotInternalOffset === undefined ? displayPivotInternalOffset : masterElement.pivotInternalOffset;
       displayBackgroundColor = masterElement.backgroundColor || displayBackgroundColor;
       displayBorderColor = masterElement.borderColor || displayBorderColor;
       displayTextColor = masterElement.textColor || displayTextColor;
@@ -115,21 +120,16 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
   const viewRows = Math.ceil(numMapsForThisView / viewCols);
 
-  // Define base layout dimensions (at scale = 1)
-  const baseSizeWidth = size.width || 300; // Default if size.width is undefined
-  const baseSizeHeight = size.height || 200; // Default if size.height is undefined
+  const baseSizeWidth = size.width || 300;
+  const baseSizeHeight = size.height || 200;
 
-  // Scaler layout dimensions are the base dimensions
   const scalerLayoutWidth = baseSizeWidth;
   const scalerLayoutHeight = baseSizeHeight;
 
-  // viewItem dimensions are calculated based on the scaler's layout dimensions
   const viewItemWidth = scalerLayoutWidth / viewCols;
   const viewItemHeight = scalerLayoutHeight / viewRows;
 
   const textHeightWithinItem = viewItemHeight * 0.2;
-
-  // const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left'; // Will be part of mapPoolScalerStyle
 
   const mapPoolScalerStyle: React.CSSProperties = {
     width: `${scalerLayoutWidth}px`,
@@ -150,7 +150,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   }
 
   const getMapItemClassName = (mapName: string) => {
-    let itemClassName = styles['map-item-visual-content']; // Base class is now visual-content
+    let itemClassName = styles['map-item-visual-content'];
     if (perspective === 'P1') {
       if (mapBansHost.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
       else if (mapPicksHost.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
@@ -178,13 +178,13 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     <div
       className={styles['map-pool-element']}
       style={{
-        width: `${baseSizeWidth * displayScale}px`, // Viewport is scaled size
-        height: `${baseSizeHeight * displayScale}px`, // Viewport is scaled size
+        width: `${baseSizeWidth * displayScale}px`,
+        height: `${baseSizeHeight * displayScale}px`,
         backgroundColor: displayBackgroundColor,
         border: `1px solid ${displayBorderColor}`,
         overflow: 'hidden',
-        transform: rootTransform || undefined, // Added
-        transition: 'transform 0.2s ease-out', // Added
+        transform: rootTransform || undefined,
+        transition: 'transform 0.2s ease-out',
       }}
     >
       <div
@@ -197,8 +197,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             width: '100%', height: '100%', display: 'grid',
             gridTemplateColumns: `repeat(${viewCols}, 1fr)`,
             gridTemplateRows: `repeat(${viewRows}, 1fr)`,
-            gap: '1px', // MODIFIED
-            padding: '2px', // MODIFIED
+            gap: '1px',
+            padding: '2px',
             overflow: 'visible',
           }}
         >
@@ -206,14 +206,13 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             <div
               key={`${playerId}-${map.id}`}
               title={map.name}
-              className={styles['map-item-grid-cell']} // Outer div is now the grid cell
+              className={styles['map-item-grid-cell']}
             >
-              <div className={getMapItemClassName(map.name)}> {/* Inner div for visual content & state classes */}
+              <div className={getMapItemClassName(map.name)}>
                 <div className={styles['map-image-container']}>
                   <img
                     src={getMapImageSrc(map.name)}
                     alt={map.name}
-                    // Removed inline styles to rely on CSS module
                     onError={(e) => {
                       const imgElement = e.target as HTMLImageElement;
                       imgElement.style.display = 'none';
@@ -225,20 +224,19 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                         placeholder.className = 'map-image-placeholder';
                         placeholder.textContent = `${map.name} (err)`;
                         placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
-                        placeholder.style.color = displayTextColor || 'grey'; // Use displayTextColor
+                        placeholder.style.color = displayTextColor || 'grey';
                         placeholder.style.textAlign = 'center';
                         parent.appendChild(placeholder);
                       }
                     }}
                   />
-                  {/* Map name is now a sibling of map-image-container, within map-item-visual-content */}
                 </div>
                 <p
                   className={styles['map-name']}
                   style={{
-                    color: displayTextColor || '#f0f0f0', // Use displayTextColor
+                    color: displayTextColor || '#f0f0f0',
                     fontFamily: displayFontFamily,
-                    fontSize: Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.5 + 2), 11.5) + 'px', // MODIFIED
+                    fontSize: Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.5 + 2), 11.5) + 'px',
                   }}
                 >
                   {map.name}
