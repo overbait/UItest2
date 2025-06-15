@@ -48,7 +48,7 @@
 
 .map-image-container {
   width: 100%; /* Takes full width of .map-item-visual-content */
-  aspect-ratio: 10 / 9;
+  aspect-ratio: 10 / 8; /* Changed from 10/9 for a more "flattened" look */
   display: flex; /* Still useful for centering placeholder text if image fails */
   justify-content: center;
   align-items: center;

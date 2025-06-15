@@ -123,7 +123,25 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
 
   const textHeightWithinItem = viewItemHeight * 0.2;
 
-  const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left';
+  // const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left'; // Will be part of mapPoolScalerStyle
+
+  const mapPoolScalerStyle: React.CSSProperties = {
+    width: `${scalerLayoutWidth}px`,
+    height: `${scalerLayoutHeight}px`,
+    position: 'relative',
+  };
+
+  if (displayIsPivotLocked) {
+    mapPoolScalerStyle.left = '50%';
+    mapPoolScalerStyle.top = '50%';
+    mapPoolScalerStyle.transform = `translate(-50%, -50%) scale(${displayScale})`;
+    mapPoolScalerStyle.transformOrigin = 'center center';
+  } else {
+    mapPoolScalerStyle.left = '0%';
+    mapPoolScalerStyle.top = '0%';
+    mapPoolScalerStyle.transform = `scale(${displayScale})`;
+    mapPoolScalerStyle.transformOrigin = 'top left';
+  }
 
   const getMapItemClassName = (mapName: string) => {
     let itemClassName = styles['map-item-visual-content']; // Base class is now visual-content
@@ -165,12 +183,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     >
       <div
         className={styles['map-pool-scaler']}
-        style={{
-          transform: `scale(${displayScale})`, // Use displayScale
-          transformOrigin: scalerTransformOrigin,
-          width: `${scalerLayoutWidth}px`, // Scaler uses base layout dimensions
-          height: `${scalerLayoutHeight}px`, // Scaler uses base layout dimensions
-        }}
+      style={mapPoolScalerStyle}
       >
         <div
           className={styles['player-map-grid']}

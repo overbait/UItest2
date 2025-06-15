@@ -18,19 +18,19 @@ interface BoXSeriesOverviewElementProps {
   isBroadcast?: boolean;
 }
 
-const VALID_BOX_ROLES = ['BoXLeftCivs', 'BoXMaps', 'BoXRightCivs'];
+// const VALID_BOX_ROLES = ['BoXLeftCivs', 'BoXMaps', 'BoXRightCivs']; // Removed
 
 const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ element, isBroadcast }) => {
   const {
     scale = 1, // scale is part of element but not directly used for internal calculations here
     isPivotLocked = false,
-    pivotInternalOffset = 0,
+    pivotInternalOffset = 0, // Ensure this is destructured
     size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
     showCivNames = true,  // Default from element prop
     showMapNames = true,  // Default from element prop
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
-    elementRole, // Destructure elementRole
+    // elementRole, // Removed
   } = element;
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
@@ -156,24 +156,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     // then translate it back by half its own size, then scale.
     boxScalerStyle.left = '50%';
     boxScalerStyle.top = '50%';
-    let baseTransform = `translate(-50%, -50%) scale(${scale})`;
-    if (pivotInternalOffset) { // pivotInternalOffset is from element props
-      if (elementRole === 'BoXLeftCivs') {
-        baseTransform += ` translateX(-${pivotInternalOffset}px)`;
-      } else if (elementRole === 'BoXRightCivs') {
-        baseTransform += ` translateX(${pivotInternalOffset}px)`;
-      }
-    }
-    boxScalerStyle.transform = baseTransform;
+    boxScalerStyle.transform = `translate(-50%, -50%) scale(${scale})`;
+    // Removed elementRole and pivotInternalOffset based translateX from boxScaler
   } else {
     // When pivot is not locked, scale from top-left.
     boxScalerStyle.left = '0%'; // Explicitly
     boxScalerStyle.top = '0%';  // Explicitly
-    // If pivot is not locked, elementRole-based translateX should not apply,
-    // as the whole component moves together.
-    // However, if individual translateX is desired even when not locked,
-    // that logic would need to be re-evaluated here.
-    // For now, assuming translateX only applies if pivot is locked.
     boxScalerStyle.transform = `scale(${scale})`;
   }
 
@@ -191,74 +179,82 @@ return (
       className={styles.boxScaler}
       style={boxScalerStyle} // Apply the new style object
     >
-      {/* Conditional Rendering based on elementRole */}
-      {elementRole === 'BoXLeftCivs' && boxSeriesGames.map((game, index) => (
-        <div key={`leftciv-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', justifyContent: 'center' }}>
-          <div
-            className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-            style={{
-              ...civSelectorStyle,
-              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-            }}
-          >
-            {showCivNames && game.hostCiv && (
-              <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
-            )}
-          </div>
-        </div>
-      ))}
+      {/* Unified Rendering - restored row-per-game structure */}
+      {boxSeriesGames.map((game, index) => {
+        const leftCivSpecificStyle: React.CSSProperties = {
+          justifySelf: 'end',
+          transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
+          transition: 'transform 0.2s ease-out',
+        };
 
-      {elementRole === 'BoXMaps' && boxSeriesGames.map((game, index) => (
-        <div key={`map-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        const rightCivSpecificStyle: React.CSSProperties = {
+          justifySelf: 'start',
+          transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
+          transition: 'transform 0.2s ease-out',
+        };
+
+        return (
+        // Assuming styles.gameEntry is similar to old styles.gameEntryContainer
+        <div key={index} className={styles.gameEntry} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}>
           <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
             Game {index + 1}
           </div>
-          <div
-            className={styles.selectorDisplay}
-            style={{
-              ...mapSelectorStyle,
-              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-            }}
-          >
-            {showMapNames && game.map && (
-              <div className={styles.selectorTextOverlay}>{game.map}</div>
-            )}
+          {/* Assuming styles.gameDataRow is a new class for the grid container */}
+          <div className={styles.gameDataRow} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+            {/* Left Civ Cell */}
+            {/* Assuming styles.civCell, styles.leftCivCell exist or are defined in CSS */}
+            <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
+              <div
+                key={`hostciv-${index}`}
+                className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+                style={{
+                  ...civSelectorStyle,
+                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
+                }}
+              >
+                {showCivNames && game.hostCiv && (
+                  <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Map Cell */}
+            {/* Assuming styles.mapCell exists or is defined in CSS */}
+            <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
+              <div
+                key={`map-${index}`}
+                className={styles.selectorDisplay}
+                style={{
+                  ...mapSelectorStyle,
+                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
+                }}
+              >
+                {showMapNames && game.map && (
+                  <div className={styles.selectorTextOverlay}>{game.map}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Civ Cell */}
+            {/* Assuming styles.civCell, styles.rightCivCell exist or are defined in CSS */}
+            <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
+              <div
+                key={`guestciv-${index}`}
+                className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+                style={{
+                  ...civSelectorStyle,
+                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
+                }}
+              >
+                {showCivNames && game.guestCiv && (
+                  <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      ))}
-
-      {elementRole === 'BoXRightCivs' && boxSeriesGames.map((game, index) => (
-        <div key={`rightciv-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', justifyContent: 'center' }}>
-          <div
-            className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-            style={{
-              ...civSelectorStyle,
-              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-            }}
-          >
-            {showCivNames && game.guestCiv && (
-              <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {/* Fallback rendering with improved diagnostic message */}
-      {!VALID_BOX_ROLES.includes(elementRole || '') && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%', // Make it fill the boxScaler height
-          padding: '10px',
-          color: 'orange', // More visible color for warning
-          textAlign: 'center',
-          fontSize: '12px', // Explicit font size, relative to dynamicFontSize of parent
-          boxSizing: 'border-box', // Ensure padding doesn't make it overflow
-        }}>
-          BoX Element Role Not Assigned or Invalid. Received role: '{elementRole || "undefined"}'
-        </div>
-      )}
+      ); // Added semicolon here
+      })}
     </div>
   </div> /* Closes baseElement */
 ); // Закрытие return
