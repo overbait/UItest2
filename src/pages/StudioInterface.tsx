@@ -78,7 +78,7 @@ const StudioInterface: React.FC = () => {
     let newX = data.x;
     let newY = data.y;
 
-    if (draggedElement.type === "MapPool" && draggedElement.pairId) {
+    if (draggedElement.pairId) { // GENERALIZED: Was (draggedElement.type === "MapPool" && draggedElement.pairId)
       const masterElement = draggedElement.isPairMaster
         ? draggedElement
         : activeLayout.find(el => el.pairId === draggedElement.pairId && el.isPairMaster);
@@ -128,7 +128,7 @@ const StudioInterface: React.FC = () => {
       activeHandle: rData.handle
     };
 
-    if (element.type === "MapPool" && element.pairId) {
+    if (element.pairId) { // GENERALIZED: Was (element.type === "MapPool" && element.pairId)
       const master = element.isPairMaster ? element : activeLayout.find(el => el.pairId === element.pairId && el.isPairMaster);
       const sibling = activeLayout.find(el => el.pairId === element.pairId && el.id !== element.id);
       if (master) {
@@ -170,7 +170,7 @@ const StudioInterface: React.FC = () => {
     const { activeElement: activeElPrev, siblingElement: siblingElPrev, masterElementProps, activeHandle } = resizeStartInfo;
     const isLocked = masterElementProps?.isPivotLocked === true;
 
-    if (activeElCurrentState.type === "MapPool" && activeElCurrentState.pairId && siblingElPrev) {
+    if (activeElCurrentState.pairId && siblingElPrev) { // GENERALIZED: Was (activeElCurrentState.type === "MapPool" && activeElCurrentState.pairId && siblingElPrev)
       const siblingCurrentInStore = activeLayout.find(el => el.id === siblingElPrev.id);
       if (!siblingCurrentInStore) {
         setResizeStartInfo(null);
@@ -608,7 +608,7 @@ const StudioInterface: React.FC = () => {
                   position={{ x: element.position.x, y: element.position.y }}
                   onStart={(e: DraggableEvent, data: DraggableData) => {
                     const el = activeLayout.find(el => el.id === element.id);
-                    if (el && el.type === "MapPool" && el.pairId) {
+                    if (el && el.pairId) { // GENERALIZED: Was (el.type === "MapPool" && el.pairId)
                       const master = el.isPairMaster ? el : activeLayout.find(m => m.pairId === el.pairId && m.isPairMaster);
                       if (master?.isPivotLocked) {
                         setDragStartIndividualY(el.position.y);
@@ -637,13 +637,11 @@ const StudioInterface: React.FC = () => {
                   <div
                        onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
                        style={{
-                           width: element.size.width + 'px', height: element.size.height + 'px', overflow: 'hidden',
+                            width: '100%', height: '100%', overflow: 'hidden',
                            boxSizing: 'border-box',
                            border: `1px solid ${element.borderColor || 'transparent'}`,
                            background: element.backgroundColor || 'transparent',
                            cursor: 'move',
-                           transform: `scale(${currentScale})`,
-                           transformOrigin: 'top left',
                        }}>
                     {content}
                   </div>

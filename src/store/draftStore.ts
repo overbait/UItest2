@@ -1486,124 +1486,178 @@ const useDraftStore = create<DraftStore>()(
             const initialX_px = 10;
             const initialY_px = 10 + (activeCanvas.layout.length * 20); // Basic stacking
 
-            // let newElement: StudioElement; // Will be declared inside if/else for MapPool clarity
             let elementsToAdd: StudioElement[] = []; // Array to hold elements to be added
-            // Variable for single element creation, to be pushed into elementsToAdd
-            let singleElementToAdd: StudioElement | null = null;
+
+            const baseStudioElementProps = {
+              fontFamily: 'Arial, sans-serif',
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
+              scale: 1,
+              isPivotLocked: false,
+              pivotInternalOffset: 0,
+            };
 
             if (elementType === "BoXSeriesOverview") {
-              singleElementToAdd = {
+              const singleElementToAdd: StudioElement = {
+                ...baseStudioElementProps,
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 420, height: 320 }, // New W/H to account for padding and Bo5
-                fontFamily: 'Arial, sans-serif', // Default font
                 fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false,
                 // No showName or showScore here
               };
+              elementsToAdd.push(singleElementToAdd);
             } else if (elementType === "ScoreOnly") {
-              singleElementToAdd = {
-                id: Date.now().toString(), type: elementType,
+              const pairId = `pair-${Date.now()}`;
+              const defaultWidth = 50;
+              const defaultHeight = 40;
+              const initialPairGap = 10;
+
+              const elementP1: StudioElement = {
+                ...baseStudioElementProps,
+                id: Date.now().toString(),
+                type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 100, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 0,
+                size: { width: defaultWidth, height: defaultHeight },
+                textColor: 'white',
+                isPairMaster: true,
+                playerId: 'P1',
+                pairId: pairId,
               };
+              const elementP2: StudioElement = {
+                ...baseStudioElementProps,
+                id: `${Date.now().toString()}-P2S`,
+                type: elementType,
+                position: { x: initialX_px + defaultWidth + initialPairGap, y: initialY_px },
+                size: { width: defaultWidth, height: defaultHeight },
+                textColor: 'white',
+                isPairMaster: false,
+                playerId: 'P2',
+                pairId: pairId,
+              };
+              elementsToAdd.push(elementP1, elementP2);
             } else if (elementType === "NicknamesOnly") {
-              singleElementToAdd = {
-                id: Date.now().toString(), type: elementType,
+              const pairId = `pair-${Date.now()}`;
+              const defaultWidth = 150;
+              const defaultHeight = 40;
+              const initialPairGap = 20;
+
+              const elementP1: StudioElement = {
+                ...baseStudioElementProps,
+                id: Date.now().toString(),
+                type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 300, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false, // Changed from true
-                pivotInternalOffset: 50,
-                // textColor is intentionally not set here, will default in component
+                size: { width: defaultWidth, height: defaultHeight },
+                textColor: 'white',
+                isPairMaster: true,
+                playerId: 'P1',
+                pairId: pairId,
               };
+              const elementP2: StudioElement = {
+                ...baseStudioElementProps,
+                id: `${Date.now().toString()}-P2S`,
+                type: elementType,
+                position: { x: initialX_px + defaultWidth + initialPairGap, y: initialY_px },
+                size: { width: defaultWidth, height: defaultHeight },
+                textColor: 'white',
+                isPairMaster: false,
+                playerId: 'P2',
+                pairId: pairId,
+              };
+              elementsToAdd.push(elementP1, elementP2);
             } else if (elementType === "CountryFlags") {
-              singleElementToAdd = {
+              const pairId = `pair-${Date.now()}`;
+              const defaultWidth = 60;
+              const defaultHeight = 40;
+              const initialPairGap = 10;
+
+              const elementP1: StudioElement = {
+                ...baseStudioElementProps,
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 120, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                textColor: 'white',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 10,
+                size: { width: defaultWidth, height: defaultHeight },
+                // No textColor needed for CountryFlags as it's image based
+                isPairMaster: true,
+                playerId: 'P1',
+                pairId: pairId,
               };
+              const elementP2: StudioElement = {
+                ...baseStudioElementProps,
+                id: `${Date.now().toString()}-P2S`,
+                type: elementType,
+                position: { x: initialX_px + defaultWidth + initialPairGap, y: initialY_px },
+                size: { width: defaultWidth, height: defaultHeight },
+                isPairMaster: false,
+                playerId: 'P2',
+                pairId: pairId,
+              };
+              elementsToAdd.push(elementP1, elementP2);
             } else if (elementType === "ColorGlowElement") {
-              singleElementToAdd = {
+              const pairId = `pair-${Date.now()}`;
+              const defaultWidth = 125;
+              const defaultHeight = 150;
+              const initialPairGap = 10;
+
+              const elementP1: StudioElement = {
+                ...baseStudioElementProps,
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 250, height: 150 }, // Increased default size
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                textColor: 'white',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 10,
+                size: { width: defaultWidth, height: defaultHeight },
+                // ColorGlowElement might not use textColor directly, but rather hostColor/guestColor from store
+                isPairMaster: true,
+                playerId: 'P1',
+                pairId: pairId,
               };
+              const elementP2: StudioElement = {
+                ...baseStudioElementProps,
+                id: `${Date.now().toString()}-P2S`,
+                type: elementType,
+                position: { x: initialX_px + defaultWidth + initialPairGap, y: initialY_px },
+                size: { width: defaultWidth, height: defaultHeight },
+                isPairMaster: false,
+                playerId: 'P2',
+                pairId: pairId,
+              };
+              elementsToAdd.push(elementP1, elementP2);
             } else if (elementType === "MapPool") {
               const pairId = `pair-${Date.now()}`;
               const elementP1: StudioElement = {
+                ...baseStudioElementProps,
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 300, height: 400 }, // Default size for MapPool
-                fontFamily: 'Arial, sans-serif', // Default font
-                backgroundColor: 'transparent',
-                borderColor: 'transparent', // Changed default to transparent
                 textColor: 'white',
-                scale: 1, // Default scale
-                isPivotLocked: false, // Default is false
-                pivotInternalOffset: undefined,
                 isPairMaster: true,
                 playerId: 'P1',
-                pairId: pairId
+                pairId: pairId,
+                pivotInternalOffset: undefined, // Specific to MapPool
               };
               const elementP2: StudioElement = {
                 ...elementP1, // Inherit most properties from P1
-                id: Date.now().toString() + '-P2S',
+                id: `${Date.now().toString()}-P2S`,
                 isPairMaster: false,
                 playerId: 'P2',
-                position: { x: initialX_px + (elementP1.size?.width || 250) + 30, y: initialY_px },
+                position: { x: initialX_px + (elementP1.size?.width || 300) + 30, y: initialY_px },
               };
               elementsToAdd.push(elementP1, elementP2);
             } else { // Generic fallback for unknown types
               console.warn(`[draftStore] addStudioElement: Unknown elementType "${elementType}". Creating a generic element.`);
-              singleElementToAdd = {
-                id: Date.now().toString(), type: elementType, // Keep original type for potential debugging
+              const singleElementToAdd: StudioElement = {
+                ...baseStudioElementProps,
+                id: Date.now().toString(),
+                type: elementType, // Keep original type for potential debugging
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 200, height: 100 }, // Default generic size
-                fontFamily: 'Arial, sans-serif',
                 backgroundColor: 'rgba(255,0,0,0.3)', // Semi-transparent red to indicate unknown
                 borderColor: 'red',
                 textColor: 'white',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 0,
                 // Add a property to indicate it's a fallback element
                 isFallbackElement: true
               };
-            }
-
-            // If a single element was created, add it to the array
-            if (singleElementToAdd && elementType !== "MapPool") {
               elementsToAdd.push(singleElementToAdd);
             }
 

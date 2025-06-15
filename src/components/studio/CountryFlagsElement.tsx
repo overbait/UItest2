@@ -5,118 +5,127 @@ import styles from './CountryFlagsElement.module.css';
 
 interface CountryFlagsElementProps {
   element: StudioElement;
-  isSelected?: boolean;
-  isBroadcast?: boolean;
+  isSelected?: boolean; // Kept for interface consistency
+  isBroadcast?: boolean; // Kept for interface consistency
 }
 
-const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSelected, isBroadcast }) => {
+const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element }) => {
   const {
-    size,
-    fontFamily = 'Arial, sans-serif', // Kept for potential use if text was ever added
-    textColor = 'white',             // Kept for potential use if text was ever added
-    backgroundColor = 'transparent', // For grid background
-    borderColor = 'transparent',     // For grid border
-    isPivotLocked = false,
-    pivotInternalOffset = 0,
-    scale = 1,
-  } = element;
+    currentCanvases,
+    activeCanvasId,
+    liveHostFlag,
+    liveGuestFlag
+  } = useDraftStore(state => ({
+    currentCanvases: state.currentCanvases,
+    activeCanvasId: state.activeCanvasId,
+    liveHostFlag: state.hostFlag,
+    liveGuestFlag: state.guestFlag,
+  }));
 
-  const liveHostFlag = useDraftStore((state) => state.hostFlag);
-  const liveGuestFlag = useDraftStore((state) => state.guestFlag);
+  // Determine master element and inherited properties
+  let displayPlayerId = element.playerId || 'P1';
+  let displayScale = element.scale || 1;
+  let displayIsPivotLocked = element.isPivotLocked || false;
+  let displayPivotInternalOffset = element.pivotInternalOffset || 0;
+  let displayBackgroundColor = element.backgroundColor || 'transparent';
+  let displayBorderColor = element.borderColor || 'transparent';
+  // fontFamily and textColor are less relevant but can be inherited if needed for consistency
+  // let displayFontFamily = element.fontFamily || 'Arial, sans-serif';
+  // let displayTextColor = element.textColor || 'white';
 
-  const flagBaseStyle: React.CSSProperties = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    display: 'block',
-    pointerEvents: 'none',
-    userSelect: 'none',
+
+  if (element.isPairMaster === false && element.pairId) {
+    const activeCanvas = currentCanvases.find(c => c.id === activeCanvasId);
+    const masterElement = activeCanvas?.layout.find(el => el.pairId === element.pairId && el.isPairMaster === true);
+    if (masterElement) {
+      displayScale = masterElement.scale || displayScale;
+      displayIsPivotLocked = masterElement.isPivotLocked || displayIsPivotLocked;
+      displayPivotInternalOffset = masterElement.pivotInternalOffset || displayPivotInternalOffset;
+      displayBackgroundColor = masterElement.backgroundColor || displayBackgroundColor;
+      displayBorderColor = masterElement.borderColor || displayBorderColor;
+      // displayFontFamily = masterElement.fontFamily || displayFontFamily;
+      // displayTextColor = masterElement.textColor || displayTextColor;
+    }
+  }
+
+  const layoutWidth = element.size?.width || 60; // Default width from addStudioElement
+  const layoutHeight = element.size?.height || 40; // Default height from addStudioElement
+
+  interface FlagInfo { path: string | null; alt: string; }
+  let flagInfo: FlagInfo = { path: null, alt: '' };
+
+  if (displayPlayerId === 'P1') {
+    flagInfo = {
+      path: liveHostFlag ? `/assets/countryflags/${liveHostFlag.toLowerCase()}.png` : null,
+      alt: liveHostFlag || 'Host Flag',
+    };
+  } else if (displayPlayerId === 'P2') {
+    flagInfo = {
+      path: liveGuestFlag ? `/assets/countryflags/${liveGuestFlag.toLowerCase()}.png` : null,
+      alt: liveGuestFlag || 'Guest Flag',
+    };
+  }
+
+  let rootTransform = '';
+  if (displayIsPivotLocked && displayPivotInternalOffset && displayPlayerId) {
+    if (displayPlayerId === 'P1') {
+      rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
+    } else if (displayPlayerId === 'P2') {
+      rootTransform = `translateX(${displayPivotInternalOffset}px)`;
+    }
+  }
+
+  const baseElementStyle: React.CSSProperties = {
+    width: `${layoutWidth * displayScale}px`,
+    height: `${layoutHeight * displayScale}px`,
+    overflow: 'hidden',
+    transform: rootTransform || undefined,
+    transition: 'transform 0.2s ease-out',
   };
-
-  const hostFlagPath = liveHostFlag ? `/assets/countryflags/${liveHostFlag.toLowerCase()}.png` : null;
-  const guestFlagPath = liveGuestFlag ? `/assets/countryflags/${liveGuestFlag.toLowerCase()}.png` : null;
-
-  const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />;
-  const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />;
-
-  const pivotLineStyle: React.CSSProperties = {
-    position: 'absolute',
-    left: '50%',
-    top: '10%',
-    bottom: '10%',
-    width: '1px',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    transform: 'translateX(-50%)',
-    zIndex: 1,
-  };
-
-  const layoutWidth = size?.width || 150; // Default width
-  const layoutHeight = size?.height || 50; // Default height
 
   const scalerElementStyle: React.CSSProperties = {
     width: `${layoutWidth}px`,
     height: `${layoutHeight}px`,
     position: 'relative',
-  };
-
-  if (isPivotLocked) {
-    scalerElementStyle.left = '50%';
-    scalerElementStyle.top = '50%';
-    scalerElementStyle.transform = `translate(-50%, -50%) scale(${scale})`;
-    scalerElementStyle.transformOrigin = 'center center';
-  } else {
-    scalerElementStyle.left = '0%';
-    scalerElementStyle.top = '0%';
-    scalerElementStyle.transform = `scale(${scale})`;
-    scalerElementStyle.transformOrigin = 'top left';
-  }
-
-  const hostFlagContainerDynamicStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out',
-    width: '100%',
-    height: '100%',
+    transformOrigin: displayIsPivotLocked ? 'center center' : 'top left',
+    transform: displayIsPivotLocked
+      ? `translate(-50%, -50%) scale(${displayScale})`
+      : `scale(${displayScale})`,
+    left: displayIsPivotLocked ? '50%' : '0%',
+    top: displayIsPivotLocked ? '50%' : '0%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: displayBackgroundColor,
+    border: `1px solid ${displayBorderColor === 'transparent' ? 'transparent' : displayBorderColor || 'transparent'}`,
+    boxSizing: 'border-box',
   };
-  const guestFlagContainerDynamicStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out',
+
+  const flagImageStyle: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    objectFit: 'contain', // Changed from 'cover' to 'contain' to ensure full flag visibility
+    display: 'block', // Ensures img behaves like a block element for layout
+    pointerEvents: 'none', // Prevents dragging image
+    userSelect: 'none', // Prevents selecting image text
   };
 
   return (
-    <div className={styles.baseElement} style={{
-      width: `${layoutWidth * scale}px`,
-      height: `${layoutHeight * scale}px`,
-      overflow: 'hidden',
-      // fontFamily: fontFamily, // Not strictly needed on base if grid has it
-    }}>
-      <div className={styles.scalerElement} style={scalerElementStyle}>
-        <div className={styles.flagsGrid} style={{
-          backgroundColor: backgroundColor,
-          border: `1px solid ${borderColor}`,
-        }}>
-          <div className={styles.flagContainer} style={hostFlagContainerDynamicStyle}>
-            {hostFlagDisplay}
-          </div>
-          <div className={styles.flagContainer} style={guestFlagContainerDynamicStyle}>
-            {guestFlagDisplay}
-          </div>
-          {isPivotLocked && isSelected && (
-            <div style={pivotLineStyle}></div>
-          )}
-          {/* Placeholder for hidden message if flags are not set - adapt if needed
-          {!liveHostFlag && !liveGuestFlag && !isBroadcast && (
-            <span className={styles.hiddenNamesMessage} style={{ color: textColor }}>(Flags Hidden)</span>
-          )}
-          */}
-        </div>
+    <div style={baseElementStyle} className={styles.baseElement}>
+      <div style={scalerElementStyle} className={styles.scalerElement}>
+        {flagInfo.path ? (
+          <img
+            src={flagInfo.path}
+            alt={flagInfo.alt}
+            style={flagImageStyle}
+            draggable="false"
+            onError={(e) => (e.currentTarget.style.display = 'none')} // Hide if image fails to load
+          />
+        ) : (
+          // Placeholder if no flag is set, to maintain layout and background/border
+          <div style={{ width: '100%', height: '100%' }} />
+        )}
+        {/* Pivot line and hidden messages removed */}
       </div>
     </div>
   );

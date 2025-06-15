@@ -5,113 +5,111 @@ import styles from './ScoreOnlyElement.module.css'; // Import styles
 
 interface ScoreOnlyElementProps {
   element: StudioElement;
+  // isBroadcast and isSelected are not directly used in the new structure but kept for interface consistency if needed elsewhere
   isBroadcast?: boolean;
   isSelected?: boolean;
 }
 
-const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element, isBroadcast, isSelected }) => {
-  const {
-    size,
-    fontFamily = 'Arial, sans-serif', // Default added
-    backgroundColor = 'transparent', // Default added
-    borderColor = 'transparent', // Default added
-    textColor = 'white', // Default added
-    isPivotLocked = false, // Default added
-    pivotInternalOffset = 0, // Default added
-    scale = 1, // Default added
-  } = element;
+const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element }) => {
+  const { currentCanvases, activeCanvasId, scores: liveScores } = useDraftStore(state => ({
+    currentCanvases: state.currentCanvases,
+    activeCanvasId: state.activeCanvasId,
+    scores: state.scores,
+  }));
 
-  const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40;
-  const BASELINE_FONT_SIZE_PX = 18;
+  // Determine master element and inherited properties
+  let displayPlayerId = element.playerId || 'P1'; // Default to P1 if not specified
+  let displayScale = element.scale || 1;
+  let displayIsPivotLocked = element.isPivotLocked || false;
+  let displayPivotInternalOffset = element.pivotInternalOffset || 0;
+  let displayFontFamily = element.fontFamily || 'Arial, sans-serif';
+  let displayTextColor = element.textColor || 'white';
+  let displayBackgroundColor = element.backgroundColor || 'transparent';
+  let displayBorderColor = element.borderColor || 'transparent';
 
-  // Ensure size height is valid for calculation, provide a fallback if not.
-  const currentSizeHeight = size?.height || REFERENCE_PIXEL_HEIGHT_FOR_FONT;
-  const dynamicFontSize = Math.max(8, (currentSizeHeight / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
+  if (element.isPairMaster === false && element.pairId) {
+    const activeCanvas = currentCanvases.find(c => c.id === activeCanvasId);
+    const masterElement = activeCanvas?.layout.find(el => el.pairId === element.pairId && el.isPairMaster === true);
+    if (masterElement) {
+      displayScale = masterElement.scale || displayScale;
+      displayIsPivotLocked = masterElement.isPivotLocked || displayIsPivotLocked;
+      displayPivotInternalOffset = masterElement.pivotInternalOffset || displayPivotInternalOffset;
+      displayFontFamily = masterElement.fontFamily || displayFontFamily;
+      displayTextColor = masterElement.textColor || displayTextColor;
+      displayBackgroundColor = masterElement.backgroundColor || displayBackgroundColor;
+      displayBorderColor = masterElement.borderColor || displayBorderColor;
+      // displayPlayerId remains the slave's own playerId
+    }
+  }
 
-  const liveScores = useDraftStore((state) => state.scores);
+  const layoutWidth = element.size?.width || 100;
+  const layoutHeight = element.size?.height || 40;
 
-  // scoreSpanStyle will be replaced by .scoreText class
-  const hostScoreDisplay = <span className={styles.scoreText}>{liveScores.host}</span>;
-  const guestScoreDisplay = <span className={styles.scoreText}>{liveScores.guest}</span>;
+  const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40; // Should match default height if that's the baseline
+  const BASELINE_FONT_SIZE_PX = 18; // Adjust as needed
+  const dynamicFontSize = Math.max(8, (layoutHeight / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
 
-  const pivotLineStyle: React.CSSProperties = {
-    position: 'absolute',
-    left: '50%',
-    top: '10%',
-    bottom: '10%',
-    width: '1px',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    transform: 'translateX(-50%)',
-    zIndex: 1,
+  let scoreToDisplay: number | string = '';
+  if (displayPlayerId === 'P1') {
+    scoreToDisplay = liveScores.host !== undefined ? liveScores.host : '';
+  } else if (displayPlayerId === 'P2') {
+    scoreToDisplay = liveScores.guest !== undefined ? liveScores.guest : '';
+  } else {
+    // Fallback or error display if playerId is unexpected
+    scoreToDisplay = '?';
+  }
+
+  // Root transform for pivot offset
+  let rootTransform = '';
+  if (displayIsPivotLocked && displayPivotInternalOffset && displayPlayerId) {
+    if (displayPlayerId === 'P1') {
+      rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
+    } else if (displayPlayerId === 'P2') {
+      rootTransform = `translateX(${displayPivotInternalOffset}px)`;
+    }
+  }
+
+  const baseElementStyle: React.CSSProperties = {
+    width: `${layoutWidth * displayScale}px`,
+    height: `${layoutHeight * displayScale}px`,
+    overflow: 'hidden',
+    transform: rootTransform || undefined,
+    transition: 'transform 0.2s ease-out',
+    // position: 'absolute', // This should be handled by the Draggable/ResizableBox wrapper
   };
-
-  const layoutWidth = size?.width || 100;
-  const layoutHeight = size?.height || 40;
 
   const scalerElementStyle: React.CSSProperties = {
     width: `${layoutWidth}px`,
     height: `${layoutHeight}px`,
-    position: 'relative',
+    position: 'relative', // Needed for correct transform-origin behavior with translate
+    transformOrigin: displayIsPivotLocked ? 'center center' : 'top left',
+    transform: displayIsPivotLocked
+      ? `translate(-50%, -50%) scale(${displayScale})`
+      : `scale(${displayScale})`,
+    left: displayIsPivotLocked ? '50%' : '0%',
+    top: displayIsPivotLocked ? '50%' : '0%',
+    // Styles for content within the scaler - this becomes the main display area
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: displayFontFamily,
+    fontSize: `${dynamicFontSize}px`,
+    color: displayTextColor,
+    backgroundColor: displayBackgroundColor,
+    border: `1px solid ${displayBorderColor === 'transparent' ? 'transparent' : displayBorderColor || 'transparent'}`, // Ensure transparent is explicitly transparent
+    boxSizing: 'border-box', // Important for border not to add to size
   };
-
-  if (isPivotLocked) {
-    scalerElementStyle.left = '50%';
-    scalerElementStyle.top = '50%';
-    scalerElementStyle.transform = `translate(-50%, -50%) scale(${scale})`;
-    scalerElementStyle.transformOrigin = 'center center';
-  } else {
-    scalerElementStyle.left = '0%';
-    scalerElementStyle.top = '0%';
-    scalerElementStyle.transform = `scale(${scale})`;
-    scalerElementStyle.transformOrigin = 'top left';
-  }
-
-  const hostScoreContainerDynamicStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out',
-  };
-  const guestScoreContainerDynamicStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out',
-  };
-
-  const scoresPresent = liveScores.host !== undefined || liveScores.guest !== undefined;
 
   return (
-    <div className={styles.baseElement} style={{
-      width: `${layoutWidth * scale}px`,
-      height: `${layoutHeight * scale}px`,
-      overflow: 'hidden',
-    }}>
-      <div className={styles.scalerElement} style={scalerElementStyle}>
-        <div className={styles.scoresGrid} style={{
-          fontFamily: fontFamily,
-          fontSize: `${dynamicFontSize}px`,
-          backgroundColor: backgroundColor,
-          borderColor: borderColor,
-          color: textColor,
-          // CSS module handles other fixed styles like padding, border-radius, grid setup
-        }}>
-          {/* Host Score Cell */}
-          {liveScores.host !== undefined ? (
-            <div className={`${styles.scoreContainer} ${styles.hostScoreContainer}`} style={hostScoreContainerDynamicStyle}>
-              {hostScoreDisplay}
-            </div>
-          ) : ( <div /> )} {/* Empty div to maintain grid structure */}
-
-          {/* Guest Score Cell */}
-          {liveScores.guest !== undefined ? (
-            <div className={`${styles.scoreContainer} ${styles.guestScoreContainer}`} style={guestScoreContainerDynamicStyle}>
-              {guestScoreDisplay}
-            </div>
-          ) : ( <div /> )} {/* Empty div to maintain grid structure */}
-
-          {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
-
-          {!scoresPresent && !isBroadcast && (
-              <span className={styles.hiddenScoresMessage}>(Scores Hidden)</span>
-          )}
-        </div>
+    <div style={baseElementStyle} className={styles.baseElement}>
+      <div style={scalerElementStyle} className={styles.scalerElement}>
+        {/* The content (single score) is directly centered by flex properties on scalerElementStyle */}
+        <span className={styles.scoreText}>{scoreToDisplay}</span>
+        {/*
+          isSelected and isBroadcast props are not used for rendering here.
+          Pivot line is removed.
+          Hidden scores message is removed as each part is expected to show its score or be empty.
+        */}
       </div>
     </div>
   );
