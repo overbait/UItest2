@@ -18,6 +18,8 @@ interface BoXSeriesOverviewElementProps {
   isBroadcast?: boolean;
 }
 
+const VALID_BOX_ROLES = ['BoXLeftCivs', 'BoXMaps', 'BoXRightCivs'];
+
 const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ element, isBroadcast }) => {
   const {
     scale = 1, // scale is part of element but not directly used for internal calculations here
@@ -130,17 +132,22 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // Main render method for the component.
 
   // Scaler setup
-  const unscaledWidth = size.width / scale;
-  const unscaledHeight = size.height / scale;
+  // element.size IS the natural dimension at scale = 1.
+  // The baseElement (viewport) will be element.size * scale.
+  // The boxScaler (layout container) will be element.size, and then scaled up.
+  const layoutWidth = size.width || 300; // Default if size.width is undefined
+  const layoutHeight = size.height || 200; // Default if size.height is undefined
   const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left';
 
   // Define boxScalerStyle object
   const boxScalerStyle: React.CSSProperties = {
-    width: `${unscaledWidth}px`,
-    height: `${unscaledHeight}px`,
+    width: `${layoutWidth}px`, // Use base layout dimensions
+    height: `${layoutHeight}px`, // Use base layout dimensions
     fontSize: `${dynamicFontSize}px`,
-    position: 'relative', // Added
+    position: 'relative',
     transformOrigin: scalerTransformOrigin,
+    overflowY: 'auto', // Enable vertical scrolling
+    overflowX: 'hidden', // Prevent horizontal scrolling
   };
 
   if (isPivotLocked) {
@@ -176,8 +183,8 @@ return (
     style={{
       fontFamily,
       overflow: 'hidden',
-      width: size.width,
-      height: size.height,
+      width: `${layoutWidth * scale}px`, // Viewport is scaled size
+      height: `${layoutHeight * scale}px`, // Viewport is scaled size
     }}
   >
     <div
@@ -236,33 +243,20 @@ return (
         </div>
       ))}
 
-      {!['BoXLeftCivs', 'BoXMaps', 'BoXRightCivs'].includes(elementRole || '') && (
-        <div style={{padding: '10px', textAlign: 'center'}}>
-          (BoX Role: {elementRole || 'Not Set'})
-          {/* Displaying a generic view or placeholder if no specific role matches */}
-          {boxSeriesGames.slice(0,1).map((game, index) => ( // Render a single entry example
-             <div key={`game-${index}`} className={styles.gameEntryContainer} style={{paddingTop: '0px'}}>
-               <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1} (Generic)</div>
-                 <div className={styles.gameImageRow} style={{gridTemplateColumns: '1fr auto 1fr'}}> {/* Simplified row */}
-                   <div className={`${styles.civCell} ${styles.leftCivCell}`}> {/* Re-add for structure */}
-                     <div className={styles.selectorDisplay} style={{...civSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`}}>
-                       {showCivNames && game.hostCiv && <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>}
-                     </div>
-                   </div>
-                   <div className={styles.mapCell}> {/* Re-add for structure */}
-                    <div className={styles.selectorDisplay} style={{...mapSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`}}>
-                      {showMapNames && game.map && <div className={styles.selectorTextOverlay}>{game.map}</div>}
-                    </div>
-                   </div>
-                   <div className={`${styles.civCell} ${styles.rightCivCell}`}> {/* Re-add for structure */}
-                     <div className={styles.selectorDisplay} style={{...civSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`}}>
-                       {showCivNames && game.guestCiv && <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>}
-                    </div>
-                   </div>
-                 </div>
-               </div>
-          ))}
-          {boxSeriesGames.length === 0 && <div>No game data for generic BoX view.</div>}
+      {/* Fallback rendering with improved diagnostic message */}
+      {!VALID_BOX_ROLES.includes(elementRole || '') && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%', // Make it fill the boxScaler height
+          padding: '10px',
+          color: 'orange', // More visible color for warning
+          textAlign: 'center',
+          fontSize: '12px', // Explicit font size, relative to dynamicFontSize of parent
+          boxSizing: 'border-box', // Ensure padding doesn't make it overflow
+        }}>
+          BoX Element Role Not Assigned or Invalid. Received role: '{elementRole || "undefined"}'
         </div>
       )}
     </div>

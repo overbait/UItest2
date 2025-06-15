@@ -109,18 +109,24 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
   const viewRows = Math.ceil(numMapsForThisView / viewCols);
 
-  const unscaledOwnWidth = size.width / displayScale; // Use displayScale
-  const unscaledOwnHeight = size.height / displayScale; // Use displayScale
+  // Define base layout dimensions (at scale = 1)
+  const baseSizeWidth = size.width || 300; // Default if size.width is undefined
+  const baseSizeHeight = size.height || 200; // Default if size.height is undefined
 
-  const viewItemWidth = unscaledOwnWidth / viewCols;
-  const viewItemHeight = unscaledOwnHeight / viewRows;
+  // Scaler layout dimensions are the base dimensions
+  const scalerLayoutWidth = baseSizeWidth;
+  const scalerLayoutHeight = baseSizeHeight;
+
+  // viewItem dimensions are calculated based on the scaler's layout dimensions
+  const viewItemWidth = scalerLayoutWidth / viewCols;
+  const viewItemHeight = scalerLayoutHeight / viewRows;
 
   const textHeightWithinItem = viewItemHeight * 0.2;
 
   const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left';
 
   const getMapItemClassName = (mapName: string) => {
-    let itemClassName = styles['map-item'];
+    let itemClassName = styles['map-item-visual-content']; // Base class is now visual-content
     if (perspective === 'P1') {
       if (mapBansHost.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
       else if (mapPicksHost.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
@@ -148,7 +154,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     <div
       className={styles['map-pool-element']}
       style={{
-        width: size.width, height: size.height,
+        width: `${baseSizeWidth * displayScale}px`, // Viewport is scaled size
+        height: `${baseSizeHeight * displayScale}px`, // Viewport is scaled size
         backgroundColor: backgroundColor || 'transparent',
         border: `1px solid ${borderColor || 'transparent'}`,
         overflow: 'hidden',
@@ -161,8 +168,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
         style={{
           transform: `scale(${displayScale})`, // Use displayScale
           transformOrigin: scalerTransformOrigin,
-          width: `${unscaledOwnWidth}px`,
-          height: `${unscaledOwnHeight}px`,
+          width: `${scalerLayoutWidth}px`, // Scaler uses base layout dimensions
+          height: `${scalerLayoutHeight}px`, // Scaler uses base layout dimensions
         }}
       >
         <div
@@ -180,37 +187,38 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             <div
               key={`${playerId}-${map.id}`}
               title={map.name}
-              className={getMapItemClassName(map.name)}
+              className={styles['map-item-grid-cell']} // Outer div is now the grid cell
             >
-              <div className={styles['map-image-container']}>
-                <img
-                  src={getMapImageSrc(map.name)}
-                  alt={map.name}
-                  // Removed inline styles to rely on CSS module
-                  onError={(e) => {
-                    const imgElement = e.target as HTMLImageElement;
-                    imgElement.style.display = 'none';
-                    const parent = imgElement.parentNode as HTMLElement | null;
-                    if (parent) {
-                      const existingPlaceholder = parent.querySelector('.map-image-placeholder');
-                      if (existingPlaceholder) parent.removeChild(existingPlaceholder);
-                      const placeholder = document.createElement('span');
-                      placeholder.className = 'map-image-placeholder';
-                      placeholder.textContent = `${map.name} (err)`;
-                      placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
-                      placeholder.style.color = textColor || 'grey';
-                      placeholder.style.textAlign = 'center';
-                      parent.appendChild(placeholder);
-                    }
-                  }}
-                />
+              <div className={getMapItemClassName(map.name)}> {/* Inner div for visual content & state classes */}
+                <div className={styles['map-image-container']}>
+                  <img
+                    src={getMapImageSrc(map.name)}
+                    alt={map.name}
+                    // Removed inline styles to rely on CSS module
+                    onError={(e) => {
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.style.display = 'none';
+                      const parent = imgElement.parentNode as HTMLElement | null;
+                      if (parent) {
+                        const existingPlaceholder = parent.querySelector('.map-image-placeholder');
+                        if (existingPlaceholder) parent.removeChild(existingPlaceholder);
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'map-image-placeholder';
+                        placeholder.textContent = `${map.name} (err)`;
+                        placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
+                        placeholder.style.color = textColor || 'grey';
+                        placeholder.style.textAlign = 'center';
+                        parent.appendChild(placeholder);
+                      }
+                    }}
+                  />
+                  {/* Map name is now a sibling of map-image-container, within map-item-visual-content */}
+                </div>
                 <p
                   className={styles['map-name']}
                   style={{
                     color: textColor || '#f0f0f0',
                     fontFamily: displayFontFamily,
-                    // Max font size is effectively 13px * 0.9 (approx 11.7px, let's use 12px as a cap if other conditions allow larger)
-                    // The base font-size is set in CSS as 13px. This dynamic style will primarily shrink it.
                     fontSize: Math.min(textHeightWithinItem * 0.75, viewItemWidth / (map.name.length * 0.5 + 2), 12) + 'px',
                   }}
                 >
