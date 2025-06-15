@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 
@@ -1833,20 +1833,49 @@ const useDraftStore = create<DraftStore>()(
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
         partialize: (state) => ({
-            hostName: state.hostName, guestName: state.guestName, scores: state.scores,
-            savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
-            boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,
+            hostName: state.hostName,
+            guestName: state.guestName,
+            scores: state.scores,
+            savedPresets: state.savedPresets,
+            civDraftId: state.civDraftId,
+            mapDraftId: state.mapDraftId,
+            boxSeriesFormat: state.boxSeriesFormat,
+            boxSeriesGames: state.boxSeriesGames,
             activePresetId: state.activePresetId,
             hostColor: state.hostColor,
             guestColor: state.guestColor,
+            hostFlag: state.hostFlag,
+            guestFlag: state.guestFlag,
+            civPicksHost: state.civPicksHost,
+            civBansHost: state.civBansHost,
+            civPicksGuest: state.civPicksGuest,
+            civBansGuest: state.civBansGuest,
+            mapPicksHost: state.mapPicksHost,
+            mapBansHost: state.mapBansHost,
+            mapPicksGuest: state.mapPicksGuest,
+            mapBansGuest: state.mapBansGuest,
+            mapPicksGlobal: state.mapPicksGlobal,
+            mapBansGlobal: state.mapBansGlobal,
+            civDraftStatus: state.civDraftStatus,
+            civDraftError: state.civDraftError,
+            isLoadingCivDraft: state.isLoadingCivDraft,
+            mapDraftStatus: state.mapDraftStatus,
+            mapDraftError: state.mapDraftError,
+            isLoadingMapDraft: state.isLoadingMapDraft,
+            socketStatus: state.socketStatus,
+            socketError: state.socketError,
+            socketDraftType: state.socketDraftType,
+            aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
+            draftIsLikelyFinished: state.draftIsLikelyFinished,
+            // Ensure these layout-related keys are now included:
             currentCanvases: state.currentCanvases,
             activeCanvasId: state.activeCanvasId,
             savedStudioLayouts: state.savedStudioLayouts,
             selectedElementId: state.selectedElementId,
             activeStudioLayoutId: state.activeStudioLayoutId,
-            layoutLastUpdated: state.layoutLastUpdated,
+            layoutLastUpdated: state.layoutLastUpdated
         }),
-        storage: customLocalStorageWithBroadcast,
+        storage: createJSONStorage(() => localStorage),
         onRehydrateStorage: (state, error) => {
           if (error) console.error('LOGAOEINFO: [draftStore] Error during rehydration:', error);
           else if (state) console.debug('LOGAOEINFO: [draftStore] Rehydration finished.');
@@ -1854,25 +1883,20 @@ const useDraftStore = create<DraftStore>()(
         },
         merge: (persistedStateFromStorage: any, currentState: CombinedDraftState): CombinedDraftState => {
           let actualPersistedState: Partial<CombinedDraftState> | undefined | null;
-          if (persistedStateFromStorage && typeof persistedStateFromStorage === 'object' && persistedStateFromStorage.hasOwnProperty('state') && persistedStateFromStorage.hasOwnProperty('version')) {
+          // If the persisted state is from the old structure (has state and version properties)
+          if (persistedStateFromStorage && typeof persistedStateFromStorage === 'object' &&
+              persistedStateFromStorage.hasOwnProperty('state') && persistedStateFromStorage.hasOwnProperty('version')) {
             actualPersistedState = persistedStateFromStorage.state as Partial<CombinedDraftState>;
-          } else {
+          } else { // Otherwise, assume it's already in the new structure (or it's the initial state)
             actualPersistedState = persistedStateFromStorage as Partial<CombinedDraftState>;
           }
+
           if (typeof actualPersistedState !== 'object' || actualPersistedState === null) {
-            return currentState;
+            return currentState; // Should not happen with createJSONStorage if it persists an object
           }
           return { ...currentState, ...actualPersistedState };
         },
-        deserialize: (str: string) => {
-          if (str === null || str === undefined || typeof str !== 'string') return undefined;
-          try {
-            return JSON.parse(str);
-          } catch (error) {
-            console.error('LOGAOEINFO: [draftStore Deserialize] Error parsing string:', error, 'String was:', str);
-            return undefined;
-          }
-        },
+        // serialize and deserialize are not needed with createJSONStorage
       }
     )
   )
