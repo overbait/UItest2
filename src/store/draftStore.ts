@@ -1555,6 +1555,22 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10,
               };
+            } else if (elementType === "MapPool") {
+              newElement = {
+                id: Date.now().toString(),
+                type: "MapPool",
+                position: { x: initialX_px, y: initialY_px }, // Use existing initialX_px, initialY_px
+                size: { width: 300, height: 200 }, // Specific default size for MapPool
+                fontFamily: 'Arial, sans-serif',    // Default from generic
+                backgroundColor: 'transparent', // Default from generic
+                borderColor: 'transparent',   // Default from generic
+                textColor: 'white',           // Added sensible default
+                scale: 1,                     // Default from generic
+                isPivotLocked: false,           // Default from generic
+                pivotInternalOffset: 0,       // Default from generic
+                playerId: 'P1',               // Default player for MapPool
+                // pairId and isPairMaster will be undefined by default, which is fine
+              };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.
