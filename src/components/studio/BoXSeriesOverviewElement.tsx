@@ -153,12 +153,6 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         height: size.height,
       }}
     >
-      {/*
-        The content below has been commented out to isolate the syntax error.
-        If the component builds with this simplified JSX, the error is within this block.
-      */}
-      <div>Content Commented Out - Test Build</div>
-      {/*
       <div
         className={styles.boxScaler} // New class for the scaler
         style={{
@@ -236,7 +230,6 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         </div>
       )})}
     </div>
-    */}
   </div> {/* Closes baseElement */}
   );
 };
