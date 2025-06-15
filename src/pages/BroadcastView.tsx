@@ -3,6 +3,7 @@ import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
 import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement';
+import MapPoolElement from '../components/studio/MapPoolElement';
 // BoXSeriesOverviewElement would need to be imported here if it's intended for broadcast
 
 interface BroadcastViewProps {
@@ -85,6 +86,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           content = <ScoreOnlyElement element={element} isBroadcast={true} />;
         } else if (element.type === "NicknamesOnly") {
           content = <NicknamesOnlyElement element={element} isBroadcast={true} />;
+        } else if (element.type === "MapPool") {
+          content = <MapPoolElement id={element.id} position={element.position} size={element.size} scale={element.scale} playerId={element.playerId} pairId={element.pairId} isPairMaster={element.isPairMaster} />;
         // BoXSeriesOverviewElement would need a case here if it's intended for broadcast
         } else {
           content = (

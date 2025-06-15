@@ -1,0 +1,25 @@
+/* MapPoolElement.module.css */
+
+.mapPoolContainer {
+    background-color: rgba(128, 128, 128, 0.1); /* Semi-transparent grey background */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  }
+
+  .mapItem {
+    display: flex;
+    flex-direction: column; /* Stack icon and name vertically */
+    align-items: center; /* Center items horizontally */
+    margin: 5px; /* Add some margin around each map item */
+    padding: 5px; /* Add padding inside each map item */
+    border-radius: 4px; /* Rounded corners for items */
+    background-color: rgba(255, 255, 255, 0.05); /* Slightly lighter background for items */
+    min-width: 60px; /* Ensure items have a minimum width */
+  }
+
+  .mapName {
+    margin-top: 5px; /* Space between icon and name */
+    font-size: 0.8em; /* Smaller font size for map names */
+    color: #ccc; /* Light grey color for text, assuming dark theme */
+    text-align: center; /* Center text */
+  }

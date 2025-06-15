@@ -64,9 +64,12 @@ export interface SingleDraftData {
 
 export interface StudioElement {
   id: string;
-  type: string;
+  type: "MapPool" | string;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  playerId?: 'P1' | 'P2';
+  pairId?: string;
+  isPairMaster?: boolean;
   fontFamily?: string;
       fontFamilyGameTitle?: string; // Specific for "Game X" title
   backgroundColor?: string;
