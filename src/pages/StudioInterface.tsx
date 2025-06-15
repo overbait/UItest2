@@ -587,8 +587,12 @@ const StudioInterface: React.FC = () => {
             // Set a significantly higher z-index for the selected element.
             const zIndexValue = isSelected ? 999 : baseZIndex;
 
+            const noResizeHandleTypes = [
+              "ScoreOnly", "NicknamesOnly", "CountryFlags",
+              "ColorGlowElement", "BoXSeriesOverview", "MapPool"
+            ];
             let resizeHandlesProps = {};
-            if (element.type === "ColorGlowElement" || element.type === "MapPool") {
+            if (noResizeHandleTypes.includes(element.type)) {
               resizeHandlesProps = { resizeHandles: [] };
             }
 

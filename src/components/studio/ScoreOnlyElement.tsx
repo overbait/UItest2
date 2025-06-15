@@ -97,6 +97,7 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element }) => {
     backgroundColor: displayBackgroundColor,
     border: `1px solid ${displayBorderColor === 'transparent' ? 'transparent' : displayBorderColor || 'transparent'}`, // Ensure transparent is explicitly transparent
     boxSizing: 'border-box', // Important for border not to add to size
+    overflow: 'visible', // Aggressively prevent content clipping
   };
 
   return (

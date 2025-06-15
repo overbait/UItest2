@@ -104,6 +104,7 @@ const NicknamesOnlyElement: React.FC<NicknamesOnlyElementProps> = ({ element }) 
     boxSizing: 'border-box', // Important for border not to add to size
     padding: '0 5px', // Basic padding, can be adjusted or made dynamic
     textAlign: 'center', // Ensure text is centered if it wraps
+    overflow: 'visible', // Aggressively prevent content clipping
   };
 
   return (

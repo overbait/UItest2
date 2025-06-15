@@ -172,8 +172,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     fontSize: `${dynamicFontSize}px`,
     position: 'relative',
     transformOrigin: scalerTransformOrigin,
-    overflowY: 'auto', // Enable vertical scrolling
-    overflowX: 'visible', // MODIFIED - Allow civ columns to be seen outside original bounds
+    overflow: 'visible', // Aggressively prevent content clipping
   };
 
   if (isPivotLocked) {

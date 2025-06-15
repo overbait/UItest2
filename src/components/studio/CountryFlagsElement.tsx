@@ -98,6 +98,7 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element }) =>
     backgroundColor: displayBackgroundColor,
     border: `1px solid ${displayBorderColor === 'transparent' ? 'transparent' : displayBorderColor || 'transparent'}`,
     boxSizing: 'border-box',
+    overflow: 'visible', // Aggressively prevent content clipping
   };
 
   const flagImageStyle: React.CSSProperties = {
