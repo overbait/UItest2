@@ -238,81 +238,65 @@ return (
           </div>
           {/* Assuming styles.gameDataRow is a new class for the grid container */}
           <div className={styles.gameDataRow} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-            <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('left', data)} defaultPosition={{x:0, y:0}} >
-              <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
-                <div
-                  key={`hostciv-${index}`}
-                  className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-                style={{
-                  ...civSelectorStyle,
-                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-                }}
-              >
-                {showCivNames && game.hostCiv && (
-                  <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
-                )}
-              </div>
-            </div>
 
-            {/* Map Cell */}
-            {/* Assuming styles.mapCell exists or is defined in CSS */}
-            <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
-              <div
-                key={`map-${index}`}
-                className={styles.selectorDisplay}
-                style={{
-                  ...mapSelectorStyle,
-                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-                }}
-              >
-                {showMapNames && game.map && (
-                  <div className={styles.selectorTextOverlay}>{game.map}</div>
-                )}
-              </div>
-            </div>
-
-              </div>
-            </Draggable>
-
-            {/* Map Cell */}
-            {/* Assuming styles.mapCell exists or is defined in CSS */}
-            <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
-              <div
-                key={`map-${index}`}
-                className={styles.selectorDisplay}
-                style={{
-                  ...mapSelectorStyle,
-                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-                }}
-              >
-                {showMapNames && game.map && (
-                  <div className={styles.selectorTextOverlay}>{game.map}</div>
-                )}
-              </div>
-            </div>
-
-            <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('right', data)} defaultPosition={{x:0, y:0}} >
-              <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
-                <div
-                  key={`guestciv-${index}`}
-                  className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-                style={{
-                  ...civSelectorStyle,
-                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-                }}
-              >
-                {showCivNames && game.guestCiv && (
-                  <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
-                )}
-              </div>
-            </div>
-          </div>
+    {/* Left Civ Draggable Wrapper */}
+    <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('left', data)} defaultPosition={{x:0, y:0}}>
+      <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
+        <div
+          key={`hostciv-${index}`} // Keep keys on the actual content elements if map is involved
+          className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+          style={{
+            ...civSelectorStyle,
+            backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
+          }}
+        >
+          {showCivNames && game.hostCiv && (
+            <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
+          )}
         </div>
-      ); // Added semicolon here
+      </div>
+    </Draggable>
+
+    {/* Map Cell (Central, not draggable independently here) */}
+    <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
+      <div
+        key={`map-${index}`}
+        className={styles.selectorDisplay}
+        style={{
+          ...mapSelectorStyle,
+          backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
+        }}
+      >
+        {showMapNames && game.map && (
+          <div className={styles.selectorTextOverlay}>{game.map}</div>
+        )}
+      </div>
+    </div>
+
+    {/* Right Civ Draggable Wrapper */}
+    <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('right', data)} defaultPosition={{x:0, y:0}}>
+      <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
+        <div
+          key={`guestciv-${index}`}
+          className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+          style={{
+            ...civSelectorStyle,
+            backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
+          }}
+        >
+          {showCivNames && game.guestCiv && (
+            <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
+          )}
+        </div>
+      </div>
+    </Draggable>
+          </div> {/* This closes gameDataRow */}
+        </div>
+      );
       })}
     </div>
-  </div> /* Closes baseElement */
-); // Закрытие return
+  </div>
+);
 };
 
 export default BoXSeriesOverviewElement;
