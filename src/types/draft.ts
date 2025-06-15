@@ -82,10 +82,9 @@ export interface StudioElement {
   pivotInternalOffset?: number; // For BoXSeriesOverviewElement
   size?: { width: number, height: number }; // For BoXSeriesOverviewElement
   // MapPoolElement specific props
-  width?: number; // Overall width for MapPoolElement
+  width?: number; // Overall width for MapPoolElement - this will be dynamically adjusted
   height?: number; // Overall height for MapPoolElement
-  lockPivotPoint?: boolean; // From original issue spec, seems redundant with isPivotLocked
-  offset?: number; // Horizontal offset for MapPoolElement when pivot is locked
+  lockPivotPoint?: boolean; // From original issue spec, effectively same as isPivotLocked
   numColumns?: number; // Number of columns for each player's grid in MapPoolElement
   mapNameFontSize?: string; // Font size for map names in MapPoolElement
   // Allow any other props

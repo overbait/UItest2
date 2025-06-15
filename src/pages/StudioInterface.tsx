@@ -6,8 +6,8 @@ import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement';
 import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement';
 import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
-import MapPoolElement from '../components/studio/MapPoolElement'; // Import MapPoolElement
-import { StudioElement, SavedStudioLayout, StudioCanvas } from '../types/draft'; // Added StudioCanvas
+import MapPoolElement from '../components/studio/MapPoolElement';
+import { StudioElement, SavedStudioLayout, StudioCanvas } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -17,20 +17,10 @@ const MIN_ELEMENT_WIDTH = 50;
 
 const StudioInterface: React.FC = () => {
   const {
-    currentCanvases,
-    activeCanvasId,
-    activeStudioLayoutId,
-    setActiveStudioLayoutId,
-    updateStudioLayoutName,
-    savedStudioLayouts, selectedElementId,
-    addStudioElement,
-    updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
-    saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
-    addCanvas,
-    setActiveCanvas,
-    removeCanvas,
-    updateCanvasName,
-    resetActiveCanvasLayout
+    currentCanvases, activeCanvasId, activeStudioLayoutId, setActiveStudioLayoutId, updateStudioLayoutName,
+    savedStudioLayouts, selectedElementId, addStudioElement, updateStudioElementPosition, updateStudioElementSize,
+    updateStudioElementSettings, saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
+    addCanvas, setActiveCanvas, removeCanvas, updateCanvasName, resetActiveCanvasLayout
   } = useDraftStore(state => state);
 
   useEffect(() => {
@@ -46,7 +36,14 @@ const StudioInterface: React.FC = () => {
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
-  const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
+
+  const [dragStartContext, setDragStartContext] = useState<{
+    elementId: string,
+    initialMouseX: number, // Screen X of mouse at drag start
+    elementCenterX: number, // Screen X of element center at drag start
+    initialWidth: number, // Unscaled width of element at drag start
+    initialElementX: number // Screen X of element top-left at drag start
+  } | null>(null);
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
@@ -63,63 +60,67 @@ const StudioInterface: React.FC = () => {
     const element = activeLayout.find(el => el.id === elementId);
     if (!element) return;
 
-    // Check for element.lockPivotPoint (used by MapPoolElement) or element.isPivotLocked (used by others)
     const pivotLocked = element.lockPivotPoint || element.isPivotLocked;
 
     if (pivotLocked) {
-      let newY_screen = element.position.y + data.deltaY;
+      let newY_screen = element.position.y + data.deltaY; // Vertical drag is always simple
+
       const currentX_screen = element.position.x;
-      // Ensure size is taken from element.size for consistency if width/height props are not primary
       const currentUnscaledWidth = element.width || element.size?.width || MIN_ELEMENT_WIDTH;
-      const currentUnscaledHeight = element.height || element.size?.height || 30; // Default small height
+      const currentUnscaledHeight = element.height || element.size?.height || 30;
       const currentScale = element.scale || 1;
-
-      // For MapPoolElement, pivotInternalOffset is not used directly; its 'offset' prop serves a similar role but is handled internally.
-      // For other elements, pivotInternalOffset is used.
-      const currentPivotOffset_unscaled = element.type === "MapPoolElement" ? (element.offset || 0) : (element.pivotInternalOffset || 0);
-
 
       let finalX_screen = currentX_screen;
       let finalUnscaledWidth = currentUnscaledWidth;
-      let finalPivotOffset_unscaled = currentPivotOffset_unscaled;
+      let finalPivotOffset_unscaled = element.pivotInternalOffset || 0;
 
-      if (data.deltaX !== 0) {
-        const pivotScreenX_fixed = currentX_screen + (currentUnscaledWidth / 2) * currentScale;
-        const effectiveUnscaledDrag = data.deltaX / currentScale;
-        let actualEffectiveUnscaledDrag = effectiveUnscaledDrag;
+      if (data.deltaX !== 0 && dragStartContext && dragStartContext.elementId === elementId) {
+        if (element.type === "MapPoolElement") {
+          const widthChange = (data.deltaX * 2) / currentScale;
+          finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH * 2, currentUnscaledWidth + widthChange);
+          finalX_screen = currentX_screen + ((currentUnscaledWidth - finalUnscaledWidth) * currentScale / 2);
+        } else {
+            const pivotScreenX_fixed = dragStartContext.initialElementX + (dragStartContext.initialWidth / 2) * currentScale;
+            // Use total mouse drag from start for non-MapPoolElements, as their logic relied on it
+            const totalMouseDragXUnscaled = (data.x - dragStartContext.initialElementX) / currentScale;
 
-        if (dragStartContext && dragStartContext.elementId === elementId) {
-          if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) {
-            actualEffectiveUnscaledDrag = -effectiveUnscaledDrag;
-          }
+            let actualEffectiveUnscaledDrag = totalMouseDragXUnscaled;
+             // This determines if we are dragging the left or right edge effectively
+            if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) { // Grabbed left half
+                actualEffectiveUnscaledDrag = -totalMouseDragXUnscaled + (dragStartContext.initialWidth/2);
+                 // if you drag left edge to right, actualEffectiveUnscaledDrag should be positive to grow width
+            } else { // Grabbed right half
+                actualEffectiveUnscaledDrag = totalMouseDragXUnscaled - (dragStartContext.initialWidth/2);
+            }
+
+            finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, dragStartContext.initialWidth + (2 * actualEffectiveUnscaledDrag));
+            finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
+
+            const actualUnscaledDragAppliedToEdge = (dragStartContext.initialWidth - finalUnscaledWidth) / 2;
+
+            if (element.type === "BoXSeriesOverview") {
+                finalPivotOffset_unscaled = Math.max(0, (element.pivotInternalOffset || 0) - actualUnscaledDragAppliedToEdge);
+            } else {
+                finalPivotOffset_unscaled = Math.max(0, (element.pivotInternalOffset || 0) - (2 * actualUnscaledDragAppliedToEdge));
+            }
         }
-        finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, currentUnscaledWidth + (2 * actualEffectiveUnscaledDrag));
-        const actualUnscaledDragAppliedToEdge = (currentUnscaledWidth - finalUnscaledWidth) / 2;
-        finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
-
-        if (element.type !== "MapPoolElement" && element.type !== "BoXSeriesOverview") {
-             finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge));
-        } else if (element.type === "BoXSeriesOverview") { // BoXSeriesOverview has a different interpretation of pivotInternalOffset
-             finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledDragAppliedToEdge);
-        }
-        // For MapPoolElement, its internal 'offset' is managed via settings, not direct drag modification of the offset value itself here.
-        // The drag modifies its overall size.
       }
 
       const updatePayload: Partial<StudioElement> = {
         position: { x: finalX_screen, y: newY_screen },
-        size: { width: finalUnscaledWidth, height: currentUnscaledHeight }, // Always update size
       };
 
       if (element.type === "MapPoolElement") {
-        updatePayload.width = finalUnscaledWidth; // Also update direct width prop for MapPoolElement
+        updatePayload.width = finalUnscaledWidth;
         updatePayload.height = currentUnscaledHeight;
+        updatePayload.size = { width: finalUnscaledWidth, height: currentUnscaledHeight };
       } else {
+        updatePayload.size = { width: finalUnscaledWidth, height: currentUnscaledHeight };
         updatePayload.pivotInternalOffset = finalPivotOffset_unscaled;
       }
       updateStudioElementSettings(elementId, updatePayload);
 
-    } else { // Pivot not locked - normal drag
+    } else {
       updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
@@ -134,7 +135,6 @@ const StudioInterface: React.FC = () => {
     const settingsUpdate: Partial<StudioElement> = {
         size: { width: newUnscaledWidth, height: newUnscaledHeight }
     };
-    // If MapPoolElement, also update its direct width/height props
     if (currentElement.type === "MapPoolElement") {
         settingsUpdate.width = newUnscaledWidth;
         settingsUpdate.height = newUnscaledHeight;
@@ -212,10 +212,9 @@ const StudioInterface: React.FC = () => {
         </div>
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
-        {/* START: Canvas Management UI (Restored) */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' }}>
-            {currentCanvases.map((canvas: StudioCanvas) => ( // Explicitly type canvas
+            {currentCanvases.map((canvas: StudioCanvas) => (
               <button
                 key={canvas.id}
                 onClick={() => setActiveCanvas(canvas.id)}
@@ -265,9 +264,8 @@ const StudioInterface: React.FC = () => {
           <button onClick={() => { if (activeCanvas && activeCanvas.layout.length > 0) { if (confirm(`Are you sure you want to remove all elements from canvas "${activeCanvas.name}"?`)) { resetActiveCanvasLayout(); }}}} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', marginLeft: '10px', flexShrink: 0 }} title="Remove all elements from current canvas" disabled={!activeCanvas || activeCanvas.layout.length === 0}>Reset 🗑️</button>
           <button onClick={() => { addCanvas(); }} style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', marginLeft: '10px', flexShrink: 0 }} title="Add new canvas">+</button>
         </div>
-        {/* END: Canvas Management UI (Restored) */}
 
-        <div style={{ position: 'relative', border: '1px dashed #444', overflow: 'hidden', backgroundColor: '#0d0d0d', width: '100%', aspectRatio: '16 / 9', maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px - 45px)', /* Adjusted maxHeight for tab bar */ margin: 'auto',}}>
+        <div style={{ position: 'relative', border: '1px dashed #444', overflow: 'hidden', backgroundColor: '#0d0d0d', width: '100%', aspectRatio: '16 / 9', maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px - 45px)', margin: 'auto',}}>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: '0px', width: '1px', height: '20px', backgroundColor: '#555', pointerEvents: 'none', zIndex: 0, }} aria-hidden="true" />
           {activeLayout.map((element: StudioElement, index: number) => {
             const isSelected = element.id === selectedElementId;
@@ -286,9 +284,55 @@ const StudioInterface: React.FC = () => {
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (
-              <Draggable key={element.id} handle=".drag-handle" position={{ x: element.position.x, y: element.position.y }} onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)} onStart={(e: DraggableEvent, data: DraggableData) => { const currentElement = activeLayout.find(el => el.id === element.id); if (currentElement && (currentElement.isPivotLocked || currentElement.lockPivotPoint) ) { const eventAsMouseEvent = e as MouseEvent; const scale = currentElement.scale || 1; const elementWidth = currentElement.width || currentElement.size?.width || MIN_ELEMENT_WIDTH; const elementCenterX = currentElement.position.x + (elementWidth * scale / 2); setDragStartContext({ elementId: currentElement.id, initialMouseX: eventAsMouseEvent.clientX, elementCenterX: elementCenterX }); } }} onStop={() => { setDragStartContext(null); }}>
-                <ResizableBox width={(element.width || element.size?.width || MIN_ELEMENT_WIDTH) * currentScale} height={(element.height || element.size?.height || 30) * currentScale} onResizeStop={(e, data) => handleResizeStop(element.id, data)} minConstraints={[MIN_ELEMENT_WIDTH, 30]} /* Unscaled constraints */ maxConstraints={[Infinity, Infinity]} style={elementSpecificStyle} className="drag-handle">
-                  <div onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}} style={{ width: `${element.width || element.size?.width || MIN_ELEMENT_WIDTH}px`, height: `${element.height || element.size?.height || 30}px`, overflow: 'hidden', boxSizing: 'border-box', border: `1px solid ${element.borderColor || 'transparent'}`, background: element.backgroundColor || 'transparent', cursor: 'move', transform: `scale(${currentScale})`, transformOrigin: 'top left', }}>
+              <Draggable
+                key={element.id}
+                handle=".drag-handle"
+                position={{ x: element.position.x, y: element.position.y }}
+                onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
+                onStart={(e: DraggableEvent, data: DraggableData) => {
+                  const currentElement = activeLayout.find(el => el.id === element.id);
+                  if (currentElement && (currentElement.isPivotLocked || currentElement.lockPivotPoint) ) {
+                    const eventAsMouseEvent = e as MouseEvent;
+                    const scale = currentElement.scale || 1;
+                    const unscaledWidth = currentElement.width || currentElement.size?.width || MIN_ELEMENT_WIDTH;
+                    const elementCurrentScreenX = currentElement.position.x;
+
+                    setDragStartContext({
+                      elementId: currentElement.id,
+                      initialMouseX: eventAsMouseEvent.clientX,
+                      elementCenterX: elementCurrentScreenX + (unscaledWidth * scale / 2),
+                      initialWidth: unscaledWidth,
+                      initialElementX: elementCurrentScreenX
+                    });
+                  }
+                }}
+                onStop={() => {
+                  setDragStartContext(null);
+                }}
+              >
+                <ResizableBox
+                  width={(element.width || element.size?.width || MIN_ELEMENT_WIDTH) * currentScale}
+                  height={(element.height || element.size?.height || 30) * currentScale}
+                  onResizeStop={(e, data) => handleResizeStop(element.id, data)}
+                  minConstraints={[MIN_ELEMENT_WIDTH, 30]}
+                  maxConstraints={[Infinity, Infinity]}
+                  style={elementSpecificStyle}
+                  className="drag-handle"
+                >
+                  <div
+                    onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
+                    style={{
+                      width: `${element.width || element.size?.width || MIN_ELEMENT_WIDTH}px`,
+                      height: `${element.height || element.size?.height || 30}px`,
+                      overflow: 'hidden',
+                      boxSizing: 'border-box',
+                      border: `1px solid ${element.borderColor || 'transparent'}`,
+                      background: element.backgroundColor || 'transparent',
+                      cursor: 'move',
+                      transform: `scale(${currentScale})`,
+                      transformOrigin: 'top left',
+                    }}
+                  >
                     {content}
                   </div>
                 </ResizableBox>

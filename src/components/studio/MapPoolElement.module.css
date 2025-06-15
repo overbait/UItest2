@@ -33,7 +33,7 @@
   gap: 2px; /* As per spec */
   padding: 2px; /* As per spec */
   box-sizing: border-box;
-  background-color: rgba(20,20,20,0.5); /* Optional background for the grid area itself */
+  /* background-color: rgba(20,20,20,0.5); Removed as per user request */
 }
 
 .mapItemGridCell {

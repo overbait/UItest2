@@ -102,11 +102,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
             <input type="checkbox" id="mapPoolLockPivotCheckbox" style={checkboxStyle} checked={!!selectedElement.lockPivotPoint} onChange={(e) => handleSettingChange('lockPivotPoint', e.target.checked)} />
           </div>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolOffsetSlider" style={labelStyle}>Offset (px):</label>
-            <input type="range" id="mapPoolOffsetSlider" style={rangeInputStyle} min="0" max="200" step="1" value={selectedElement.offset || 0} disabled={!selectedElement.lockPivotPoint} onChange={(e) => handleSettingChange('offset', parseFloat(e.target.value))} />
-            <span style={rangeValueStyle}>{(selectedElement.offset || 0)}px</span>
-          </div>
-          <div style={settingRowStyle}>
             <label htmlFor="mapPoolNumColsInput" style={labelStyle}>Columns per Player:</label>
             <input type="number" id="mapPoolNumColsInput" style={{...inputStyle, width: '80px'}} min="1" max="5" step="1" value={selectedElement.numColumns || 2} onChange={(e) => handleSettingChange('numColumns', parseInt(e.target.value, 10))} />
           </div>
