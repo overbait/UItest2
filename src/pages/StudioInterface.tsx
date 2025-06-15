@@ -1,3 +1,4 @@
+// src/pages/StudioInterface.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import useDraftStore from '../store/draftStore';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
@@ -6,7 +7,7 @@ import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElem
 import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement'; // Import MapPoolElement
-import { StudioElement, SavedStudioLayout } from '../types/draft';
+import { StudioElement, SavedStudioLayout, StudioCanvas } from '../types/draft'; // Added StudioCanvas
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -56,26 +57,31 @@ const StudioInterface: React.FC = () => {
   const handleAddBoXSeriesOverview = () => { addStudioElement("BoXSeriesOverview"); };
   const handleAddCountryFlags = () => { addStudioElement("CountryFlags"); };
   const handleAddColorGlowElement = () => { addStudioElement("ColorGlowElement"); };
-  const handleAddMapPoolElement = () => { addStudioElement("MapPoolElement"); }; // Handler for MapPoolElement
+  const handleAddMapPoolElement = () => { addStudioElement("MapPoolElement"); };
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
     if (!element) return;
 
-    if (element.isPivotLocked || element.lockPivotPoint) { // Check for both isPivotLocked and lockPivotPoint
+    // Check for element.lockPivotPoint (used by MapPoolElement) or element.isPivotLocked (used by others)
+    const pivotLocked = element.lockPivotPoint || element.isPivotLocked;
+
+    if (pivotLocked) {
       let newY_screen = element.position.y + data.deltaY;
       const currentX_screen = element.position.x;
-      const currentUnscaledWidth = element.size.width;
-      const currentUnscaledHeight = element.size.height;
+      // Ensure size is taken from element.size for consistency if width/height props are not primary
+      const currentUnscaledWidth = element.width || element.size?.width || MIN_ELEMENT_WIDTH;
+      const currentUnscaledHeight = element.height || element.size?.height || 30; // Default small height
       const currentScale = element.scale || 1;
-      const currentPivotOffset_unscaled = element.pivotInternalOffset || 0; // For BoX
-      const currentMapPoolOffset = element.offset || 0; // For MapPoolElement
+
+      // For MapPoolElement, pivotInternalOffset is not used directly; its 'offset' prop serves a similar role but is handled internally.
+      // For other elements, pivotInternalOffset is used.
+      const currentPivotOffset_unscaled = element.type === "MapPoolElement" ? (element.offset || 0) : (element.pivotInternalOffset || 0);
+
 
       let finalX_screen = currentX_screen;
       let finalUnscaledWidth = currentUnscaledWidth;
       let finalPivotOffset_unscaled = currentPivotOffset_unscaled;
-      let finalMapPoolOffset = currentMapPoolOffset;
-
 
       if (data.deltaX !== 0) {
         const pivotScreenX_fixed = currentX_screen + (currentUnscaledWidth / 2) * currentScale;
@@ -91,27 +97,29 @@ const StudioInterface: React.FC = () => {
         const actualUnscaledDragAppliedToEdge = (currentUnscaledWidth - finalUnscaledWidth) / 2;
         finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
 
-        if (element.type === "ScoreOnly" || element.type === "NicknamesOnly" || element.type === "CountryFlags" || element.type === "ColorGlowElement") {
-          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge));
-        } else if (element.type === "BoXSeriesOverview") {
-          finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledDragAppliedToEdge);
-        } else if (element.type === "MapPoolElement") {
-          // MapPoolElement's 'offset' is different. It's the distance each grid moves.
-          // Dragging to resize a pivot-locked MapPoolElement should adjust its internal 'offset'
-          // to reflect the new spacing between the two halves.
-          // If finalUnscaledWidth increased, the 'offset' effectively decreased, and vice-versa.
-          // This logic might need specific review for MapPoolElement's 'offset' interpretation.
-          // For now, let's assume pivotInternalOffset is the generic one to adjust for width change.
-           finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge));
+        if (element.type !== "MapPoolElement" && element.type !== "BoXSeriesOverview") {
+             finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - (2 * actualUnscaledDragAppliedToEdge));
+        } else if (element.type === "BoXSeriesOverview") { // BoXSeriesOverview has a different interpretation of pivotInternalOffset
+             finalPivotOffset_unscaled = Math.max(0, currentPivotOffset_unscaled - actualUnscaledDragAppliedToEdge);
         }
+        // For MapPoolElement, its internal 'offset' is managed via settings, not direct drag modification of the offset value itself here.
+        // The drag modifies its overall size.
       }
-      updateStudioElementSettings(elementId, {
+
+      const updatePayload: Partial<StudioElement> = {
         position: { x: finalX_screen, y: newY_screen },
-        size: { width: finalUnscaledWidth, height: currentUnscaledHeight },
-        pivotInternalOffset: finalPivotOffset_unscaled, // This handles width change for most
-        // offset: finalMapPoolOffset, // If MapPoolElement's offset needs direct update from drag
-      });
-    } else {
+        size: { width: finalUnscaledWidth, height: currentUnscaledHeight }, // Always update size
+      };
+
+      if (element.type === "MapPoolElement") {
+        updatePayload.width = finalUnscaledWidth; // Also update direct width prop for MapPoolElement
+        updatePayload.height = currentUnscaledHeight;
+      } else {
+        updatePayload.pivotInternalOffset = finalPivotOffset_unscaled;
+      }
+      updateStudioElementSettings(elementId, updatePayload);
+
+    } else { // Pivot not locked - normal drag
       updateStudioElementPosition(elementId, { x: data.x, y: data.y });
     }
   };
@@ -120,15 +128,18 @@ const StudioInterface: React.FC = () => {
     const currentElement = activeLayout.find(el => el.id === elementId);
     if (!currentElement) return;
     const currentScale = currentElement.scale || 1;
-    let newWidth = data.size.width / currentScale;
-    let newHeight = data.size.height / currentScale;
+    const newUnscaledWidth = data.size.width / currentScale;
+    const newUnscaledHeight = data.size.height / currentScale;
 
-    updateStudioElementSize(elementId, { width: newWidth, height: newHeight });
-
-    // If the element is MapPoolElement, also update its direct width/height props if they exist
+    const settingsUpdate: Partial<StudioElement> = {
+        size: { width: newUnscaledWidth, height: newUnscaledHeight }
+    };
+    // If MapPoolElement, also update its direct width/height props
     if (currentElement.type === "MapPoolElement") {
-        updateStudioElementSettings(elementId, { width: newWidth, height: newHeight });
+        settingsUpdate.width = newUnscaledWidth;
+        settingsUpdate.height = newUnscaledHeight;
     }
+    updateStudioElementSettings(elementId, settingsUpdate);
   };
 
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
@@ -158,11 +169,10 @@ const StudioInterface: React.FC = () => {
              <button onClick={handleAddBoXSeriesOverview} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>BoX Overview</button>
              <button onClick={handleAddCountryFlags} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Flags</button>
              <button onClick={handleAddColorGlowElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Color Glow</button>
-             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Map Pool</button> {/* Added Map Pool Button */}
+             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Map Pool</button>
            </div>
          )}
         </div>
-        {/* ... other toolbox sections (Save Current Layout, Saved Layouts) ... */}
         <div style={toolboxSectionStyle}>
          <h3 style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}} onClick={() => setIsSaveLayoutOpen(!isSaveLayoutOpen)}>
            Save Current Layout <span>{isSaveLayoutOpen ? '▼' : '▶'}</span>
@@ -202,12 +212,62 @@ const StudioInterface: React.FC = () => {
         </div>
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
-        {/* Tab Bar Start */}
+        {/* START: Canvas Management UI (Restored) */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          {/* ... Tab rendering logic (unchanged) ... */}
+          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' }}>
+            {currentCanvases.map((canvas: StudioCanvas) => ( // Explicitly type canvas
+              <button
+                key={canvas.id}
+                onClick={() => setActiveCanvas(canvas.id)}
+                style={{
+                  backgroundColor: canvas.id === activeCanvasId ? '#007bff' : '#3c3c3c',
+                  color: canvas.id === activeCanvasId ? 'white' : '#ccc',
+                  border: `1px solid ${canvas.id === activeCanvasId ? '#007bff' : '#555'}`,
+                  padding: '6px 12px', marginRight: '6px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em',
+                  display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0
+                }}
+                title={canvas.name}
+              >
+               {editingCanvasId === canvas.id ? (
+                 <>
+                   <input
+                     type="text"
+                     value={editingCanvasName}
+                     onChange={(e) => setEditingCanvasName(e.target.value)}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         const trimmedName = editingCanvasName.trim();
+                         if (trimmedName !== "" && trimmedName !== canvas.name) { updateCanvasName(canvas.id, trimmedName); }
+                         setEditingCanvasId(null);
+                       } else if (e.key === 'Escape') { setEditingCanvasId(null); }
+                     }}
+                     autoFocus onClick={(e) => e.stopPropagation()}
+                     style={{ padding: '2px 4px', border: '1px solid #777', backgroundColor: '#1a1a1a', color: 'white', maxWidth: '80px' }}
+                   />
+                   <button title="Confirm rename" onClick={(e) => { e.stopPropagation(); const trimmedName = editingCanvasName.trim(); if (trimmedName !== "" && trimmedName !== canvas.name) { updateCanvasName(canvas.id, trimmedName); } setEditingCanvasId(null);}} style={{ background: 'transparent', border: 'none', color: '#4CAF50', padding: '0 5px', cursor: 'pointer', fontSize: '1.2em', marginLeft: '4px' }}>✔️</button>
+                   <button title="Cancel rename" onClick={(e) => { e.stopPropagation(); setEditingCanvasId(null);}} style={{ background: 'transparent', border: 'none', color: '#F44336', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em' }}>❌</button>
+                 </>
+               ) : (
+                 <>
+                   <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}} title={canvas.name}>
+                     {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
+                   </span>
+                   <button title="Rename canvas" onClick={(e) => { e.stopPropagation(); setEditingCanvasId(canvas.id); setEditingCanvasName(canvas.name);}} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1em' }}>✏️</button>
+                   <span title="Open canvas in new window" onClick={(e) => { e.stopPropagation(); const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`; window.open(broadcastUrl, '_blank');}} style={{ width: '10px', height: '10px', backgroundColor: 'white', border: '1px solid rgb(102, 102, 102)', marginLeft: '8px', cursor: 'pointer', display: 'inline-block'}}></span>
+                    {currentCanvases.length > 1 && (
+                      <button title="Remove canvas" onClick={(e) => { e.stopPropagation(); if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id);}} style={{ background: 'transparent', border: 'none', color: '#aaa', marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em', padding: '0px 3px', lineHeight: '1', fontWeight: 'bold'}}>&times;</button>
+                    )}
+                 </>
+               )}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => { if (activeCanvas && activeCanvas.layout.length > 0) { if (confirm(`Are you sure you want to remove all elements from canvas "${activeCanvas.name}"?`)) { resetActiveCanvasLayout(); }}}} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', marginLeft: '10px', flexShrink: 0 }} title="Remove all elements from current canvas" disabled={!activeCanvas || activeCanvas.layout.length === 0}>Reset 🗑️</button>
+          <button onClick={() => { addCanvas(); }} style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', marginLeft: '10px', flexShrink: 0 }} title="Add new canvas">+</button>
         </div>
-        {/* Tab Bar End */}
-        <div style={{ position: 'relative', border: '1px dashed #444', overflow: 'hidden', backgroundColor: '#0d0d0d', width: '100%', aspectRatio: '16 / 9', maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px)', margin: 'auto',}}>
+        {/* END: Canvas Management UI (Restored) */}
+
+        <div style={{ position: 'relative', border: '1px dashed #444', overflow: 'hidden', backgroundColor: '#0d0d0d', width: '100%', aspectRatio: '16 / 9', maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px - 45px)', /* Adjusted maxHeight for tab bar */ margin: 'auto',}}>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: '0px', width: '1px', height: '20px', backgroundColor: '#555', pointerEvents: 'none', zIndex: 0, }} aria-hidden="true" />
           {activeLayout.map((element: StudioElement, index: number) => {
             const isSelected = element.id === selectedElementId;
@@ -222,13 +282,13 @@ const StudioInterface: React.FC = () => {
             else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; }
             else if (element.type === "CountryFlags") { content = <CountryFlagsElement element={element} isSelected={isSelected} />; }
             else if (element.type === "ColorGlowElement") { content = <ColorGlowElement element={element} isSelected={element.id === selectedElementId} />; }
-            else if (element.type === "MapPoolElement") { content = <MapPoolElement element={element} />; } // Added MapPoolElement rendering
+            else if (element.type === "MapPoolElement") { content = <MapPoolElement element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (
-              <Draggable key={element.id} handle=".drag-handle" position={{ x: element.position.x, y: element.position.y }} onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)} onStart={(e: DraggableEvent, data: DraggableData) => { const currentElement = activeLayout.find(el => el.id === element.id); if (currentElement && (currentElement.isPivotLocked || currentElement.lockPivotPoint) ) { const eventAsMouseEvent = e as MouseEvent; const scale = currentElement.scale || 1; const elementCenterX = currentElement.position.x + (currentElement.size.width * scale / 2); setDragStartContext({ elementId: currentElement.id, initialMouseX: eventAsMouseEvent.clientX, elementCenterX: elementCenterX }); } }} onStop={() => { setDragStartContext(null); }}>
-                <ResizableBox width={element.size.width * currentScale} height={element.size.height * currentScale} onResizeStop={(e, data) => handleResizeStop(element.id, data)} minConstraints={[MIN_ELEMENT_WIDTH, 30]} maxConstraints={[Infinity, Infinity]} style={elementSpecificStyle} className="drag-handle"> {/* Adjusted constraints for scale */}
-                  <div onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}} style={{ width: element.size.width + 'px', height: element.size.height + 'px', overflow: 'hidden', boxSizing: 'border-box', border: `1px solid ${element.borderColor || 'transparent'}`, background: element.backgroundColor || 'transparent', cursor: 'move', transform: `scale(${currentScale})`, transformOrigin: 'top left', }}>
+              <Draggable key={element.id} handle=".drag-handle" position={{ x: element.position.x, y: element.position.y }} onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)} onStart={(e: DraggableEvent, data: DraggableData) => { const currentElement = activeLayout.find(el => el.id === element.id); if (currentElement && (currentElement.isPivotLocked || currentElement.lockPivotPoint) ) { const eventAsMouseEvent = e as MouseEvent; const scale = currentElement.scale || 1; const elementWidth = currentElement.width || currentElement.size?.width || MIN_ELEMENT_WIDTH; const elementCenterX = currentElement.position.x + (elementWidth * scale / 2); setDragStartContext({ elementId: currentElement.id, initialMouseX: eventAsMouseEvent.clientX, elementCenterX: elementCenterX }); } }} onStop={() => { setDragStartContext(null); }}>
+                <ResizableBox width={(element.width || element.size?.width || MIN_ELEMENT_WIDTH) * currentScale} height={(element.height || element.size?.height || 30) * currentScale} onResizeStop={(e, data) => handleResizeStop(element.id, data)} minConstraints={[MIN_ELEMENT_WIDTH, 30]} /* Unscaled constraints */ maxConstraints={[Infinity, Infinity]} style={elementSpecificStyle} className="drag-handle">
+                  <div onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}} style={{ width: `${element.width || element.size?.width || MIN_ELEMENT_WIDTH}px`, height: `${element.height || element.size?.height || 30}px`, overflow: 'hidden', boxSizing: 'border-box', border: `1px solid ${element.borderColor || 'transparent'}`, background: element.backgroundColor || 'transparent', cursor: 'move', transform: `scale(${currentScale})`, transformOrigin: 'top left', }}>
                     {content}
                   </div>
                 </ResizableBox>
