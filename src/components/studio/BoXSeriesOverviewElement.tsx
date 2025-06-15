@@ -1,7 +1,8 @@
-import React, { useState } from 'react'; // Import useState
+import React, { useState, useRef } from 'react'; // Import useState and useRef
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
 import styles from './BoXSeriesOverviewElement.module.css'; // IMPORT CSS MODULE
+import Draggable, { DraggableEvent, DraggableData } from 'react-draggable'; // IMPORT Draggable
 
 // Helper functions (remain the same)
 const formatCivNameForImagePath = (civName: string): string => {
@@ -37,11 +38,34 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
 
-  const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
+  const { hostName, guestName, boxSeriesGames, updateStudioElementSettings } = useDraftStore(state => ({ // Added updateStudioElementSettings
     hostName: state.hostName,
     guestName: state.guestName,
     boxSeriesGames: state.boxSeriesGames,
+    updateStudioElementSettings: state.updateStudioElementSettings, // Added
   }));
+
+  const handleCivDrag = (side: 'left' | 'right', data: DraggableData) => {
+    const currentOffset = element.pivotInternalOffset || 0;
+    let newOffset = currentOffset;
+
+    // Note: deltaX is the change from the last drag event.
+    // We want to adjust the offset based on this delta.
+    // If dragging left column to the right (increasing its visual offset from center), deltaX is positive.
+    // This means pivotInternalOffset (which pushes left col left, right col right) should decrease.
+    // If dragging right column to the right (increasing its visual offset), deltaX is positive.
+    // This means pivotInternalOffset should increase.
+
+    if (side === 'left') {
+      newOffset -= data.deltaX; // Moving left column right decreases offset, left increases offset
+    } else { // side === 'right'
+      newOffset += data.deltaX; // Moving right column right increases offset, left decreases offset
+    }
+
+    // Apply some limits if desired, e.g., Math.max(-150, Math.min(150, newOffset))
+    // For now, no explicit limits here, but the SettingsPanel slider has them.
+    updateStudioElementSettings(element.id, { pivotInternalOffset: newOffset });
+  };
 
   // REFERENCE_GAME_ROW_HEIGHT_UNSCALED_PX defines the intrinsic height of a game row's visual elements (like images)
   // before any scaling is applied by the parent's transform: scale(element.scale).
@@ -183,19 +207,28 @@ return (
     >
       {/* Unified Rendering - restored row-per-game structure */}
       {boxSeriesGames.map((game, index) => {
+        // Create refs for Draggable nodeRef if needed, though direct div children might work.
+        // For simplicity, if direct divs don't cause issues, we can omit nodeRef.
+        // const leftCivRef = useRef<HTMLDivElement>(null);
+        // const rightCivRef = useRef<HTMLDivElement>(null);
+
         const leftCivSpecificStyle: React.CSSProperties = {
           justifySelf: 'end',
           transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
           transition: 'transform 0.2s ease-out',
+          cursor: isPivotLocked ? 'ew-resize' : 'default',
+          userSelect: isPivotLocked ? 'none' : 'auto',
         };
 
         const rightCivSpecificStyle: React.CSSProperties = {
           justifySelf: 'start',
           transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
           transition: 'transform 0.2s ease-out',
+          cursor: isPivotLocked ? 'ew-resize' : 'default',
+          userSelect: isPivotLocked ? 'none' : 'auto',
         };
 
-        console.log(`[BoXSeriesOverview] Game ${index + 1} - Pivot Styles: isPivotLocked=${isPivotLocked}, pivotInternalOffset=${pivotInternalOffset}, leftCivTransform='${leftCivSpecificStyle.transform}', rightCivTransform='${rightCivSpecificStyle.transform}'`);
+        // console.log(`[BoXSeriesOverview] Game ${index + 1} - Pivot Styles: isPivotLocked=${isPivotLocked}, pivotInternalOffset=${pivotInternalOffset}, leftCivTransform='${leftCivSpecificStyle.transform}', rightCivTransform='${rightCivSpecificStyle.transform}'`);
 
         return (
         // Assuming styles.gameEntry is similar to old styles.gameEntryContainer
@@ -205,12 +238,11 @@ return (
           </div>
           {/* Assuming styles.gameDataRow is a new class for the grid container */}
           <div className={styles.gameDataRow} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-            {/* Left Civ Cell */}
-            {/* Assuming styles.civCell, styles.leftCivCell exist or are defined in CSS */}
-            <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
-              <div
-                key={`hostciv-${index}`}
-                className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+            <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('left', data)} defaultPosition={{x:0, y:0}} >
+              <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
+                <div
+                  key={`hostciv-${index}`}
+                  className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
                 style={{
                   ...civSelectorStyle,
                   backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
@@ -239,12 +271,31 @@ return (
               </div>
             </div>
 
-            {/* Right Civ Cell */}
-            {/* Assuming styles.civCell, styles.rightCivCell exist or are defined in CSS */}
-            <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
+              </div>
+            </Draggable>
+
+            {/* Map Cell */}
+            {/* Assuming styles.mapCell exists or is defined in CSS */}
+            <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
               <div
-                key={`guestciv-${index}`}
-                className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+                key={`map-${index}`}
+                className={styles.selectorDisplay}
+                style={{
+                  ...mapSelectorStyle,
+                  backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
+                }}
+              >
+                {showMapNames && game.map && (
+                  <div className={styles.selectorTextOverlay}>{game.map}</div>
+                )}
+              </div>
+            </div>
+
+            <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('right', data)} defaultPosition={{x:0, y:0}} >
+              <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
+                <div
+                  key={`guestciv-${index}`}
+                  className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
                 style={{
                   ...civSelectorStyle,
                   backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,

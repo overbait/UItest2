@@ -22,19 +22,9 @@ const hexToRgb = (hex: string | null | undefined): { r: number; g: number; b: nu
     : null;
 };
 
-const getGlowInstanceStyle = (rgb: { r: number; g: number; b: number } | null): React.CSSProperties => {
-  if (!rgb) {
-    return { display: 'none' }; // Hide if no color
-  }
-  return {
-    height: '100%', // Glow circle diameter will be based on parent's height (scalerElement)
-    width: 'auto',   // Width will be derived from height to maintain aspect ratio
-    aspectRatio: '1 / 1', // Ensures it's a circle if parent is square, or ellipse if parent is rectangular
-    background: `radial-gradient(circle, rgba(${rgb.r},${rgb.g},${rgb.b},0.4) 0%, rgba(${rgb.r},${rgb.g},${rgb.b},0.0) 70%)`,
-    maxWidth: '100%', // Ensure it doesn't overflow its flex container if aspect ratio forces it wider
-    maxHeight: '100%', // Ensure it doesn't overflow its flex container
-  };
-};
+// getGlowInstanceStyle is now defined inside the component or passed glowDimension
+// For simplicity, moving its definition inside or making glowDimension available in its scope.
+// Let's define it here, modified to accept dimension.
 
 const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element }) => {
   const {
@@ -71,6 +61,26 @@ const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element }) => {
 
   const layoutWidth = element.size?.width || 125; // Default width from addStudioElement
   const layoutHeight = element.size?.height || 150; // Default height from addStudioElement
+
+  // Calculate finalGlowDimension
+  const BORDER_WIDTH_PX = displayBorderColor === 'transparent' || displayBorderColor === '' ? 0 : 1;
+  const scalerContentWidth = layoutWidth - (2 * BORDER_WIDTH_PX);
+  const scalerContentHeight = layoutHeight - (2 * BORDER_WIDTH_PX);
+  const finalGlowDimension = Math.max(0, Math.min(scalerContentWidth, scalerContentHeight));
+
+  const getGlowInstanceStyle = (
+    rgbColor: { r: number; g: number; b: number } | null,
+    dimension: number
+  ): React.CSSProperties => {
+    if (!rgbColor || dimension <= 0) {
+      return { display: 'none' };
+    }
+    return {
+      width: `${dimension}px`,
+      height: `${dimension}px`,
+      background: `radial-gradient(circle, rgba(${rgbColor.r},${rgbColor.g},${rgbColor.b},0.4) 0%, rgba(${rgbColor.r},${rgbColor.g},${rgbColor.b},0.0) 70%)`,
+    };
+  };
 
   let colorToUse: string | null = null;
   if (displayPlayerId === 'P1') {
@@ -119,7 +129,7 @@ const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element }) => {
   return (
     <div style={baseElementStyle}> {/* Removed styles.baseElement if not defined */}
       <div style={scalerElementStyle}> {/* Removed styles.scalerElement if not defined */}
-        {rgb && <div style={getGlowInstanceStyle(rgb)}></div>}
+        {rgb && <div style={getGlowInstanceStyle(rgb, finalGlowDimension)}></div>}
         {/* Pivot line and any other elements removed */}
       </div>
     </div>

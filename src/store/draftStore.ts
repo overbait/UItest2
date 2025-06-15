@@ -1630,6 +1630,7 @@ const useDraftStore = create<DraftStore>()(
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 300, height: 400 }, // Default size for MapPool
+                fontFamily: 'Cinzel, serif', // CHANGED DEFAULT FONT
                 textColor: 'white',
                 isPairMaster: true,
                 playerId: 'P1',

@@ -12,7 +12,7 @@
   font-family: 'Arial', sans-serif; /* Default, can be overridden by element props */
   color: white;
   text-shadow: 0 0 2px black, 0 0 2px black;
-  padding: 5px; /* Add some internal padding */
+  /* padding: 5px; */ /* Add some internal padding - REMOVED */
 }
 
 .boxScaler {

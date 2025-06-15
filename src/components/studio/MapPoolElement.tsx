@@ -197,8 +197,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             width: '100%', height: '100%', display: 'grid',
             gridTemplateColumns: `repeat(${viewCols}, 1fr)`,
             gridTemplateRows: `repeat(${viewRows}, 1fr)`,
-            gap: '3px',
-            padding: '3px',
+            gap: '1px', // MODIFIED
+            padding: '2px', // MODIFIED
             overflow: 'auto',
           }}
         >
@@ -238,7 +238,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                   style={{
                     color: displayTextColor || '#f0f0f0', // Use displayTextColor
                     fontFamily: displayFontFamily,
-                    fontSize: Math.min(textHeightWithinItem * 0.75, viewItemWidth / (map.name.length * 0.5 + 2), 12) + 'px',
+                    fontSize: Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.5 + 2), 11.5) + 'px', // MODIFIED
                   }}
                 >
                   {map.name}

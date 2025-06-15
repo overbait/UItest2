@@ -28,47 +28,48 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
 
   if (!selectedElement) { return null; }
 
-  // Determine the master element if the selected element is part of a MapPool pair
-  let masterElementForSettings = selectedElement;
-  if (selectedElement.type === 'MapPool' && selectedElement.pairId && !selectedElement.isPairMaster) {
+  // Generalized master element identification for any paired element
+  let masterElementForSharedProps = selectedElement;
+  if (selectedElement && selectedElement.pairId && selectedElement.isPairMaster === false) {
     const foundMaster = activeLayout.find(el => el.pairId === selectedElement.pairId && el.isPairMaster === true);
     if (foundMaster) {
-      masterElementForSettings = foundMaster;
+      masterElementForSharedProps = foundMaster;
     }
-    // If master not found (shouldn't happen in a consistent state), fallback to selectedElement for safety,
-    // though shared settings might not behave as expected.
+    // If master not found, masterElementForSharedProps remains selectedElement.
   }
 
-  const handleSettingChange = (targetElementId: string, settingName: keyof StudioElement, value: any) => {
-    if (selectedElement.type === 'MapPool') {
-      const masterId = selectedElement.isPairMaster ? selectedElement.id : masterElementForSettings.id;
-      const isSharedProp = settingName === 'fontFamily' || settingName === 'isPivotLocked' || settingName === 'scale';
+  const handleSettingChange = (settingName: keyof StudioElement, value: any) => {
+    if (!selectedElement) return;
 
-      if (isSharedProp) {
-        // Update the master element for shared props
-        updateStudioElementSettings(masterId, { [settingName]: value });
+    const sharedSettingsKeys: (keyof StudioElement)[] = [
+      'scale', 'isPivotLocked', 'pivotInternalOffset',
+      'fontFamily', 'textColor', 'backgroundColor', 'borderColor'
+      // Note: 'playerId' and 'pairId' are structural and not typically changed via this panel.
+      // 'isPairMaster' is also structural.
+    ];
 
-        // If scale is changed, ensure both elements in the pair are updated in the store
-        if (settingName === 'scale' && selectedElement.pairId) {
-          const sibling = activeLayout.find(el => el.pairId === selectedElement.pairId && el.id !== masterId);
-          if (sibling) {
-            updateStudioElementSettings(sibling.id, { [settingName]: value });
-          }
-          // Also ensure the currently selected element (if it's the secondary and was the one triggering)
-          // reflects the change if master was updated directly by a different path (though less likely here)
-          if (!selectedElement.isPairMaster && selectedElement.id !== masterId) {
-             // This might be redundant if MapPoolElement always reads scale from master,
-             // but ensures store consistency for the secondary element's own scale prop if it exists.
-            updateStudioElementSettings(selectedElement.id, { [settingName]: value });
-          }
-        }
+    if (selectedElement.pairId) { // It's a paired element
+      // For paired elements, shared settings always go to the master.
+      // Non-shared settings (if any existed that are user-configurable) would go to the selected element.
+      const masterIdToUpdate = selectedElement.isPairMaster
+        ? selectedElement.id
+        : masterElementForSharedProps.id;
+
+      if (sharedSettingsKeys.includes(settingName)) {
+        updateStudioElementSettings(masterIdToUpdate, { [settingName]: value });
+        // If the selected element is a slave, its own store props for these shared settings
+        // do not need to be updated here, as the slave component should derive them from the master at render time.
+        // The previous explicit update for 'scale' on slaves is removed for simplification,
+        // relying on reactive derivation in the slave components.
       } else {
-        // Individual prop for MapPool (e.g., colors), update the selected element directly
-        updateStudioElementSettings(targetElementId, { [settingName]: value });
+        // For any property not in sharedSettingsKeys, update the selected element directly.
+        // This path would be used for individual properties of a pair member (e.g. MapPool's P1/P2 specific map list).
+        // Currently, most common properties are shared.
+        updateStudioElementSettings(selectedElement.id, { [settingName]: value });
       }
     } else {
-      // For all other non-MapPool elements
-      updateStudioElementSettings(targetElementId, { [settingName]: value });
+      // For non-paired elements (like BoXSeriesOverview, or future single elements)
+      updateStudioElementSettings(selectedElement.id, { [settingName]: value });
     }
   };
 
@@ -116,8 +117,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               min="0.2" // BoX overview might need smaller scales
               max="5"   // And perhaps not as large
               step="0.05"
-              value={selectedElement.scale || 1}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
+              value={selectedElement.scale || 1} // BoXSeriesOverview is not paired, uses selectedElement
+              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
             />
             <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
           </div>
@@ -127,35 +128,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               type="checkbox"
               id="boxPivotLockCheckbox"
               style={checkboxStyle}
-              checked={!!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
+              checked={!!selectedElement.isPivotLocked} // BoXSeriesOverview is not paired
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
             />
           </div>
-          {/* New Pivot Offset Slider START */}
-          <div style={settingRowStyle}>
-            <label htmlFor="boxPivotOffsetSlider" style={labelStyle}>Civ Column Offset (px):</label>
-            <input
-              type="range"
-              id="boxPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="-150"
-              max="150"
-              step="1"
-              value={selectedElement.pivotInternalOffset || 0}
-              disabled={!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
-          </div>
-          {/* New Pivot Offset Slider END */}
           <div style={settingRowStyle}>
             <label htmlFor="gameXFontFamilyInput" style={labelStyle}>Game X Font:</label>
             <input
               type="text"
               id="gameXFontFamilyInput"
               style={inputStyle}
-              value={selectedElement.fontFamilyGameTitle || ''}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamilyGameTitle', e.target.value)}
+              value={selectedElement.fontFamilyGameTitle || ''} // BoXSeriesOverview specific prop
+              onChange={(e) => handleSettingChange('fontFamilyGameTitle', e.target.value)}
               placeholder="e.g., Cinzel, serif"
             />
           </div>
@@ -165,8 +149,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            type="checkbox"
            id="boxShowCivNamesCheckbox"
            style={checkboxStyle}
-           checked={selectedElement.showCivNames === undefined ? true : selectedElement.showCivNames}
-           onChange={(e) => handleSettingChange(selectedElement.id, 'showCivNames', e.target.checked)}
+           checked={selectedElement.showCivNames === undefined ? true : selectedElement.showCivNames}  // BoXSeriesOverview specific
+           onChange={(e) => handleSettingChange('showCivNames', e.target.checked)}
          />
        </div>
        <div style={settingRowStyle}>
@@ -175,8 +159,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            type="checkbox"
            id="boxShowMapNamesCheckbox"
            style={checkboxStyle}
-           checked={selectedElement.showMapNames === undefined ? true : selectedElement.showMapNames}
-           onChange={(e) => handleSettingChange(selectedElement.id, 'showMapNames', e.target.checked)}
+           checked={selectedElement.showMapNames === undefined ? true : selectedElement.showMapNames} // BoXSeriesOverview specific
+           onChange={(e) => handleSettingChange('showMapNames', e.target.checked)}
          />
        </div>
         <div style={{ marginBottom: '12px' }}> {/* Game Spacing Slider from previous step */}
@@ -192,8 +176,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               min="0"
               max="30"
               step="1"
-              value={selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'gameEntrySpacing', parseInt(e.target.value, 10))}
+              value={selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing} // BoXSeriesOverview specific
+              onChange={(e) => handleSettingChange('gameEntrySpacing', parseInt(e.target.value, 10))}
             />
             <span style={{...rangeValueStyle, minWidth: '35px' }}> {/* Ensure value span has enough width */}
               {(selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing)}px
@@ -209,20 +193,33 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          <h4 style={sectionHeaderStyle}>Score Options</h4>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
-           <input type="text" id="scoreOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+           <input type="text" id="scoreOnlyFontFamilyInput" style={inputStyle} value={masterElementForSharedProps.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyScaleSlider" style={labelStyle}>Scale:</label>
-           <input type="range" id="scoreOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))} />
-           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+           <input type="range" id="scoreOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={masterElementForSharedProps.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <span style={rangeValueStyle}>{(masterElementForSharedProps.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
-           <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)} />
+           <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!masterElementForSharedProps.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+         </div>
+         <div style={settingRowStyle}>
+            <label htmlFor="scoreOnlyPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
+            <input
+              type="range"
+              id="scoreOnlyPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="-150" max="150" step="1"
+              value={masterElementForSharedProps.pivotInternalOffset || 0}
+              disabled={!masterElementForSharedProps.isPivotLocked}
+              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyTextColorInput" style={labelStyle}>Text Color:</label>
-           <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
+           <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={masterElementForSharedProps.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
        </>
      )}
@@ -232,20 +229,33 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          <h4 style={sectionHeaderStyle}>Nicknames Options</h4>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
-           <input type="text" id="nicknamesOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+           <input type="text" id="nicknamesOnlyFontFamilyInput" style={inputStyle} value={masterElementForSharedProps.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyScaleSlider" style={labelStyle}>Scale:</label>
-           <input type="range" id="nicknamesOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))} />
-           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+           <input type="range" id="nicknamesOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={masterElementForSharedProps.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <span style={rangeValueStyle}>{(masterElementForSharedProps.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
-           <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)} />
+           <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!masterElementForSharedProps.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+         </div>
+         <div style={settingRowStyle}>
+            <label htmlFor="nicknamesOnlyPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
+            <input
+              type="range"
+              id="nicknamesOnlyPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="-150" max="150" step="1"
+              value={masterElementForSharedProps.pivotInternalOffset || 0}
+              disabled={!masterElementForSharedProps.isPivotLocked}
+              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyTextColorInput" style={labelStyle}>Text Color:</label>
-           <input type="text" id="nicknamesOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
+           <input type="text" id="nicknamesOnlyTextColorInput" style={inputStyle} value={masterElementForSharedProps.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
          {/* Specific centering options for NicknamesOnly might be added later */}
        </>
@@ -263,10 +273,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              min="0.2"
              max="5"
              step="0.05"
-             value={selectedElement.scale || 1}
-             onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
+             value={masterElementForSharedProps.scale || 1}
+             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
            />
-           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+           <span style={rangeValueStyle}>{(masterElementForSharedProps.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="countryFlagsPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
@@ -274,11 +284,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              type="checkbox"
              id="countryFlagsPivotLockCheckbox"
              style={checkboxStyle}
-             checked={!!selectedElement.isPivotLocked}
-             onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
+             checked={!!masterElementForSharedProps.isPivotLocked}
+             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
            />
          </div>
-         {/* pivotInternalOffset could be added here if needed */}
+         <div style={settingRowStyle}>
+            <label htmlFor="countryFlagsPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
+            <input
+              type="range"
+              id="countryFlagsPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="-150" max="150" step="1"
+              value={masterElementForSharedProps.pivotInternalOffset || 0}
+              disabled={!masterElementForSharedProps.isPivotLocked}
+              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
+         </div>
        </>
      )}
 
@@ -294,10 +316,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              min="0.2"
              max="10"
              step="0.05"
-             value={selectedElement.scale || 1}
-             onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
+             value={masterElementForSharedProps.scale || 1}
+             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
            />
-           <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+           <span style={rangeValueStyle}>{(masterElementForSharedProps.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="colorGlowPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
@@ -305,27 +327,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              type="checkbox"
              id="colorGlowPivotLockCheckbox"
              style={checkboxStyle}
-             checked={!!selectedElement.isPivotLocked}
-             onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
+             checked={!!masterElementForSharedProps.isPivotLocked}
+             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
            />
          </div>
-         {/*
          <div style={settingRowStyle}>
            <label htmlFor="colorGlowPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
            <input
              type="range"
              id="colorGlowPivotOffsetSlider"
              style={rangeInputStyle}
-             min="0"
-             max="100" // Adjust max as needed
+             min="-150"
+             max="150"
              step="1"
-             value={selectedElement.pivotInternalOffset || 0}
-             disabled={!selectedElement.isPivotLocked} // Optionally disable if pivot is not locked
+             value={masterElementForSharedProps.pivotInternalOffset || 0}
+             disabled={!masterElementForSharedProps.isPivotLocked}
              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
            />
-           <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
+           <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
          </div>
-         */}
        </>
      )}
 
@@ -344,10 +364,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               min="0.2"
               max="3"
               step="0.05"
-              value={masterElementForSettings.scale || 1} // Shared scale from master
-              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'scale', parseFloat(e.target.value))}
+              value={masterElementForSharedProps.scale || 1}
+              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
             />
-            <span style={rangeValueStyle}>{(masterElementForSettings.scale || 1).toFixed(2)}</span>
+            <span style={rangeValueStyle}>{(masterElementForSharedProps.scale || 1).toFixed(2)}</span>
           </div>
           <div style={settingRowStyle}>
             <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Pivot Point:</label>
@@ -355,9 +375,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               type="checkbox"
               id="mapPoolPivotLockCheckbox"
               style={checkboxStyle}
-              checked={masterElementForSettings.isPivotLocked === undefined ? false : !!masterElementForSettings.isPivotLocked}
-              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'isPivotLocked', e.target.checked)}
+              checked={masterElementForSharedProps.isPivotLocked === undefined ? false : !!masterElementForSharedProps.isPivotLocked}
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
             />
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="mapPoolPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
+            <input
+              type="range"
+              id="mapPoolPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="-150" max="150" step="1"
+              value={masterElementForSharedProps.pivotInternalOffset || 0}
+              disabled={!masterElementForSharedProps.isPivotLocked}
+              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
           </div>
           <div style={settingRowStyle}>
             <label htmlFor="mapPoolFontFamilyInput" style={labelStyle}>Font Family:</label>
@@ -365,16 +398,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               type="text"
               id="mapPoolFontFamilyInput"
               style={inputStyle}
-              value={masterElementForSettings.fontFamily || ''} // Allow empty for CSS default
-              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'fontFamily', e.target.value)}
+              value={masterElementForSharedProps.fontFamily || ''}
+              onChange={(e) => handleSettingChange('fontFamily', e.target.value)}
               placeholder="CSS Default (e.g., Arial)"
             />
           </div>
         </>
       )}
 
-      {/* Generic Element Settings (like Background, Border, Text Color - apply to selectedElement) */}
-      {selectedElement && selectedElement.type !== 'ColorGlowElement' && ( // ColorGlow might not need these generic ones
+      {/* Generic Appearance Settings - Apply to master for paired elements, or selected for single */}
+      {selectedElement && (
         <>
           <h4 style={sectionHeaderStyle}>Appearance</h4>
           <div style={settingRowStyle}>
@@ -383,8 +416,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               type="text"
               id="elementBgColorInput"
               style={inputStyle}
-              value={selectedElement.backgroundColor || ''}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'backgroundColor', e.target.value)}
+              value={masterElementForSharedProps.backgroundColor || ''}
+              onChange={(e) => handleSettingChange('backgroundColor', e.target.value)}
               placeholder="e.g., #RRGGBB, transparent"
             />
           </div>
@@ -394,21 +427,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               type="text"
               id="elementBorderColorInput"
               style={inputStyle}
-              value={selectedElement.borderColor || ''}
-              onChange={(e) => handleSettingChange(selectedElement.id, 'borderColor', e.target.value)}
+              value={masterElementForSharedProps.borderColor || ''}
+              onChange={(e) => handleSettingChange('borderColor', e.target.value)}
               placeholder="e.g., #RRGGBB, transparent"
             />
           </div>
-          {/* Text Color for MapPool - assuming MapPool might have text */}
-          {selectedElement.type === "MapPool" && (
+          {/* Text Color: Only show if element type typically has text and is not BoXSeriesOverview or CountryFlags */}
+          {selectedElement.type !== 'BoXSeriesOverview' &&
+           selectedElement.type !== 'CountryFlags' &&
+           selectedElement.type !== 'ColorGlowElement' && (
             <div style={settingRowStyle}>
               <label htmlFor="elementTextColorInput" style={labelStyle}>Text Color:</label>
               <input
                 type="text"
                 id="elementTextColorInput"
                 style={inputStyle}
-                value={selectedElement.textColor || ''}
-                onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)}
+                value={masterElementForSharedProps.textColor || ''} // Use master for paired, selected for single
+                onChange={(e) => handleSettingChange('textColor', e.target.value)}
                 placeholder="e.g., #FFFFFF, black"
               />
             </div>
