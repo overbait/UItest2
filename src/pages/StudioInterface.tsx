@@ -599,6 +599,7 @@ const StudioInterface: React.FC = () => {
             const elementSpecificStyle: React.CSSProperties = {
               zIndex: zIndexValue,
               position: 'absolute',
+              overflow: 'visible', // Added property
             };
 
             let content = null;
