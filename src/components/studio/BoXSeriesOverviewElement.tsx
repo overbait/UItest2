@@ -254,7 +254,7 @@ return (
           )}
         </div>
       </div>
-    </Draggable>
+    </DraggableCore>
 
     {/* Map Cell (Central, not draggable independently here) */}
     <div className={styles.mapCell} style={{ justifySelf: 'center' }}>
@@ -288,7 +288,7 @@ return (
           )}
         </div>
       </div>
-    </Draggable>
+    </DraggableCore>
           </div> {/* This closes gameDataRow */}
         </div>
       );
