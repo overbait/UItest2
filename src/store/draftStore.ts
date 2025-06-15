@@ -106,6 +106,7 @@ const initialCombinedState: CombinedDraftState = {
   selectedElementId: null,
   activeStudioLayoutId: null,
   layoutLastUpdated: null,
+
   hostColor: null,
   guestColor: null,
   hostFlag: null, // Initialize to null
