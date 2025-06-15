@@ -78,10 +78,18 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // The fontFamily for the overall element is set on styles.baseElement,
   // so it should cascade unless overridden here.
   const gameImageRowDynamicStyle: React.CSSProperties = {
-    gridTemplateColumns: (pivotInternalOffset && pivotInternalOffset > 0)
-      ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
-      : '1fr auto 1fr',
+    gridTemplateColumns: '1fr auto 1fr', // Map is centered, civs take remaining space
     // fontFamily: fontFamily, // fontFamily is now on the baseElement, inherited unless overridden
+  };
+
+  const leftCivCellStyle: React.CSSProperties = {
+    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
+    transition: 'transform 0.2s ease-out', // Optional: for smoother movement
+  };
+
+  const rightCivCellStyle: React.CSSProperties = {
+    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
+    transition: 'transform 0.2s ease-out', // Optional: for smoother movement
   };
 
   // Dynamic styles for images, setting their unscaled width and height.
@@ -173,7 +181,7 @@ return (
               Game {index + 1}
             </div>
             <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
-              <div className={`${styles.civCell} ${styles.leftCivCell}`}>
+              <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivCellStyle}>
                 <div
                   key={hostCivKey + '-container'}
                   className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
@@ -188,7 +196,7 @@ return (
                 </div>
               </div>
 
-              {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+              {/* Spacers are removed as their function is replaced by translateX on civCells */}
 
               <div className={styles.mapCell}>
                 <div
@@ -205,9 +213,9 @@ return (
                 </div>
               </div>
 
-              {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+              {/* Spacers are removed as their function is replaced by translateX on civCells */}
 
-              <div className={`${styles.civCell} ${styles.rightCivCell}`}>
+              <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivCellStyle}>
                 <div
                   key={guestCivKey + '-container'}
                   className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}

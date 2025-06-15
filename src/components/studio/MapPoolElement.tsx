@@ -37,6 +37,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     fontFamily: ownFontFamily,
     scale: ownScale,
     isPivotLocked: ownIsPivotLocked,
+    pivotInternalOffset: ownPivotInternalOffset, // Added
     playerId,
     pairId,
     isPairMaster,
@@ -45,6 +46,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   let displayFontFamily = ownFontFamily || 'Arial, sans-serif';
   let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
   let displayScale = ownScale === undefined ? 1 : ownScale;
+  let displayPivotInternalOffset = ownPivotInternalOffset === undefined ? 0 : ownPivotInternalOffset; // Added
 
   if (isPairMaster === false && pairId) {
     const activeLayout = currentCanvases.find(c => c.id === currentActiveCanvasId)?.layout || [];
@@ -53,6 +55,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       displayFontFamily = masterElement.fontFamily || displayFontFamily;
       displayIsPivotLocked = masterElement.isPivotLocked === undefined ? displayIsPivotLocked : masterElement.isPivotLocked;
       displayScale = masterElement.scale === undefined ? displayScale : masterElement.scale;
+      displayPivotInternalOffset = masterElement.pivotInternalOffset === undefined ? displayPivotInternalOffset : masterElement.pivotInternalOffset; // Added
     }
   }
 
@@ -132,6 +135,15 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     return itemClassName;
   };
 
+  let rootTransform = '';
+  if (displayIsPivotLocked && displayPivotInternalOffset !== 0) {
+    if (element.playerId === 'P1') {
+      rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
+    } else if (element.playerId === 'P2') {
+      rootTransform = `translateX(${displayPivotInternalOffset}px)`;
+    }
+  }
+
   return (
     <div
       className={styles['map-pool-element']}
@@ -140,6 +152,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
         backgroundColor: backgroundColor || 'transparent',
         border: `1px solid ${borderColor || 'transparent'}`,
         overflow: 'hidden',
+        transform: rootTransform || undefined, // Added
+        transition: 'transform 0.2s ease-out', // Added
       }}
     >
       <div
