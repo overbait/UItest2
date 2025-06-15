@@ -139,108 +139,55 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left';
 
   return (
-    // Base element container, applying CSS module style and dynamic font settings.
-    // This div defines the bounding box. Overflow hidden to contain the scaler.
-    <div
-      className={styles.baseElement}
-      style={{
-        fontFamily,
-        // The baseElement should not have fontSize directly if children are scaled,
-        // or it should be very small / 0, as scaling affects perceived font size.
-        // Let's apply dynamicFontSize to the scaler's content instead.
-        overflow: 'hidden',
-        width: size.width, // Explicitly set from element.size for clarity
-        height: size.height,
-      }}
-    >
-      <div
-        className={styles.boxScaler} // New class for the scaler
-        style={{
-          width: `${unscaledWidth}px`,
-          height: `${unscaledHeight}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: scalerTransformOrigin,
-          fontSize: `${dynamicFontSize}px`, // Apply base font size to scaler content
-        }}
-      >
-        {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-          const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
-        const mapKey = `map-${index}-${game.map || 'random'}`;
-        const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
+    <div className={styles.baseElement} style={{ fontFamily: element.fontFamily || 'Arial, sans-serif', width: element.size.width, height: element.size.height, overflow: 'hidden' }}>
+      <div className={styles.boxScaler} style={{ width: (element.size.width / (element.scale || 1)) + 'px', height: (element.size.height / (element.scale || 1)) + 'px', transform: `scale(${element.scale || 1})`, transformOrigin: scalerTransformOrigin, fontSize: '10px' /* Directly use scalerTransformOrigin from outer scope */ }}>
+        {boxSeriesGames.map((game, index) => {
+          // Using variables from the component's scope directly (element, game, index, styles)
+          return (
+            <div key={index} className={styles.gameEntryContainer} style={{ paddingTop: index > 0 ? `${element.gameEntrySpacing || 10}px` : '0px' }}>
+              <div className={styles.gameTitle} style={{ fontSize: '9px', fontFamily: element.fontFamilyGameTitle || element.fontFamily }}> {/* Simplified style */}
+                Game {index + 1}
+              </div>
+              <div className={styles.gameImageRow} style={{ display: 'grid', gridTemplateColumns: (element.pivotInternalOffset && element.pivotInternalOffset > 0) ? `1fr ${element.pivotInternalOffset}px auto ${element.pivotInternalOffset}px 1fr` : '1fr auto 1fr' }}> {/* Simplified style */}
+                {/* Simplified Civ Cell 1 (Host) */}
+                <div className={`${styles.civCell} ${styles.leftCivCell}`}>
+                  <div className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`} style={{ width: '130px', height: '30px', border: '1px solid #ccc' }}>
+                    {element.showCivNames && game.hostCiv && (
+                      <div className={styles.selectorTextOverlay}>{game.hostCiv} (H)</div>
+                    )}
+                  </div>
+                </div>
 
-        // gameRowDynamicStyle is now gameImageRowDynamicStyle
-        // const gameImageRowDynamicStyle: React.CSSProperties = { // Defined above
-        //   gridTemplateColumns: isPivotLocked
-        //     ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
-        //     : '1fr auto 1fr',
-        // };
-        // dynamicGameTitleStyle remains for fontSize, potentially custom fontFamily later
-        // const gameTitleFont = element.fontFamilyGameTitle || undefined; // Defined above
-        // const dynamicGameTitleStyle: React.CSSProperties = { // Defined above
-        //   fontSize: `${gameTitleFontSize}px`,
-        //   fontFamily: gameTitleFont,
-        // };
+                {/* Optional Spacer based on pivotInternalOffset */}
+                {(element.pivotInternalOffset && element.pivotInternalOffset > 0) && <div className={styles.spacer} style={{width: `${element.pivotInternalOffset}px`}}></div>}
 
-        return (
-         <div
-           key={index}
-           className={styles.gameEntryContainer}
-           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }} // Apply spacing as paddingTop to subsequent entries
-         >
-            <div className={styles.gameTitle} style={{}}>
-              Game {index + 1}
-            </div>
-           <div className={styles.gameImageRow} style={{}}>
-              {/* Left civilization display. */}
-              <div className={`${styles.civCell} ${styles.leftCivCell}`}>
-            <div
-              key={hostCivKey + '-container'}
-              className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-              style={{ border: '1px solid red' }}
-            >
-              {showCivNames && game.hostCiv && (
-                <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
-              )}
-            </div>
-          </div>
+                {/* Simplified Map Cell */}
+                <div className={styles.mapCell}>
+                  <div className={styles.selectorDisplay} style={{ width: '130px', height: '30px', border: '1px solid #ccc' }}>
+                    {element.showMapNames && game.map && (
+                      <div className={styles.selectorTextOverlay}>{game.map}</div>
+                    )}
+                  </div>
+                </div>
 
-          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+                {/* Optional Spacer based on pivotInternalOffset */}
+                {(element.pivotInternalOffset && element.pivotInternalOffset > 0) && <div className={styles.spacer} style={{width: `${element.pivotInternalOffset}px`}}></div>}
 
-          {/* Map display. */}
-          <div className={styles.mapCell}>
-            <div
-              key={mapKey + '-container'}
-              className={styles.selectorDisplay}
-              style={{ border: '1px solid blue' }}
-            >
-              {showMapNames && game.map && (
-                <div className={styles.selectorTextOverlay}>{game.map}</div>
-              )}
-            </div>
-          </div>
-
-          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
-
-          {/* Right civilization display. */}
-          <div className={`${styles.civCell} ${styles.rightCivCell}`}>
-            <div
-              key={guestCivKey + '-container'}
-              className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-              style={{ border: '1px solid red' }}
-            >
-              {showCivNames && game.guestCiv && (
-                <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
-              )}
-            </div>
-          </div>
-           </div> {/* End of gameImageRow */}
-        </div>
-      )})}
-    </div> {/* boxScaler */}
-    </div> {/* baseElement */}
+                {/* Simplified Civ Cell 2 (Guest) */}
+                <div className={`${styles.civCell} ${styles.rightCivCell}`}>
+                  <div className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`} style={{ width: '130px', height: '30px', border: '1px solid #ccc' }}>
+                    {element.showCivNames && game.guestCiv && (
+                      <div className={styles.selectorTextOverlay}>{game.guestCiv} (G)</div>
+                    )}
+                  </div>
+                </div>
+              </div> {/* End of gameImageRow */}
+            </div> // End of gameEntryContainer
+          );
+        })}
+      </div> {/* End of boxScaler */}
+    </div> // End of baseElement
   );
-};
+}; // End of component BoXSeriesOverviewElement
 
-export default BoXSeriesOverviewElement;
+export default BoXSeriesOverviewElement; // Ensure export default is present
