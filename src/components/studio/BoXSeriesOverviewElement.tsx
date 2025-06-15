@@ -33,6 +33,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     // elementRole, // Removed
   } = element;
 
+  console.log(`[BoXSeriesOverview] Init - Props: isPivotLocked=${isPivotLocked}, pivotInternalOffset=${pivotInternalOffset}, scale=${scale}, element.size.width=${size?.width}, element.size.height=${size?.height}`);
+
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
 
   const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
@@ -192,6 +194,8 @@ return (
           transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
           transition: 'transform 0.2s ease-out',
         };
+
+        console.log(`[BoXSeriesOverview] Game ${index + 1} - Pivot Styles: isPivotLocked=${isPivotLocked}, pivotInternalOffset=${pivotInternalOffset}, leftCivTransform='${leftCivSpecificStyle.transform}', rightCivTransform='${rightCivSpecificStyle.transform}'`);
 
         return (
         // Assuming styles.gameEntry is similar to old styles.gameEntryContainer
