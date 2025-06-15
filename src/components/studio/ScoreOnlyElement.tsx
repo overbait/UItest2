@@ -72,7 +72,6 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element }) => {
   const baseElementStyle: React.CSSProperties = {
     width: `${layoutWidth * displayScale}px`,
     height: `${layoutHeight * displayScale}px`,
-    overflow: 'hidden',
     transform: rootTransform || undefined,
     transition: 'transform 0.2s ease-out',
     // position: 'absolute', // This should be handled by the Draggable/ResizableBox wrapper

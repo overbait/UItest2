@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'; // Import useState and useRef
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
 import styles from './BoXSeriesOverviewElement.module.css'; // IMPORT CSS MODULE
-import Draggable, { DraggableEvent, DraggableData } from 'react-draggable'; // IMPORT Draggable
+import DraggableCore, { DraggableEvent, DraggableData } from 'react-draggable'; // IMPORT Draggable
 
 // Helper functions (remain the same)
 const formatCivNameForImagePath = (civName: string): string => {
@@ -196,7 +196,6 @@ return (
     className={styles.baseElement}
     style={{
       fontFamily,
-      overflow: 'hidden',
       width: `${layoutWidth * scale}px`, // Viewport is scaled size
       height: `${layoutHeight * scale}px`, // Viewport is scaled size
     }}
@@ -240,7 +239,7 @@ return (
           <div className={styles.gameDataRow} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
 
     {/* Left Civ Draggable Wrapper */}
-    <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('left', data)} defaultPosition={{x:0, y:0}}>
+    <DraggableCore disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('left', data)}>
       <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivSpecificStyle}>
         <div
           key={`hostciv-${index}`} // Keep keys on the actual content elements if map is involved
@@ -274,7 +273,7 @@ return (
     </div>
 
     {/* Right Civ Draggable Wrapper */}
-    <Draggable axis="x" disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('right', data)} defaultPosition={{x:0, y:0}}>
+    <DraggableCore disabled={!isPivotLocked} onDrag={(e, data) => handleCivDrag('right', data)}>
       <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivSpecificStyle}>
         <div
           key={`guestciv-${index}`}

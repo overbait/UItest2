@@ -587,6 +587,11 @@ const StudioInterface: React.FC = () => {
             // Set a significantly higher z-index for the selected element.
             const zIndexValue = isSelected ? 999 : baseZIndex;
 
+            let resizeHandlesProps = {};
+            if (element.type === "ColorGlowElement" || element.type === "MapPool") {
+              resizeHandlesProps = { resizeHandles: [] };
+            }
+
             const elementSpecificStyle: React.CSSProperties = {
               zIndex: zIndexValue,
               position: 'absolute',
@@ -634,6 +639,7 @@ const StudioInterface: React.FC = () => {
                     minConstraints={[MIN_ELEMENT_WIDTH / currentScale, 30 / currentScale]}
                     maxConstraints={[800 / currentScale, 600 / currentScale]}
                     style={elementSpecificStyle} // Apply new style here
+                    {...resizeHandlesProps}
                     className="drag-handle">
                   <div
                        onClick={(e) => { e.stopPropagation(); handleElementClick(element.id);}}
