@@ -33,13 +33,10 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     size,
     backgroundColor,
     borderColor,
-    size,
-    backgroundColor,
-    borderColor,
     textColor,
-    fontFamily: ownFontFamily, // Renamed from element.fontFamily
-    scale: ownScale, // Renamed from element.scale
-    isPivotLocked: ownIsPivotLocked, // Renamed
+    fontFamily: ownFontFamily,
+    scale: ownScale,
+    isPivotLocked: ownIsPivotLocked,
     playerId,
     pairId,
     isPairMaster,
