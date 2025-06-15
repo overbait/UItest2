@@ -1,105 +1,123 @@
 import React from 'react';
 import useDraftStore from '../../store/draftStore';
 import { StudioElement } from '../../types/draft';
+import styles from './CountryFlagsElement.module.css';
 
 interface CountryFlagsElementProps {
   element: StudioElement;
-  isSelected?: boolean; // For pivot line visibility
-  isBroadcast?: boolean; // (Currently unused by this element but good for consistency)
+  isSelected?: boolean;
+  isBroadcast?: boolean;
 }
 
 const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSelected, isBroadcast }) => {
   const {
-    // fontFamily, // Not directly used for text
-    // backgroundColor, // Applied to baseDivStyle if needed, but flags are images
-    // borderColor, // Applied to baseDivStyle if needed
-    // textColor, // Not directly used for images
-    isPivotLocked,
-    pivotInternalOffset,
-    size // Used for dynamic font size if we had text, and for main div dimensions
+    size,
+    fontFamily = 'Arial, sans-serif', // Kept for potential use if text was ever added
+    textColor = 'white',             // Kept for potential use if text was ever added
+    backgroundColor = 'transparent', // For grid background
+    borderColor = 'transparent',     // For grid border
+    isPivotLocked = false,
+    pivotInternalOffset = 0,
+    scale = 1,
   } = element;
-
-  // const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40; // Example if text was primary
-  // const BASELINE_FONT_SIZE_PX = 18;
-  // const dynamicFontSize = Math.max(8, (size.height / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
-
-  // const currentFontFamily = fontFamily || 'Arial, sans-serif';
-  // const currentBackgroundColor = backgroundColor || 'transparent';
-  // const currentBorderColor = borderColor || 'transparent';
-  // const currentTextColor = textColor || 'white';
-  const currentPivotOffset = pivotInternalOffset || 0;
 
   const liveHostFlag = useDraftStore((state) => state.hostFlag);
   const liveGuestFlag = useDraftStore((state) => state.guestFlag);
 
   const flagBaseStyle: React.CSSProperties = {
-    width: '100%', // Make flag take width of its container cell
-    height: '100%', // Make flag take height of its container cell
-    objectFit: 'contain', // Or 'cover', 'scale-down' depending on desired look
-    display: 'block', // Remove extra space below img
-    pointerEvents: 'none', // Make the image itself ignore mouse events
-    userSelect: 'none',   // Prevent selecting the image like text
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    display: 'block',
+    pointerEvents: 'none',
+    userSelect: 'none',
   };
 
   const hostFlagPath = liveHostFlag ? `/assets/countryflags/${liveHostFlag.toLowerCase()}.png` : null;
   const guestFlagPath = liveGuestFlag ? `/assets/countryflags/${liveGuestFlag.toLowerCase()}.png` : null;
 
-  const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
-  const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
+  const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />;
+  const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />;
 
   const pivotLineStyle: React.CSSProperties = {
     position: 'absolute',
     left: '50%',
-    top: '10%', // Adjust as needed
-    bottom: '10%', // Adjust as needed
+    top: '10%',
+    bottom: '10%',
     width: '1px',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)', // Match other elements
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     transform: 'translateX(-50%)',
     zIndex: 1,
   };
 
-  const baseDivStyle: React.CSSProperties = {
-    // border: `1px solid ${currentBorderColor}`, // Keep border if desired
-    // backgroundColor: currentBackgroundColor, // Keep background if desired
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    display: 'grid',
-    gridTemplateColumns: isPivotLocked ? `1fr ${currentPivotOffset}px 1fr` : '1fr 1fr',
-    alignItems: 'center', // Vertically center flags in their cells
-    justifyItems: 'center', // Horizontally center flags in their cells (if cell is wider than flag)
-    gap: isPivotLocked ? '0px' : `${currentPivotOffset}px`, // Use gap if not pivot locked for spacing
-    overflow: 'hidden',
+  const layoutWidth = size?.width || 150; // Default width
+  const layoutHeight = size?.height || 50; // Default height
+
+  const scalerElementStyle: React.CSSProperties = {
+    width: `${layoutWidth}px`,
+    height: `${layoutHeight}px`,
     position: 'relative',
-    padding: '2px', // Small padding so flags don't touch edges
   };
 
-  // Container for each flag, to help with centering or aspect ratio if needed
-  const flagContainerStyle: React.CSSProperties = {
-    width: '100%', // e.g., 'calc(100% - 4px)' if padding is on base
-    height: '100%', // e.g., 'calc(100% - 4px)'
+  if (isPivotLocked) {
+    scalerElementStyle.left = '50%';
+    scalerElementStyle.top = '50%';
+    scalerElementStyle.transform = `translate(-50%, -50%) scale(${scale})`;
+    scalerElementStyle.transformOrigin = 'center center';
+  } else {
+    scalerElementStyle.left = '0%';
+    scalerElementStyle.top = '0%';
+    scalerElementStyle.transform = `scale(${scale})`;
+    scalerElementStyle.transformOrigin = 'top left';
+  }
+
+  const hostFlagContainerDynamicStyle: React.CSSProperties = {
+    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
+    transition: 'transform 0.2s ease-out',
+    width: '100%',
+    height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+  };
+  const guestFlagContainerDynamicStyle: React.CSSProperties = {
+    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
+    transition: 'transform 0.2s ease-out',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   };
 
   return (
-    <div style={baseDivStyle}>
-      {/* Host Flag Cell */}
-      <div style={flagContainerStyle}>
-        {hostFlagDisplay}
+    <div className={styles.baseElement} style={{
+      width: `${layoutWidth * scale}px`,
+      height: `${layoutHeight * scale}px`,
+      overflow: 'hidden',
+      // fontFamily: fontFamily, // Not strictly needed on base if grid has it
+    }}>
+      <div className={styles.scalerElement} style={scalerElementStyle}>
+        <div className={styles.flagsGrid} style={{
+          backgroundColor: backgroundColor,
+          border: `1px solid ${borderColor}`,
+        }}>
+          <div className={styles.flagContainer} style={hostFlagContainerDynamicStyle}>
+            {hostFlagDisplay}
+          </div>
+          <div className={styles.flagContainer} style={guestFlagContainerDynamicStyle}>
+            {guestFlagDisplay}
+          </div>
+          {isPivotLocked && isSelected && (
+            <div style={pivotLineStyle}></div>
+          )}
+          {/* Placeholder for hidden message if flags are not set - adapt if needed
+          {!liveHostFlag && !liveGuestFlag && !isBroadcast && (
+            <span className={styles.hiddenNamesMessage} style={{ color: textColor }}>(Flags Hidden)</span>
+          )}
+          */}
+        </div>
       </div>
-
-      {/* Middle Spacer Cell (only if pivot locked and offset > 0) */}
-      {isPivotLocked && currentPivotOffset > 0 && <div></div>}
-
-      {/* Guest Flag Cell */}
-      <div style={flagContainerStyle}>
-        {guestFlagDisplay}
-      </div>
-
-      {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
     </div>
   );
 };

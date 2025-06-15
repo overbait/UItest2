@@ -1,0 +1,35 @@
+.baseElement {
+  box-sizing: border-box;
+  position: relative; /* For absolute pivot line if kept */
+}
+
+.scalerElement {
+  box-sizing: border-box;
+  width: 100%; /* Takes full width of baseElement's unscaled dimensions */
+  height: 100%; /* Takes full height of baseElement's unscaled dimensions */
+  /* The content grid will be inside this scaler */
+}
+
+.flagsGrid { /* New class for the div that was previously the root */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Fixed columns */
+  align-items: center;
+  justify-items: center;
+  /* gap: 0; /* Gap removed, pivot handles spacing */
+  overflow: hidden; /* Keep this for the grid itself */
+  position: relative; /* For pivot line */
+  padding: 2px;
+}
+
+.flagContainer { /* Style for the direct wrapper of each flag image */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* transition for transform if desired, will be added inline for now */
+}

@@ -1,0 +1,60 @@
+.baseElement {
+  box-sizing: border-box;
+  position: relative; /* For pivot line */
+}
+
+.scalerElement {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  /* The content grid will be inside this scaler */
+}
+
+.scoresGrid { /* New class for the div that was previously the root */
+  /* border, padding, border-radius, background-color, color, fontFamily, fontSize are set by inline styles */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Fixed columns for two scores */
+  align-items: center; /* Vertically center content in cells */
+  /* justify-items: center; /* Let scoreContainer handle horizontal alignment */
+  overflow: hidden; /* Keep this for the grid itself */
+  position: relative; /* For pivot line and hidden message */
+}
+
+.scoreContainer { /* Base style for score containers */
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.hostScoreContainer {
+  justify-content: flex-end; /* Align score to the right */
+  padding-right: 5px; /* Add some padding from the center/pivot line */
+}
+
+.guestScoreContainer {
+  justify-content: flex-start; /* Align score to the left */
+  padding-left: 5px; /* Add some padding from the center/pivot line */
+}
+
+.scoreText { /* Class for the span containing the score */
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-weight: bold;
+}
+
+.hiddenScoresMessage {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8em; /* Relative to dynamicFontSize */
+    opacity: 0.7;
+}
