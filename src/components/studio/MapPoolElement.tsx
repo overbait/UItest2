@@ -1,118 +1,254 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useStudio } from '@/contexts/StudioContext';
-import { ResizableBox } from 'react-resizable';
-import 'react-resizable/css/styles.css'; // Import styles for ResizableBox
-import styles from './MapPoolElement.module.css'; // Import CSS module
-import { CivIcon } from '@/components/CivIcon/CivIcon';
-import { MapIcon }
-from '@/components/MapIcon/MapIcon';
+import React from 'react';
+import useDraftStore from '../../store/draftStore';
+import { StudioElement } from '../../types/draft';
+import styles from './MapPoolElement.module.css';
 
 interface MapPoolElementProps {
-  id: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  scale?: number;
-  playerId?: 'P1' | 'P2'; // Added to identify player context
-  pairId?: string; // Added for pairing elements
-  isPairMaster?: boolean; // Designates this as the master element for paired resizing
+  element: StudioElement;
 }
 
-const MapPoolElement: React.FC<MapPoolElementProps> = ({
-  id,
-  position,
-  size,
-  scale = 1,
-  playerId,
-  pairId,
-  isPairMaster,
-}) => {
-  const { updateElementPosition, updateElementSize, selectedElementId, setSelectedElementId, getElement } = useStudio();
-  const [currentSize, setCurrentSize] = useState(size);
-  const [currentPosition, setCurrentPosition] = useState(position);
-  constscaledWidth = useMemo(() => currentSize.width * scale, [currentSize.width, scale]);
-  const scaledHeight = useMemo(() => currentSize.height * scale, [currentSize.height, scale]);
+const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
+  const {
+    aoe2cmRawDraftOptions,
+    mapDraftStatus,
+    mapPicksHost, mapBansHost,
+    mapPicksGuest, mapBansGuest,
+    mapPicksGlobal, mapBansGlobal,
+    currentCanvases,
+    activeCanvasId: currentActiveCanvasId,
+  } = useDraftStore(state => ({
+    aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
+    mapDraftStatus: state.mapDraftStatus,
+    mapPicksHost: state.mapPicksHost,
+    mapBansHost: state.mapBansHost,
+    mapPicksGuest: state.mapPicksGuest,
+    mapBansGuest: state.mapBansGuest,
+    mapPicksGlobal: state.mapPicksGlobal,
+    mapBansGlobal: state.mapBansGlobal,
+    currentCanvases: state.currentCanvases,
+    activeCanvasId: state.activeCanvasId,
+  }));
 
-  const maps = ['Arabia', 'Arena', 'Baltic', 'Blackforest', 'Coastal', 'Continental', 'Craterlake', 'Fortress', 'Ghostlake', 'Goldrush', 'Highland', 'Islands', 'Lombardia', 'Mediterranean', 'Megarandom', 'Nomad', 'Oasis', 'Pacificislands', 'Rivers', 'Scandinavia', 'Socotra', 'Steppe', 'Teamislands', 'Valley', 'Yucatan'];
+  const {
+    size,
+    backgroundColor,
+    borderColor,
+    textColor,
+    fontFamily: ownFontFamily,
+    scale: ownScale,
+    isPivotLocked: ownIsPivotLocked,
+    pivotInternalOffset: ownPivotInternalOffset, // Added
+    playerId,
+    pairId,
+    isPairMaster,
+  } = element;
 
-  // Handle element selection
-  const handleSelectElement = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event bubbling
-    setSelectedElementId(id);
+  let displayFontFamily = ownFontFamily || 'Arial, sans-serif';
+  let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
+  let displayScale = ownScale === undefined ? 1 : ownScale;
+  let displayPivotInternalOffset = ownPivotInternalOffset === undefined ? 0 : ownPivotInternalOffset; // Added
+  let displayBackgroundColor = backgroundColor || 'transparent';
+  let displayBorderColor = borderColor || 'transparent';
+  let displayTextColor = textColor || 'white';
+
+  if (isPairMaster === false && pairId) {
+    const activeLayout = currentCanvases.find(c => c.id === currentActiveCanvasId)?.layout || [];
+    const masterElement = activeLayout.find(el => el.pairId === pairId && el.isPairMaster === true);
+    if (masterElement) {
+      displayFontFamily = masterElement.fontFamily || displayFontFamily;
+      displayIsPivotLocked = masterElement.isPivotLocked === undefined ? displayIsPivotLocked : masterElement.isPivotLocked;
+      displayScale = masterElement.scale === undefined ? displayScale : masterElement.scale;
+      displayPivotInternalOffset = masterElement.pivotInternalOffset === undefined ? displayPivotInternalOffset : masterElement.pivotInternalOffset; // Added
+      displayBackgroundColor = masterElement.backgroundColor || displayBackgroundColor;
+      displayBorderColor = masterElement.borderColor || displayBorderColor;
+      displayTextColor = masterElement.textColor || displayTextColor;
+    }
+  }
+
+  const getMapImageSrc = (mapName: string): string => {
+    const imageName = mapName.toLowerCase().replace(/\s+/g, '-').replace(/[():]/g, '');
+    return `assets/maps/${imageName}.png`;
   };
 
-  constisSelected = selectedElementId === id;
+  const maps = React.useMemo(() => {
+    if (!aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.length === 0) return [];
+    return aoe2cmRawDraftOptions.filter(
+      option => option.id && !option.id.startsWith('aoe4.') && option.name
+    );
+  }, [aoe2cmRawDraftOptions]);
 
-  // Effect to update local state when props change (e.g., undo/redo, loading layout)
-  useEffect(() => {
-    setCurrentSize(size);
-  }, [size]);
+  const perspective = playerId === 'P1' ? 'P1' : 'P2';
 
-  useEffect(() => {
-    setCurrentPosition(position);
-  }, [position]);
-
-  // Master element logic for paired resizing
-  useEffect(() => {
-    if (isPairMaster && pairId) {
-      const pairedElement = getElement(pairId);
-      if (pairedElement && (pairedElement.size.width !== currentSize.width || pairedElement.size.height !== currentSize.height)) {
-        updateElementSize(pairId, currentSize.width, currentSize.height);
-      }
-    }
-  }, [currentSize, isPairMaster, pairId, updateElementSize, getElement]);
-
-
-  return (
-    <ResizableBox
-      width={scaledWidth}
-      height={scaledHeight}
-      onResizeStop={(e, data) => {
-        const newWidth = data.size.width / scale;
-        const newHeight = data.size.height / scale;
-        updateElementSize(id, newWidth, newHeight);
-        setCurrentSize({ width: newWidth, height: newHeight }); // Update local state
-      }}
-      draggableOpts={{
-        onStop: (e, data) => {
-          updateElementPosition(id, data.x, data.y);
-          setCurrentPosition({ x: data.x, y: data.y }); // Update local state
-        },
-        disabled: isSelected ? false : true, // Enable dragging only if selected
-      }}
-      minConstraints={[100 * scale, 50 * scale]} // Minimum size, adjusted by scale
-      maxConstraints={[1200 * scale, 1000 * scale]} // Maximum size, adjusted by scale
-      style={{
-        position: 'absolute',
-        left: currentPosition.x,
-        top: currentPosition.y,
-        border: isSelected ? '2px solid #007bff' : '2px solid transparent',
-        transition: 'border-color 0.2s', // Smooth transition for border color
-        overflow: 'hidden', // Ensure content does not spill out
-      }}
-      className={styles.mapPoolContainer} // Apply main container style
-      onClick={handleSelectElement} // Select element on click
-    >
+  if (mapDraftStatus !== 'connected' && mapDraftStatus !== 'live') {
+    return (
       <div
         style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexWrap: 'wrap', // Allow items to wrap to the next line
-          justifyContent: 'flex-start', // Align items to the start of the container
-          alignItems: 'flex-start', // Align items to the start of the container
-          padding: '10px', // Add some padding inside the container
-          boxSizing: 'border-box', // Ensure padding is included in width/height
-          overflowY: 'auto', // Allow vertical scrolling if content overflows
+          width: size.width, height: size.height, backgroundColor: displayBackgroundColor,
+          border: `1px solid ${displayBorderColor}`, overflow: 'hidden', display: 'flex',
+          justifyContent: 'center', alignItems: 'center', color: displayTextColor,
+          fontFamily: displayFontFamily, fontSize: Math.min(size.width / 10, size.height / 3) + 'px',
         }}
+        className={styles['map-pool-element']}
       >
-        {maps.map((map) => (
-          <div key={map} className={styles.mapItem}>
-            <MapIcon mapName={map} style={{ width: '50px', height: '50px' }} />
-            <span className={styles.mapName}>{map}</span>
-          </div>
-        ))}
+        <p>Connect to a map draft to see the map pool.</p>
       </div>
-    </ResizableBox>
+    );
+  }
+
+  if (maps.length === 0) {
+    return (
+      <div
+        style={{
+          width: size.width, height: size.height, backgroundColor: displayBackgroundColor,
+          border: `1px solid ${displayBorderColor}`, overflow: 'hidden', display: 'flex',
+          justifyContent: 'center', alignItems: 'center', color: displayTextColor,
+          fontFamily: displayFontFamily, fontSize: Math.min(size.width / 10, size.height / 3) + 'px',
+        }}
+        className={styles['map-pool-element']}
+      >
+        <p>No maps available for {perspective}.</p>
+      </div>
+    );
+  }
+
+  const numMapsForThisView = maps.length;
+  const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
+  const viewRows = Math.ceil(numMapsForThisView / viewCols);
+
+  // Define base layout dimensions (at scale = 1)
+  const baseSizeWidth = size.width || 300; // Default if size.width is undefined
+  const baseSizeHeight = size.height || 200; // Default if size.height is undefined
+
+  // Scaler layout dimensions are the base dimensions
+  const scalerLayoutWidth = baseSizeWidth;
+  const scalerLayoutHeight = baseSizeHeight;
+
+  // viewItem dimensions are calculated based on the scaler's layout dimensions
+  const viewItemWidth = scalerLayoutWidth / viewCols;
+  const viewItemHeight = scalerLayoutHeight / viewRows;
+
+  const textHeightWithinItem = viewItemHeight * 0.2;
+
+  // const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left'; // Will be part of mapPoolScalerStyle
+
+  const mapPoolScalerStyle: React.CSSProperties = {
+    width: `${scalerLayoutWidth}px`,
+    height: `${scalerLayoutHeight}px`,
+    position: 'relative',
+  };
+
+  if (displayIsPivotLocked) {
+    mapPoolScalerStyle.left = '50%';
+    mapPoolScalerStyle.top = '50%';
+    mapPoolScalerStyle.transform = `translate(-50%, -50%) scale(${displayScale})`;
+    mapPoolScalerStyle.transformOrigin = 'center center';
+  } else {
+    mapPoolScalerStyle.left = '0%';
+    mapPoolScalerStyle.top = '0%';
+    mapPoolScalerStyle.transform = `scale(${displayScale})`;
+    mapPoolScalerStyle.transformOrigin = 'top left';
+  }
+
+  const getMapItemClassName = (mapName: string) => {
+    let itemClassName = styles['map-item-visual-content']; // Base class is now visual-content
+    if (perspective === 'P1') {
+      if (mapBansHost.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
+      else if (mapPicksHost.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
+      else if (mapBansGuest.includes(mapName) || mapPicksGuest.includes(mapName) || mapBansGlobal.includes(mapName) || mapPicksGlobal.includes(mapName))
+        itemClassName += ` ${styles['map-item-affected-by-opponent']}`;
+    } else {
+      if (mapBansGuest.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
+      else if (mapPicksGuest.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
+      else if (mapBansHost.includes(mapName) || mapPicksHost.includes(mapName) || mapBansGlobal.includes(mapName) || mapPicksGlobal.includes(mapName))
+        itemClassName += ` ${styles['map-item-affected-by-opponent']}`;
+    }
+    return itemClassName;
+  };
+
+  let rootTransform = '';
+  if (displayIsPivotLocked && displayPivotInternalOffset !== 0) {
+    if (element.playerId === 'P1') {
+      rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
+    } else if (element.playerId === 'P2') {
+      rootTransform = `translateX(${displayPivotInternalOffset}px)`;
+    }
+  }
+
+  return (
+    <div
+      className={styles['map-pool-element']}
+      style={{
+        width: `${baseSizeWidth * displayScale}px`, // Viewport is scaled size
+        height: `${baseSizeHeight * displayScale}px`, // Viewport is scaled size
+        backgroundColor: displayBackgroundColor,
+        border: `1px solid ${displayBorderColor}`,
+        overflow: 'hidden',
+        transform: rootTransform || undefined, // Added
+        transition: 'transform 0.2s ease-out', // Added
+      }}
+    >
+      <div
+        className={styles['map-pool-scaler']}
+      style={mapPoolScalerStyle}
+      >
+        <div
+          className={styles['player-map-grid']}
+          style={{
+            width: '100%', height: '100%', display: 'grid',
+            gridTemplateColumns: `repeat(${viewCols}, 1fr)`,
+            gridTemplateRows: `repeat(${viewRows}, 1fr)`,
+            gap: '1px', // MODIFIED
+            padding: '2px', // MODIFIED
+            overflow: 'visible',
+          }}
+        >
+          {maps.map(map => (
+            <div
+              key={`${playerId}-${map.id}`}
+              title={map.name}
+              className={styles['map-item-grid-cell']} // Outer div is now the grid cell
+            >
+              <div className={getMapItemClassName(map.name)}> {/* Inner div for visual content & state classes */}
+                <div className={styles['map-image-container']}>
+                  <img
+                    src={getMapImageSrc(map.name)}
+                    alt={map.name}
+                    // Removed inline styles to rely on CSS module
+                    onError={(e) => {
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.style.display = 'none';
+                      const parent = imgElement.parentNode as HTMLElement | null;
+                      if (parent) {
+                        const existingPlaceholder = parent.querySelector('.map-image-placeholder');
+                        if (existingPlaceholder) parent.removeChild(existingPlaceholder);
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'map-image-placeholder';
+                        placeholder.textContent = `${map.name} (err)`;
+                        placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
+                        placeholder.style.color = displayTextColor || 'grey'; // Use displayTextColor
+                        placeholder.style.textAlign = 'center';
+                        parent.appendChild(placeholder);
+                      }
+                    }}
+                  />
+                  {/* Map name is now a sibling of map-image-container, within map-item-visual-content */}
+                </div>
+                <p
+                  className={styles['map-name']}
+                  style={{
+                    color: displayTextColor || '#f0f0f0', // Use displayTextColor
+                    fontFamily: displayFontFamily,
+                    fontSize: Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.5 + 2), 11.5) + 'px', // MODIFIED
+                  }}
+                >
+                  {map.name}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 
