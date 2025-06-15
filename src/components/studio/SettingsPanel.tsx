@@ -40,12 +40,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
   }
 
   const handleSettingChange = (targetElementId: string, settingName: keyof StudioElement, value: any) => {
-    // If selectedElement is a secondary MapPool and the setting is shared, target the master
-    if (selectedElement.type === 'MapPool' && !selectedElement.isPairMaster &&
-        (settingName === 'fontFamily' || settingName === 'isPivotLocked')) {
-      updateStudioElementSettings(masterElementForSettings.id, { [settingName]: value });
+    if (selectedElement.type === 'MapPool') {
+      const masterId = selectedElement.isPairMaster ? selectedElement.id : masterElementForSettings.id;
+      const isSharedProp = settingName === 'fontFamily' || settingName === 'isPivotLocked' || settingName === 'scale';
+
+      if (isSharedProp) {
+        // Update the master element for shared props
+        updateStudioElementSettings(masterId, { [settingName]: value });
+
+        // If scale is changed, ensure both elements in the pair are updated in the store
+        if (settingName === 'scale' && selectedElement.pairId) {
+          const sibling = activeLayout.find(el => el.pairId === selectedElement.pairId && el.id !== masterId);
+          if (sibling) {
+            updateStudioElementSettings(sibling.id, { [settingName]: value });
+          }
+          // Also ensure the currently selected element (if it's the secondary and was the one triggering)
+          // reflects the change if master was updated directly by a different path (though less likely here)
+          if (!selectedElement.isPairMaster && selectedElement.id !== masterId) {
+             // This might be redundant if MapPoolElement always reads scale from master,
+             // but ensures store consistency for the secondary element's own scale prop if it exists.
+            updateStudioElementSettings(selectedElement.id, { [settingName]: value });
+          }
+        }
+      } else {
+        // Individual prop for MapPool (e.g., colors), update the selected element directly
+        updateStudioElementSettings(targetElementId, { [settingName]: value });
+      }
     } else {
-      // Otherwise, update the directly selected element
+      // For all other non-MapPool elements
       updateStudioElementSettings(targetElementId, { [settingName]: value });
     }
   };
@@ -95,7 +117,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               max="5"   // And perhaps not as large
               step="0.05"
               value={selectedElement.scale || 1}
-              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
             />
             <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
           </div>
@@ -106,7 +128,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               id="boxPivotLockCheckbox"
               style={checkboxStyle}
               checked={!!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
             />
           </div>
           <div style={settingRowStyle}>
@@ -116,7 +138,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               id="gameXFontFamilyInput"
               style={inputStyle}
               value={selectedElement.fontFamilyGameTitle || ''}
-              onChange={(e) => handleSettingChange('fontFamilyGameTitle', e.target.value)}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamilyGameTitle', e.target.value)}
               placeholder="e.g., Cinzel, serif"
             />
           </div>
@@ -127,7 +149,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            id="boxShowCivNamesCheckbox"
            style={checkboxStyle}
            checked={selectedElement.showCivNames === undefined ? true : selectedElement.showCivNames}
-           onChange={(e) => handleSettingChange('showCivNames', e.target.checked)}
+           onChange={(e) => handleSettingChange(selectedElement.id, 'showCivNames', e.target.checked)}
          />
        </div>
        <div style={settingRowStyle}>
@@ -137,7 +159,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            id="boxShowMapNamesCheckbox"
            style={checkboxStyle}
            checked={selectedElement.showMapNames === undefined ? true : selectedElement.showMapNames}
-           onChange={(e) => handleSettingChange('showMapNames', e.target.checked)}
+           onChange={(e) => handleSettingChange(selectedElement.id, 'showMapNames', e.target.checked)}
          />
        </div>
         <div style={{ marginBottom: '12px' }}> {/* Game Spacing Slider from previous step */}
@@ -154,7 +176,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               max="30"
               step="1"
               value={selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing}
-              onChange={(e) => handleSettingChange('gameEntrySpacing', parseInt(e.target.value, 10))}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'gameEntrySpacing', parseInt(e.target.value, 10))}
             />
             <span style={{...rangeValueStyle, minWidth: '35px' }}> {/* Ensure value span has enough width */}
               {(selectedElement.gameEntrySpacing === undefined ? 10 : selectedElement.gameEntrySpacing)}px
@@ -170,20 +192,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          <h4 style={sectionHeaderStyle}>Score Options</h4>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
-           <input type="text" id="scoreOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+           <input type="text" id="scoreOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyScaleSlider" style={labelStyle}>Scale:</label>
-           <input type="range" id="scoreOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <input type="range" id="scoreOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))} />
            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
-           <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+           <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)} />
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyTextColorInput" style={labelStyle}>Text Color:</label>
-           <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
+           <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
        </>
      )}
@@ -193,20 +215,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          <h4 style={sectionHeaderStyle}>Nicknames Options</h4>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyFontFamilyInput" style={labelStyle}>Font Family:</label>
-           <input type="text" id="nicknamesOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange('fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
+           <input type="text" id="nicknamesOnlyFontFamilyInput" style={inputStyle} value={selectedElement.fontFamily || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'fontFamily', e.target.value)} placeholder="e.g., Arial, sans-serif"/>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyScaleSlider" style={labelStyle}>Scale:</label>
-           <input type="range" id="nicknamesOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))} />
+           <input type="range" id="nicknamesOnlyScaleSlider" style={rangeInputStyle} min="0.5" max="10" step="0.05" value={selectedElement.scale || 1} onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))} />
            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
-           <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
+           <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!selectedElement.isPivotLocked} onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)} />
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyTextColorInput" style={labelStyle}>Text Color:</label>
-           <input type="text" id="nicknamesOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
+           <input type="text" id="nicknamesOnlyTextColorInput" style={inputStyle} value={selectedElement.textColor || ''} onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
          {/* Specific centering options for NicknamesOnly might be added later */}
        </>
@@ -225,7 +247,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              max="5"
              step="0.05"
              value={selectedElement.scale || 1}
-             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+             onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
            />
            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
          </div>
@@ -236,7 +258,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              id="countryFlagsPivotLockCheckbox"
              style={checkboxStyle}
              checked={!!selectedElement.isPivotLocked}
-             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+             onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
            />
          </div>
          {/* pivotInternalOffset could be added here if needed */}
@@ -256,7 +278,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              max="10"
              step="0.05"
              value={selectedElement.scale || 1}
-             onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+             onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
            />
            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
          </div>
@@ -267,7 +289,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              id="colorGlowPivotLockCheckbox"
              style={checkboxStyle}
              checked={!!selectedElement.isPivotLocked}
-             onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+             onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
            />
          </div>
          {/*
@@ -294,10 +316,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
         <>
           <h4 style={sectionHeaderStyle}>Map Pool Options</h4>
           <p style={{ fontSize: '0.8em', color: '#999', marginBottom: '10px' }}>
-            Font and Pivot Lock are shared by the pair. Scale and colors are individual.
+            Font, Pivot Lock, and Scale are shared by the pair. Colors are individual.
           </p>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolScaleSlider" style={labelStyle}>Scale (Selected View):</label>
+            <label htmlFor="mapPoolScaleSlider" style={labelStyle}>Scale:</label>
             <input
               type="range"
               id="mapPoolScaleSlider"
@@ -305,13 +327,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               min="0.2"
               max="3"
               step="0.05"
-              value={selectedElement.scale || 1} // Individual scale
-              onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
+              value={masterElementForSettings.scale || 1} // Shared scale from master
+              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'scale', parseFloat(e.target.value))}
             />
-            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
+            <span style={rangeValueStyle}>{(masterElementForSettings.scale || 1).toFixed(2)}</span>
           </div>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Pivot Point (Pair):</label>
+            <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Pivot Point:</label>
             <input
               type="checkbox"
               id="mapPoolPivotLockCheckbox"
@@ -321,14 +343,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
             />
           </div>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolFontFamilyInput" style={labelStyle}>Font Family (Pair):</label>
+            <label htmlFor="mapPoolFontFamilyInput" style={labelStyle}>Font Family:</label>
             <input
               type="text"
               id="mapPoolFontFamilyInput"
               style={inputStyle}
-              value={masterElementForSettings.fontFamily || 'Arial, sans-serif'}
+              value={masterElementForSettings.fontFamily || ''} // Allow empty for CSS default
               onChange={(e) => handleSettingChange(masterElementForSettings.id, 'fontFamily', e.target.value)}
-              placeholder="e.g., Arial, sans-serif"
+              placeholder="CSS Default (e.g., Arial)"
             />
           </div>
         </>
@@ -345,7 +367,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               id="elementBgColorInput"
               style={inputStyle}
               value={selectedElement.backgroundColor || ''}
-              onChange={(e) => handleSettingChange('backgroundColor', e.target.value)}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'backgroundColor', e.target.value)}
               placeholder="e.g., #RRGGBB, transparent"
             />
           </div>
@@ -356,7 +378,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               id="elementBorderColorInput"
               style={inputStyle}
               value={selectedElement.borderColor || ''}
-              onChange={(e) => handleSettingChange('borderColor', e.target.value)}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'borderColor', e.target.value)}
               placeholder="e.g., #RRGGBB, transparent"
             />
           </div>
@@ -369,7 +391,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
                 id="elementTextColorInput"
                 style={inputStyle}
                 value={selectedElement.textColor || ''}
-                onChange={(e) => handleSettingChange('textColor', e.target.value)}
+                onChange={(e) => handleSettingChange(selectedElement.id, 'textColor', e.target.value)}
                 placeholder="e.g., #FFFFFF, black"
               />
             </div>

@@ -132,16 +132,39 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   }
 
   // Main render method for the component.
+
+  // Scaler setup
+  const unscaledWidth = size.width / scale;
+  const unscaledHeight = size.height / scale;
+  const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left';
+
   return (
     // Base element container, applying CSS module style and dynamic font settings.
-    // The overall 'transform: scale(element.scale)' will be applied by the parent StudioElementWrapper.
-    // Thus, fontSize here is the "unscaled" font size.
+    // This div defines the bounding box. Overflow hidden to contain the scaler.
     <div
       className={styles.baseElement}
-      style={{ fontFamily, fontSize: `${dynamicFontSize}px` }}
+      style={{
+        fontFamily,
+        // The baseElement should not have fontSize directly if children are scaled,
+        // or it should be very small / 0, as scaling affects perceived font size.
+        // Let's apply dynamicFontSize to the scaler's content instead.
+        overflow: 'hidden',
+        width: size.width, // Explicitly set from element.size for clarity
+        height: size.height,
+      }}
     >
-      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+      <div
+        className={styles.boxScaler} // New class for the scaler
+        style={{
+          width: `${unscaledWidth}px`,
+          height: `${unscaledHeight}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: scalerTransformOrigin,
+          fontSize: `${dynamicFontSize}px`, // Apply base font size to scaler content
+        }}
+      >
+        {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
+          const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 

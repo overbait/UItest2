@@ -33,10 +33,13 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     size,
     backgroundColor,
     borderColor,
+    size,
+    backgroundColor,
+    borderColor,
     textColor,
-    fontFamily: ownFontFamily,
-    scale = 1,
-    isPivotLocked: ownIsPivotLocked,
+    fontFamily: ownFontFamily, // Renamed from element.fontFamily
+    scale: ownScale, // Renamed from element.scale
+    isPivotLocked: ownIsPivotLocked, // Renamed
     playerId,
     pairId,
     isPairMaster,
@@ -44,6 +47,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
 
   let displayFontFamily = ownFontFamily || 'Arial, sans-serif';
   let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
+  let displayScale = ownScale === undefined ? 1 : ownScale;
 
   if (isPairMaster === false && pairId) {
     const activeLayout = currentCanvases.find(c => c.id === currentActiveCanvasId)?.layout || [];
@@ -51,6 +55,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     if (masterElement) {
       displayFontFamily = masterElement.fontFamily || displayFontFamily;
       displayIsPivotLocked = masterElement.isPivotLocked === undefined ? displayIsPivotLocked : masterElement.isPivotLocked;
+      displayScale = masterElement.scale === undefined ? displayScale : masterElement.scale;
     }
   }
 
@@ -104,8 +109,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
   const viewRows = Math.ceil(numMapsForThisView / viewCols);
 
-  const unscaledOwnWidth = size.width / scale;
-  const unscaledOwnHeight = size.height / scale;
+  const unscaledOwnWidth = size.width / displayScale; // Use displayScale
+  const unscaledOwnHeight = size.height / displayScale; // Use displayScale
 
   const viewItemWidth = unscaledOwnWidth / viewCols;
   const viewItemHeight = unscaledOwnHeight / viewRows;
@@ -143,7 +148,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       <div
         className={styles['map-pool-scaler']}
         style={{
-          transform: `scale(${scale})`,
+          transform: `scale(${displayScale})`, // Use displayScale
           transformOrigin: scalerTransformOrigin,
           width: `${unscaledOwnWidth}px`,
           height: `${unscaledOwnHeight}px`,
