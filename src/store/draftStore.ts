@@ -111,7 +111,6 @@ const initialCombinedState: CombinedDraftState = {
   hostFlag: null, // Initialize to null
   guestFlag: null, // Initialize to null
   // aoe2cmRawDraftOptions is added above
-  socketDraftType: null, // Added for socket draft type tracking
   draftIsLikelyFinished: false,
 };
 
@@ -238,8 +237,6 @@ const _calculateUpdatedBoxSeriesGames = (
   else if (boxSeriesFormat === 'bo3') numGames = 3;
   else if (boxSeriesFormat === 'bo5') numGames = 5;
   else if (boxSeriesFormat === 'bo7') numGames = 7;
-
-  if (numGames === 0) return [];
 
   if (numGames === 0) return [];
 
