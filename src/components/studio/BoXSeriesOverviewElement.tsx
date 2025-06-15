@@ -167,13 +167,13 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // Define boxScalerStyle object
   const boxScalerStyle: React.CSSProperties = {
-    width: `${layoutWidth}px`, // Use base layout dimensions
+    width: '300%', // MODIFIED - Allow space for civ columns to move
     height: `${layoutHeight}px`, // Use base layout dimensions
     fontSize: `${dynamicFontSize}px`,
     position: 'relative',
     transformOrigin: scalerTransformOrigin,
     overflowY: 'auto', // Enable vertical scrolling
-    overflowX: 'hidden', // Prevent horizontal scrolling
+    overflowX: 'visible', // MODIFIED - Allow civ columns to be seen outside original bounds
   };
 
   if (isPivotLocked) {

@@ -605,6 +605,7 @@ const StudioInterface: React.FC = () => {
               <Draggable
                   key={element.id}
                   handle=".drag-handle"
+                  disabled={element.type === 'BoXSeriesOverview' && element.isPivotLocked === true}
                   position={{ x: element.position.x, y: element.position.y }}
                   onStart={(e: DraggableEvent, data: DraggableData) => {
                     const el = activeLayout.find(el => el.id === element.id);

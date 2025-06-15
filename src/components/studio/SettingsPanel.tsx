@@ -205,19 +205,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            <input type="checkbox" id="scoreOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!masterElementForSharedProps.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
          </div>
          <div style={settingRowStyle}>
-            <label htmlFor="scoreOnlyPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
-            <input
-              type="range"
-              id="scoreOnlyPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="-150" max="150" step="1"
-              value={masterElementForSharedProps.pivotInternalOffset || 0}
-              disabled={!masterElementForSharedProps.isPivotLocked}
-              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
-         </div>
-         <div style={settingRowStyle}>
            <label htmlFor="scoreOnlyTextColorInput" style={labelStyle}>Text Color:</label>
            <input type="text" id="scoreOnlyTextColorInput" style={inputStyle} value={masterElementForSharedProps.textColor || ''} onChange={(e) => handleSettingChange('textColor', e.target.value)} placeholder="e.g., #RRGGBB, white"/>
          </div>
@@ -239,19 +226,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
            <input type="checkbox" id="nicknamesOnlyPivotLockCheckbox" style={checkboxStyle} checked={!!masterElementForSharedProps.isPivotLocked} onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)} />
-         </div>
-         <div style={settingRowStyle}>
-            <label htmlFor="nicknamesOnlyPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
-            <input
-              type="range"
-              id="nicknamesOnlyPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="-150" max="150" step="1"
-              value={masterElementForSharedProps.pivotInternalOffset || 0}
-              disabled={!masterElementForSharedProps.isPivotLocked}
-              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
          </div>
          <div style={settingRowStyle}>
            <label htmlFor="nicknamesOnlyTextColorInput" style={labelStyle}>Text Color:</label>
@@ -288,19 +262,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
            />
          </div>
-         <div style={settingRowStyle}>
-            <label htmlFor="countryFlagsPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
-            <input
-              type="range"
-              id="countryFlagsPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="-150" max="150" step="1"
-              value={masterElementForSharedProps.pivotInternalOffset || 0}
-              disabled={!masterElementForSharedProps.isPivotLocked}
-              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
-         </div>
        </>
      )}
 
@@ -330,21 +291,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
              checked={!!masterElementForSharedProps.isPivotLocked}
              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
            />
-         </div>
-         <div style={settingRowStyle}>
-           <label htmlFor="colorGlowPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
-           <input
-             type="range"
-             id="colorGlowPivotOffsetSlider"
-             style={rangeInputStyle}
-             min="-150"
-             max="150"
-             step="1"
-             value={masterElementForSharedProps.pivotInternalOffset || 0}
-             disabled={!masterElementForSharedProps.isPivotLocked}
-             onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-           />
-           <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
          </div>
        </>
      )}
@@ -378,19 +324,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               checked={masterElementForSharedProps.isPivotLocked === undefined ? false : !!masterElementForSharedProps.isPivotLocked}
               onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
             />
-          </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="mapPoolPivotOffsetSlider" style={labelStyle}>Pivot Offset (px):</label>
-            <input
-              type="range"
-              id="mapPoolPivotOffsetSlider"
-              style={rangeInputStyle}
-              min="-150" max="150" step="1"
-              value={masterElementForSharedProps.pivotInternalOffset || 0}
-              disabled={!masterElementForSharedProps.isPivotLocked}
-              onChange={(e) => handleSettingChange('pivotInternalOffset', parseInt(e.target.value, 10))}
-            />
-            <span style={rangeValueStyle}>{(masterElementForSharedProps.pivotInternalOffset || 0)}px</span>
           </div>
           <div style={settingRowStyle}>
             <label htmlFor="mapPoolFontFamilyInput" style={labelStyle}>Font Family:</label>
