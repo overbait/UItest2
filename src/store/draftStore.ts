@@ -1555,6 +1555,21 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10,
               };
+            } else if (elementType === "MapPoolElement") { // Add this case
+              newElement = {
+                id: Date.now().toString(),
+                type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 600, height: 220 }, // Default size for map pool
+                scale: 1,
+                fontFamily: 'Arial, sans-serif',
+                mapNameFontSize: '0.75em',
+                lockPivotPoint: false,
+                offset: 0,
+                numColumns: 2,
+                // No pivotInternalOffset for MapPoolElement, it uses 'offset'
+                // width & height props will be set from size initially by the component itself or settings panel
+              };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.
