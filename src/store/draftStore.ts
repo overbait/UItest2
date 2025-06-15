@@ -1586,12 +1586,20 @@ const useDraftStore = create<DraftStore>()(
                 pivotInternalOffset: 0,
               };
             }
-            const updatedCanvases = state.currentCanvases.map(canvas =>
-              canvas.id === state.activeCanvasId
-                ? { ...canvas, layout: [...canvas.layout, newElement] }
-                : canvas
+            const activeCanvasById = state.currentCanvases.find(c => c.id === state.activeCanvasId);
+            if (!activeCanvasById) {
+              console.error("[draftStore.addStudioElement] No active canvas found. Element not added.");
+              return state; // Should not happen if logic is correct elsewhere
+            }
+
+            const updatedLayout = [...activeCanvasById.layout, newElement];
+            const newActiveCanvas = { ...activeCanvasById, layout: updatedLayout };
+
+            const finalCanvases = state.currentCanvases.map(c =>
+              c.id === state.activeCanvasId ? newActiveCanvas : c
             );
-            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
+
+            return { ...state, currentCanvases: finalCanvases, layoutLastUpdated: Date.now() };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
