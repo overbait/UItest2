@@ -248,6 +248,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         </div>
       )})}
     </div>
+  </div> {/* Closes baseElement */}
   );
 };
 

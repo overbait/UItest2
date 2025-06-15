@@ -43,7 +43,7 @@ interface DraftStore extends CombinedDraftState {
   _updateActivePresetIfNeeded: () => void;
 
   // Studio Actions
-  addStudioElement: (elementType: string) => void;
+  addStudioElement: (elementType: StudioElementType) => void; // Changed string to StudioElementType
   updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => void;
   updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => void;
   setSelectedElementId: (elementId: string | null) => void;
@@ -1475,7 +1475,7 @@ const useDraftStore = create<DraftStore>()(
         updateBoxSeriesGame: (gameIndex, field, value) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { newGames[gameIndex] = { ...newGames[gameIndex], [field]: value, winner: null }; return { boxSeriesGames: newGames }; } return state; }); get()._updateActivePresetIfNeeded(); },
         setGameWinner: (gameIndex, winningPlayer) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { if (newGames[gameIndex].winner === winningPlayer) newGames[gameIndex] = { ...newGames[gameIndex], winner: null }; else newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer }; } let hostScore = 0; let guestScore = 0; newGames.forEach(game => { if (game.winner === 'host') hostScore++; else if (game.winner === 'guest') guestScore++; }); return { boxSeriesGames: newGames, scores: { host: hostScore, guest: guestScore }}; }); get()._updateActivePresetIfNeeded(); },
 
-        addStudioElement: (elementType: string) => {
+        addStudioElement: (elementType: StudioElementType) => { // Changed string to StudioElementType
           set(state => {
             const activeCanvas = state.currentCanvases.find(c => c.id === state.activeCanvasId);
             if (!activeCanvas) {

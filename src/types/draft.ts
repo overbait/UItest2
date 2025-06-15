@@ -62,9 +62,20 @@ export interface SingleDraftData {
   currentAction?: string;
 }
 
+// Define known studio element types
+export type StudioElementType =
+  | "CivPicker"
+  | "SeriesScore"
+  | "BoXSeriesOverview"
+  | "PlayerName" // Assuming this might exist
+  | "PlayerCiv"  // Assuming this might exist
+  | "MapPool"    // Our new type
+  | "CustomText" // Assuming this might exist
+  | "ImageElement"; // Assuming this might exist
+
 export interface StudioElement {
   id: string;
-  type: string;
+  type: StudioElementType; // Use the defined union type
   position: { x: number; y: number };
   size: { width: number; height: number };
   fontFamily?: string;
