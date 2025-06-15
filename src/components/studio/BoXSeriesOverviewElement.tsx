@@ -247,8 +247,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
            </div> {/* End of gameImageRow */}
         </div>
       )})}
-    </div> {/* Closes boxScaler */}
-  </div> {/* Closes baseElement */}
+    </div> {/* boxScaler */}
+    </div> {/* baseElement */}
   );
 };
 
