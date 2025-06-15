@@ -59,22 +59,10 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element }) => {
     scoreToDisplay = '?';
   }
 
-  // Root transform for pivot offset
-  let rootTransform = '';
-  if (displayIsPivotLocked && displayPivotInternalOffset && displayPlayerId) {
-    if (displayPlayerId === 'P1') {
-      rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
-    } else if (displayPlayerId === 'P2') {
-      rootTransform = `translateX(${displayPivotInternalOffset}px)`;
-    }
-  }
-
   const baseElementStyle: React.CSSProperties = {
-    width: '100%', // Changed
-    height: '100%', // Changed
-    overflow: 'visible', // Added
-    transform: rootTransform || undefined,
-    transition: 'transform 0.2s ease-out',
+    width: '100%',
+    height: '100%',
+    overflow: 'visible',
   };
 
   const scalerElementStyle: React.CSSProperties = {
