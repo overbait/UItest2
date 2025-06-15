@@ -47,6 +47,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
   let displayScale = ownScale === undefined ? 1 : ownScale;
   let displayPivotInternalOffset = ownPivotInternalOffset === undefined ? 0 : ownPivotInternalOffset; // Added
+  let displayBackgroundColor = backgroundColor || 'transparent';
+  let displayBorderColor = borderColor || 'transparent';
+  let displayTextColor = textColor || 'white';
 
   if (isPairMaster === false && pairId) {
     const activeLayout = currentCanvases.find(c => c.id === currentActiveCanvasId)?.layout || [];
@@ -56,6 +59,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       displayIsPivotLocked = masterElement.isPivotLocked === undefined ? displayIsPivotLocked : masterElement.isPivotLocked;
       displayScale = masterElement.scale === undefined ? displayScale : masterElement.scale;
       displayPivotInternalOffset = masterElement.pivotInternalOffset === undefined ? displayPivotInternalOffset : masterElement.pivotInternalOffset; // Added
+      displayBackgroundColor = masterElement.backgroundColor || displayBackgroundColor;
+      displayBorderColor = masterElement.borderColor || displayBorderColor;
+      displayTextColor = masterElement.textColor || displayTextColor;
     }
   }
 
@@ -77,9 +83,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     return (
       <div
         style={{
-          width: size.width, height: size.height, backgroundColor: backgroundColor || 'transparent',
-          border: `1px solid ${borderColor || 'transparent'}`, overflow: 'hidden', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', color: textColor || 'white',
+          width: size.width, height: size.height, backgroundColor: displayBackgroundColor,
+          border: `1px solid ${displayBorderColor}`, overflow: 'hidden', display: 'flex',
+          justifyContent: 'center', alignItems: 'center', color: displayTextColor,
           fontFamily: displayFontFamily, fontSize: Math.min(size.width / 10, size.height / 3) + 'px',
         }}
         className={styles['map-pool-element']}
@@ -93,9 +99,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     return (
       <div
         style={{
-          width: size.width, height: size.height, backgroundColor: backgroundColor || 'transparent',
-          border: `1px solid ${borderColor || 'transparent'}`, overflow: 'hidden', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', color: textColor || 'white',
+          width: size.width, height: size.height, backgroundColor: displayBackgroundColor,
+          border: `1px solid ${displayBorderColor}`, overflow: 'hidden', display: 'flex',
+          justifyContent: 'center', alignItems: 'center', color: displayTextColor,
           fontFamily: displayFontFamily, fontSize: Math.min(size.width / 10, size.height / 3) + 'px',
         }}
         className={styles['map-pool-element']}
@@ -174,8 +180,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       style={{
         width: `${baseSizeWidth * displayScale}px`, // Viewport is scaled size
         height: `${baseSizeHeight * displayScale}px`, // Viewport is scaled size
-        backgroundColor: backgroundColor || 'transparent',
-        border: `1px solid ${borderColor || 'transparent'}`,
+        backgroundColor: displayBackgroundColor,
+        border: `1px solid ${displayBorderColor}`,
         overflow: 'hidden',
         transform: rootTransform || undefined, // Added
         transition: 'transform 0.2s ease-out', // Added
@@ -219,7 +225,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                         placeholder.className = 'map-image-placeholder';
                         placeholder.textContent = `${map.name} (err)`;
                         placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
-                        placeholder.style.color = textColor || 'grey';
+                        placeholder.style.color = displayTextColor || 'grey'; // Use displayTextColor
                         placeholder.style.textAlign = 'center';
                         parent.appendChild(placeholder);
                       }
@@ -230,7 +236,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                 <p
                   className={styles['map-name']}
                   style={{
-                    color: textColor || '#f0f0f0',
+                    color: displayTextColor || '#f0f0f0', // Use displayTextColor
                     fontFamily: displayFontFamily,
                     fontSize: Math.min(textHeightWithinItem * 0.75, viewItemWidth / (map.name.length * 0.5 + 2), 12) + 'px',
                   }}

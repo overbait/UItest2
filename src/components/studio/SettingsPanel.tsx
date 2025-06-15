@@ -131,6 +131,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               onChange={(e) => handleSettingChange(selectedElement.id, 'isPivotLocked', e.target.checked)}
             />
           </div>
+          {/* New Pivot Offset Slider START */}
+          <div style={settingRowStyle}>
+            <label htmlFor="boxPivotOffsetSlider" style={labelStyle}>Civ Column Offset (px):</label>
+            <input
+              type="range"
+              id="boxPivotOffsetSlider"
+              style={rangeInputStyle}
+              min="-150"
+              max="150"
+              step="1"
+              value={selectedElement.pivotInternalOffset || 0}
+              disabled={!selectedElement.isPivotLocked}
+              onChange={(e) => handleSettingChange(selectedElement.id, 'pivotInternalOffset', parseInt(e.target.value, 10))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.pivotInternalOffset || 0)}px</span>
+          </div>
+          {/* New Pivot Offset Slider END */}
           <div style={settingRowStyle}>
             <label htmlFor="gameXFontFamilyInput" style={labelStyle}>Game X Font:</label>
             <input
