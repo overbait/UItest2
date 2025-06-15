@@ -27,6 +27,8 @@
   display: flex;
   flex-direction: column;
   align-items: center; /* Center gameTitle and gameImageRow if they are narrower than container */
+  box-sizing: border-box; /* Added */
+  width: 100%; /* Ensure it takes full width of boxScaler */
 }
 
 .gameEntryContainer:last-child {
@@ -92,7 +94,7 @@
 
 /* .imageContainer and .letterboxedImage are removed */
 
-.gameImageRow { /* Renamed from gameRow */
+.gameImageRow { /* Existing class, can be used for gameDataRow or a new one created */
   display: grid;
   /* gridTemplateColumns will be set dynamically in the component */
   align-items: center;
@@ -104,6 +106,7 @@
 
 .civCell {
   position: relative; /* For potential future overlays or absolute positioning within cell */
+  box-sizing: border-box; /* Added */
 }
 
 .leftCivCell {
@@ -118,6 +121,15 @@
   justify-self: center; /* Center in its grid column */
   position: relative;
   z-index: 1; /* Map is typically in the middle, default stacking */
+  box-sizing: border-box; /* Added */
+}
+
+/* New class for the grid container, as used in TSX */
+.gameDataRow {
+  display: grid; /* Already set inline, but good to have in CSS if needed */
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* .civImage and .mapImage are removed or empty */
