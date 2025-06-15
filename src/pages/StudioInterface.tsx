@@ -552,7 +552,7 @@ const StudioInterface: React.FC = () => {
           style={{
             position: 'relative',
             border: '1px dashed #444',
-            overflow: 'hidden',
+            overflow: 'visible',
             backgroundColor: '#0d0d0d',
             width: '100%',
             aspectRatio: '16 / 9',
