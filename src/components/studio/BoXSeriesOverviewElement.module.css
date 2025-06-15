@@ -23,7 +23,9 @@
 
 .gameEntryContainer {
   /* Margin-bottom and paddingTop are now controlled by inline style in the component */
-  /* Add other styles if needed, e.g., width: 100%; */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center gameTitle and gameImageRow if they are narrower than container */
 }
 
 .gameEntryContainer:last-child {

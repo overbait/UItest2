@@ -144,7 +144,30 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // Scaler setup
   const unscaledWidth = size.width / scale;
   const unscaledHeight = size.height / scale;
-  const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left'; // Added semicolon
+  const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left';
+
+  // Define boxScalerStyle object
+  const boxScalerStyle: React.CSSProperties = {
+    width: `${unscaledWidth}px`,
+    height: `${unscaledHeight}px`,
+    fontSize: `${dynamicFontSize}px`,
+    position: 'relative', // Added
+    transformOrigin: scalerTransformOrigin,
+  };
+
+  if (isPivotLocked) {
+    // When pivot is locked, scale from the center.
+    // Position the element's top-left at the center of the baseElement,
+    // then translate it back by half its own size, then scale.
+    boxScalerStyle.left = '50%';
+    boxScalerStyle.top = '50%';
+    boxScalerStyle.transform = `translate(-50%, -50%) scale(${scale})`;
+  } else {
+    // When pivot is not locked, scale from top-left.
+    boxScalerStyle.left = '0%'; // Explicitly
+    boxScalerStyle.top = '0%';  // Explicitly
+    boxScalerStyle.transform = `scale(${scale})`;
+  }
 
 return (
   <div
@@ -158,13 +181,7 @@ return (
   >
     <div
       className={styles.boxScaler}
-      style={{
-        width: `${unscaledWidth}px`,
-        height: `${unscaledHeight}px`,
-        transform: `scale(${scale})`,
-        transformOrigin: scalerTransformOrigin,
-        fontSize: `${dynamicFontSize}px`,
-      }}
+      style={boxScalerStyle} // Apply the new style object
     >
       {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
         const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;

@@ -186,7 +186,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                 <img
                   src={getMapImageSrc(map.name)}
                   alt={map.name}
-                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }}
+                  // Removed inline styles to rely on CSS module
                   onError={(e) => {
                     const imgElement = e.target as HTMLImageElement;
                     imgElement.style.display = 'none';
