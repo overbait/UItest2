@@ -23,69 +23,68 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Center image container */
-  overflow: hidden;
+  justify-content: center;
+  overflow: hidden; /* Changed from visible to hidden to prevent content spill */
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  border: 1px solid #666; /* Refined BoX border color */
-  border-radius: 3px;
+  border: 1px solid #777; /* Target: BoX border color */
+  border-radius: 3px; /* Target: BoX border radius */
   transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
-  padding: 1px; /* Reduced padding to make item fit image container more tightly */
+  padding: 2px;
   position: relative;
-  background-color: rgba(25, 25, 25, 0.8); /* Refined BoX item background */
+  background-color: rgba(30, 30, 30, 0.85); /* Target: BoX item background */
 }
 
 .map-image-container {
-  width: 100%; /* Takes full width of the padded .map-item */
+  width: 100%;
   aspect-ratio: 10 / 9; /* Squarer, but slightly wider than tall */
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
-  position: relative; /* Anchor for the absolutely positioned map name */
+  overflow: hidden; /* Crucial for object-fit:cover on img */
+  position: relative;
 }
 
+/* img styling is mostly inline for src, alt, onError, but object-fit can be here */
 .map-image-container img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  pointer-events: none; /* Prevent image dragging */
+  object-fit: cover; /* Fill the container, may crop */
 }
 
 .map-name {
   position: absolute;
-  bottom: 3px; /* Target: BoX positioning */
+  bottom: 4px; /* Target: BoX positioning */
   left: 0;
   right: 0;
   text-align: center;
   background-color: rgba(0, 0, 0, 0.75); /* Target: BoX text strip background */
   color: #f0f0f0; /* Target: BoX text color (off-white) */
   padding: 3px 5px; /* Target: BoX text strip padding */
-  font-family: 'Trade Gothic Next LT Pro Cn', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; /* Target: BoX font family */
-  font-size: 13px; /* Target: BoX base unscaled font size */
+  /* Target: BoX font values (example, assuming Trade Gothic or similar) */
+  font-family: 'Trade Gothic Next LT Pro Cn', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px; /* Base unscaled size, dynamic TSX style will adjust this further */
   font-weight: bold; /* Target: BoX font weight */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
-  border-top: 1px solid rgba(255,255,255,0.15); /* Target: BoX text strip border */
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 /* --- Draft State Styles --- */
-/* Glows applied to .map-item to make the whole "button" glow */
-
 .map-item-banned-by-self {
-  box-shadow: 0 0 8px 3px rgba(255, 0, 0, 0.75);
-  border-color: rgba(220, 50, 50, 0.85) !important;
+  box-shadow: 0 0 8px 3px rgba(255, 0, 0, 0.75); /* Target: BoX Red Glow */
+  border-color: rgba(255, 80, 80, 0.9) !important;
 }
 
 .map-item-picked-by-self {
-  box-shadow: 0 0 8px 3px rgba(0, 255, 0, 0.7);
-  border-color: rgba(50, 220, 50, 0.85) !important;
+  box-shadow: 0 0 8px 3px rgba(0, 255, 0, 0.7); /* Target: BoX Green Glow */
+  border-color: rgba(80, 255, 80, 0.9) !important;
 }
 
 .map-item-affected-by-opponent {
-  filter: grayscale(95%);
-  opacity: 0.55;
+  filter: grayscale(95%); /* Target: BoX Grayscale for opponent/global */
+  opacity: 0.55; /* Target: BoX Opacity for opponent/global */
 }
