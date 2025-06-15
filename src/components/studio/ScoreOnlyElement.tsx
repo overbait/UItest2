@@ -70,16 +70,16 @@ const ScoreOnlyElement: React.FC<ScoreOnlyElementProps> = ({ element }) => {
   }
 
   const baseElementStyle: React.CSSProperties = {
-    width: `${layoutWidth * displayScale}px`,
-    height: `${layoutHeight * displayScale}px`,
+    width: '100%', // Changed
+    height: '100%', // Changed
+    overflow: 'visible', // Added
     transform: rootTransform || undefined,
     transition: 'transform 0.2s ease-out',
-    // position: 'absolute', // This should be handled by the Draggable/ResizableBox wrapper
   };
 
   const scalerElementStyle: React.CSSProperties = {
-    width: `${layoutWidth}px`,
-    height: `${layoutHeight}px`,
+    width: '100%', // Changed
+    height: '100%', // Changed
     position: 'relative', // Needed for correct transform-origin behavior with translate
     transformOrigin: displayIsPivotLocked ? 'center center' : 'top left',
     transform: displayIsPivotLocked
