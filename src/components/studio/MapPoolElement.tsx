@@ -14,8 +14,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     mapPicksHost, mapBansHost,
     mapPicksGuest, mapBansGuest,
     mapPicksGlobal, mapBansGlobal,
-    currentCanvases, // For finding master element
-    activeCanvasId,  // For finding master element
+    currentCanvases,
+    activeCanvasId: currentActiveCanvasId,
   } = useDraftStore(state => ({
     aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
     mapDraftStatus: state.mapDraftStatus,
@@ -34,20 +34,19 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     backgroundColor,
     borderColor,
     textColor,
-    fontFamily: ownFontFamily, // Renamed to avoid conflict
+    fontFamily: ownFontFamily,
     scale = 1,
-    isPivotLocked: ownIsPivotLocked, // Renamed
-    playerId, // 'P1' or 'P2', crucial for paired elements
+    isPivotLocked: ownIsPivotLocked,
+    playerId,
     pairId,
     isPairMaster,
   } = element;
 
-  // Determine effective fontFamily and isPivotLocked (from master if this is secondary)
   let displayFontFamily = ownFontFamily || 'Arial, sans-serif';
   let displayIsPivotLocked = ownIsPivotLocked === undefined ? false : ownIsPivotLocked;
 
   if (isPairMaster === false && pairId) {
-    const activeLayout = currentCanvases.find(c => c.id === activeCanvasId)?.layout || [];
+    const activeLayout = currentCanvases.find(c => c.id === currentActiveCanvasId)?.layout || [];
     const masterElement = activeLayout.find(el => el.pairId === pairId && el.isPairMaster === true);
     if (masterElement) {
       displayFontFamily = masterElement.fontFamily || displayFontFamily;
@@ -67,7 +66,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     );
   }, [aoe2cmRawDraftOptions]);
 
-  // Conditional messages
+  const perspective = playerId === 'P1' ? 'P1' : 'P2';
+
   if (mapDraftStatus !== 'connected' && mapDraftStatus !== 'live') {
     return (
       <div
@@ -95,12 +95,11 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
         }}
         className={styles['map-pool-element']}
       >
-        <p>No maps available for {playerId}.</p>
+        <p>No maps available for {perspective}.</p>
       </div>
     );
   }
 
-  // Grid calculation for the single view this component now renders
   const numMapsForThisView = maps.length;
   const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
   const viewRows = Math.ceil(numMapsForThisView / viewCols);
@@ -111,20 +110,18 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   const viewItemWidth = unscaledOwnWidth / viewCols;
   const viewItemHeight = unscaledOwnHeight / viewRows;
 
-  const textHeightWithinItem = viewItemHeight * 0.2; // Example: text takes 20% of item height
+  const textHeightWithinItem = viewItemHeight * 0.2;
 
   const scalerTransformOrigin: React.CSSProperties['transformOrigin'] = displayIsPivotLocked ? 'center center' : 'top left';
 
   const getMapItemClassName = (mapName: string) => {
     let itemClassName = styles['map-item'];
-    const perspective = playerId; // Use the element's own playerId
-
     if (perspective === 'P1') {
       if (mapBansHost.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
       else if (mapPicksHost.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
       else if (mapBansGuest.includes(mapName) || mapPicksGuest.includes(mapName) || mapBansGlobal.includes(mapName) || mapPicksGlobal.includes(mapName))
         itemClassName += ` ${styles['map-item-affected-by-opponent']}`;
-    } else { // Perspective === 'P2'
+    } else {
       if (mapBansGuest.includes(mapName)) itemClassName += ` ${styles['map-item-banned-by-self']}`;
       else if (mapPicksGuest.includes(mapName)) itemClassName += ` ${styles['map-item-picked-by-self']}`;
       else if (mapBansHost.includes(mapName) || mapPicksHost.includes(mapName) || mapBansGlobal.includes(mapName) || mapPicksGlobal.includes(mapName))
@@ -158,14 +155,14 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
             width: '100%', height: '100%', display: 'grid',
             gridTemplateColumns: `repeat(${viewCols}, 1fr)`,
             gridTemplateRows: `repeat(${viewRows}, 1fr)`,
-            gap: '3px', // Reduced gap slightly for tighter packing
-            padding: '3px', // Reduced padding
+            gap: '3px',
+            padding: '3px',
             overflow: 'auto',
           }}
         >
           {maps.map(map => (
             <div
-              key={`${playerId}-${map.id}`} // Use element's playerId for key
+              key={`${playerId}-${map.id}`}
               title={map.name}
               className={getMapItemClassName(map.name)}
             >
@@ -194,9 +191,11 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                 <p
                   className={styles['map-name']}
                   style={{
-                    color: textColor || '#f0f0f0', // Default to BoX off-white
-                    fontFamily: displayFontFamily, // Use derived font family
-                    fontSize: Math.min(textHeightWithinItem * 0.75, viewItemWidth / (map.name.length * 0.5 + 2), parseFloat(styles.mapName?.fontSize || '13px') * 0.9) + 'px',
+                    color: textColor || '#f0f0f0',
+                    fontFamily: displayFontFamily,
+                    // Max font size is effectively 13px * 0.9 (approx 11.7px, let's use 12px as a cap if other conditions allow larger)
+                    // The base font-size is set in CSS as 13px. This dynamic style will primarily shrink it.
+                    fontSize: Math.min(textHeightWithinItem * 0.75, viewItemWidth / (map.name.length * 0.5 + 2), 12) + 'px',
                   }}
                 >
                   {map.name}

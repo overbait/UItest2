@@ -8,16 +8,45 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose }) => {
-  const updateStudioElementSettings = useDraftStore(state => state.updateStudioElementSettings);
-  const removeStudioElement = useDraftStore(state => state.removeStudioElement);
-  const addStudioElement = useDraftStore(state => state.addStudioElement); // Added for new button
+  const {
+    updateStudioElementSettings,
+    removeStudioElement,
+    // addStudioElement, // Not used directly in this component's rendering logic for settings
+    currentCanvases,
+    activeCanvasId
+  } = useDraftStore(state => ({
+    updateStudioElementSettings: state.updateStudioElementSettings,
+    removeStudioElement: state.removeStudioElement,
+    addStudioElement: state.addStudioElement,
+    currentCanvases: state.currentCanvases,
+    activeCanvasId: state.activeCanvasId,
+  }));
+
+  const activeLayout = React.useMemo(() => {
+    return currentCanvases.find(c => c.id === activeCanvasId)?.layout || [];
+  }, [currentCanvases, activeCanvasId]);
 
   if (!selectedElement) { return null; }
 
-  const handleSettingChange = (settingName: keyof StudioElement, value: any) => {
-    if (selectedElement) {
-      if (settingName === 'scale') console.log('SettingsPanel: Updating scale to:', value);
-      updateStudioElementSettings(selectedElement.id, { [settingName]: value });
+  // Determine the master element if the selected element is part of a MapPool pair
+  let masterElementForSettings = selectedElement;
+  if (selectedElement.type === 'MapPool' && selectedElement.pairId && !selectedElement.isPairMaster) {
+    const foundMaster = activeLayout.find(el => el.pairId === selectedElement.pairId && el.isPairMaster === true);
+    if (foundMaster) {
+      masterElementForSettings = foundMaster;
+    }
+    // If master not found (shouldn't happen in a consistent state), fallback to selectedElement for safety,
+    // though shared settings might not behave as expected.
+  }
+
+  const handleSettingChange = (targetElementId: string, settingName: keyof StudioElement, value: any) => {
+    // If selectedElement is a secondary MapPool and the setting is shared, target the master
+    if (selectedElement.type === 'MapPool' && !selectedElement.isPairMaster &&
+        (settingName === 'fontFamily' || settingName === 'isPivotLocked')) {
+      updateStudioElementSettings(masterElementForSettings.id, { [settingName]: value });
+    } else {
+      // Otherwise, update the directly selected element
+      updateStudioElementSettings(targetElementId, { [settingName]: value });
     }
   };
 
@@ -264,56 +293,48 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
       {selectedElement.type === 'MapPool' && (
         <>
           <h4 style={sectionHeaderStyle}>Map Pool Options</h4>
+          <p style={{ fontSize: '0.8em', color: '#999', marginBottom: '10px' }}>
+            Font and Pivot Lock are shared by the pair. Scale and colors are individual.
+          </p>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolScaleSlider" style={labelStyle}>Scale:</label>
+            <label htmlFor="mapPoolScaleSlider" style={labelStyle}>Scale (Selected View):</label>
             <input
               type="range"
               id="mapPoolScaleSlider"
               style={rangeInputStyle}
               min="0.2"
-              max="3" // Max scale for map pool
+              max="3"
               step="0.05"
-              value={selectedElement.scale || 1}
-              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+              value={selectedElement.scale || 1} // Individual scale
+              onChange={(e) => handleSettingChange(selectedElement.id, 'scale', parseFloat(e.target.value))}
             />
             <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
           </div>
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Center Pivot:</label>
+            <label htmlFor="mapPoolPivotLockCheckbox" style={labelStyle}>Lock Pivot Point (Pair):</label>
             <input
               type="checkbox"
               id="mapPoolPivotLockCheckbox"
               style={checkboxStyle}
-              checked={selectedElement.isPivotLocked === undefined ? true : !!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+              checked={masterElementForSettings.isPivotLocked === undefined ? false : !!masterElementForSettings.isPivotLocked}
+              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'isPivotLocked', e.target.checked)}
             />
-            {/* No span needed for checkbox value display */}
           </div>
-          {/* Spacing (pivotInternalOffset) slider is removed */}
           <div style={settingRowStyle}>
-            <label htmlFor="mapPoolFontFamilySelect" style={labelStyle}>Font Family:</label>
-            <select
-              id="mapPoolFontFamilySelect"
-              style={inputStyle} // Use same style as text inputs for consistency
-              value={selectedElement.fontFamily || 'Arial, sans-serif'}
-              onChange={(e) => handleSettingChange('fontFamily', e.target.value)}
-            >
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="Helvetica, sans-serif">Helvetica</option>
-              <option value="Verdana, sans-serif">Verdana</option>
-              <option value="Tahoma, sans-serif">Tahoma</option>
-              <option value="Impact, sans-serif">Impact</option>
-              <option value="Georgia, serif">Georgia</option>
-              <option value="Times New Roman, Times, serif">Times New Roman</option>
-              <option value="Courier New, Courier, monospace">Courier New</option>
-              {/* Add a specific "BoX Font" if known, e.g.: */}
-              {/* <option value="'Your BoX Font Name', sans-serif">BoX Default Font</option> */}
-            </select>
+            <label htmlFor="mapPoolFontFamilyInput" style={labelStyle}>Font Family (Pair):</label>
+            <input
+              type="text"
+              id="mapPoolFontFamilyInput"
+              style={inputStyle}
+              value={masterElementForSettings.fontFamily || 'Arial, sans-serif'}
+              onChange={(e) => handleSettingChange(masterElementForSettings.id, 'fontFamily', e.target.value)}
+              placeholder="e.g., Arial, sans-serif"
+            />
           </div>
         </>
       )}
 
-      {/* Generic Element Settings (like Background, Border, Text Color) */}
+      {/* Generic Element Settings (like Background, Border, Text Color - apply to selectedElement) */}
       {selectedElement && selectedElement.type !== 'ColorGlowElement' && ( // ColorGlow might not need these generic ones
         <>
           <h4 style={sectionHeaderStyle}>Appearance</h4>
