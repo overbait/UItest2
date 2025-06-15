@@ -28,6 +28,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     showCivNames = true,  // Default from element prop
     showMapNames = true,  // Default from element prop
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
+    elementRole, // Destructure elementRole
   } = element;
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
@@ -77,20 +78,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // Dynamic style for the game image row, primarily for grid layout and applying custom font.
   // The fontFamily for the overall element is set on styles.baseElement,
   // so it should cascade unless overridden here.
-  const gameImageRowDynamicStyle: React.CSSProperties = {
-    gridTemplateColumns: '1fr auto 1fr', // Map is centered, civs take remaining space
-    // fontFamily: fontFamily, // fontFamily is now on the baseElement, inherited unless overridden
-  };
-
-  const leftCivCellStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(-${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out', // Optional: for smoother movement
-  };
-
-  const rightCivCellStyle: React.CSSProperties = {
-    transform: (isPivotLocked && pivotInternalOffset) ? `translateX(${pivotInternalOffset}px)` : 'none',
-    transition: 'transform 0.2s ease-out', // Optional: for smoother movement
-  };
+  // Obsolete styles: gameImageRowDynamicStyle, leftCivCellStyle, rightCivCellStyle removed.
 
   // Dynamic styles for images, setting their unscaled width and height.
   // const dynamicCivImageStyle: React.CSSProperties = { // Old, applied to <img>
@@ -161,11 +149,24 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     // then translate it back by half its own size, then scale.
     boxScalerStyle.left = '50%';
     boxScalerStyle.top = '50%';
-    boxScalerStyle.transform = `translate(-50%, -50%) scale(${scale})`;
+    let baseTransform = `translate(-50%, -50%) scale(${scale})`;
+    if (pivotInternalOffset) { // pivotInternalOffset is from element props
+      if (elementRole === 'BoXLeftCivs') {
+        baseTransform += ` translateX(-${pivotInternalOffset}px)`;
+      } else if (elementRole === 'BoXRightCivs') {
+        baseTransform += ` translateX(${pivotInternalOffset}px)`;
+      }
+    }
+    boxScalerStyle.transform = baseTransform;
   } else {
     // When pivot is not locked, scale from top-left.
     boxScalerStyle.left = '0%'; // Explicitly
     boxScalerStyle.top = '0%';  // Explicitly
+    // If pivot is not locked, elementRole-based translateX should not apply,
+    // as the whole component moves together.
+    // However, if individual translateX is desired even when not locked,
+    // that logic would need to be re-evaluated here.
+    // For now, assuming translateX only applies if pivot is locked.
     boxScalerStyle.transform = `scale(${scale})`;
   }
 
@@ -183,73 +184,87 @@ return (
       className={styles.boxScaler}
       style={boxScalerStyle} // Apply the new style object
     >
-      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
-        const mapKey = `map-${index}-${game.map || 'random'}`;
-        const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
-
-        return (
+      {/* Conditional Rendering based on elementRole */}
+      {elementRole === 'BoXLeftCivs' && boxSeriesGames.map((game, index) => (
+        <div key={`leftciv-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', justifyContent: 'center' }}>
           <div
-            key={index}
-            className={styles.gameEntryContainer}
-            style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}
+            className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+            style={{
+              ...civSelectorStyle,
+              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
+            }}
           >
-            <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
-              Game {index + 1}
-            </div>
-            <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
-              <div className={`${styles.civCell} ${styles.leftCivCell}`} style={leftCivCellStyle}>
-                <div
-                  key={hostCivKey + '-container'}
-                  className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-                  style={{
-                    ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-                  }}
-                >
-                  {showCivNames && game.hostCiv && (
-                    <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Spacers are removed as their function is replaced by translateX on civCells */}
-
-              <div className={styles.mapCell}>
-                <div
-                  key={mapKey + '-container'}
-                  className={styles.selectorDisplay}
-                  style={{
-                    ...mapSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-                  }}
-                >
-                  {showMapNames && game.map && (
-                    <div className={styles.selectorTextOverlay}>{game.map}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Spacers are removed as their function is replaced by translateX on civCells */}
-
-              <div className={`${styles.civCell} ${styles.rightCivCell}`} style={rightCivCellStyle}>
-                <div
-                  key={guestCivKey + '-container'}
-                  className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-                  style={{
-                    ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-                  }}
-                >
-                  {showCivNames && game.guestCiv && (
-                    <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {showCivNames && game.hostCiv && (
+              <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
+            )}
           </div>
-        );
-      })}
+        </div>
+      ))}
+
+      {elementRole === 'BoXMaps' && boxSeriesGames.map((game, index) => (
+        <div key={`map-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
+            Game {index + 1}
+          </div>
+          <div
+            className={styles.selectorDisplay}
+            style={{
+              ...mapSelectorStyle,
+              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
+            }}
+          >
+            {showMapNames && game.map && (
+              <div className={styles.selectorTextOverlay}>{game.map}</div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {elementRole === 'BoXRightCivs' && boxSeriesGames.map((game, index) => (
+        <div key={`rightciv-${index}`} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px', display: 'flex', justifyContent: 'center' }}>
+          <div
+            className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+            style={{
+              ...civSelectorStyle,
+              backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
+            }}
+          >
+            {showCivNames && game.guestCiv && (
+              <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {!['BoXLeftCivs', 'BoXMaps', 'BoXRightCivs'].includes(elementRole || '') && (
+        <div style={{padding: '10px', textAlign: 'center'}}>
+          (BoX Role: {elementRole || 'Not Set'})
+          {/* Displaying a generic view or placeholder if no specific role matches */}
+          {boxSeriesGames.slice(0,1).map((game, index) => ( // Render a single entry example
+             <div key={`game-${index}`} className={styles.gameEntryContainer} style={{paddingTop: '0px'}}>
+               <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1} (Generic)</div>
+                 <div className={styles.gameImageRow} style={{gridTemplateColumns: '1fr auto 1fr'}}> {/* Simplified row */}
+                   <div className={`${styles.civCell} ${styles.leftCivCell}`}> {/* Re-add for structure */}
+                     <div className={styles.selectorDisplay} style={{...civSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`}}>
+                       {showCivNames && game.hostCiv && <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>}
+                     </div>
+                   </div>
+                   <div className={styles.mapCell}> {/* Re-add for structure */}
+                    <div className={styles.selectorDisplay} style={{...mapSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`}}>
+                      {showMapNames && game.map && <div className={styles.selectorTextOverlay}>{game.map}</div>}
+                    </div>
+                   </div>
+                   <div className={`${styles.civCell} ${styles.rightCivCell}`}> {/* Re-add for structure */}
+                     <div className={styles.selectorDisplay} style={{...civSelectorStyle, backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`}}>
+                       {showCivNames && game.guestCiv && <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>}
+                    </div>
+                   </div>
+                 </div>
+               </div>
+          ))}
+          {boxSeriesGames.length === 0 && <div>No game data for generic BoX view.</div>}
+        </div>
+      )}
     </div>
   </div> /* Closes baseElement */
 ); // Закрытие return
