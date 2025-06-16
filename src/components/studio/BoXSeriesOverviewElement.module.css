@@ -1,0 +1,137 @@
+/* src/components/studio/BoXSeriesOverviewElement.module.css */
+
+.baseElement {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto; /* Allow vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* Center game entries vertically */
+  font-family: 'Arial', sans-serif; /* Default, can be overridden by element props */
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black;
+  padding: 5px; /* Add some internal padding */
+}
+
+.gameEntryContainer {
+  /* Margin-bottom and paddingTop are now controlled by inline style in the component */
+  /* Add other styles if needed, e.g., width: 100%; */
+}
+
+.gameEntryContainer:last-child {
+  /* This is now handled by conditional inline style (paddingTop for non-first, no specific style for last regarding old margin-bottom) */
+}
+
+.selectorDisplay {
+  padding: 5px;
+  border: 1px solid #c19a49; /* --aoe-gold-accent */
+  border-radius: 3px;
+  background-color: #4a3b2a; /* --aoe-button-bg */
+  background-size: cover; /* Fill the area, cropping if needed */
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  box-sizing: border-box;
+  color: white;
+  text-shadow: 0 0 3px black, 0 0 3px black;
+  /* display: flex; */ /* Removed */
+  /* justify-content: center; */ /* Removed */
+  /* align-items: flex-end; */ /* Removed */
+  /* Ensure it can contain children correctly, e.g. if children are absolute */
+  /* Or, if img and text are block, they will stack. */
+}
+
+.selectorImage {
+  display: block;
+  width: 100%; /* Fill the padded area of .selectorDisplay */
+  height: 90%; /* 100% of parent's inner height - 5% top - 5% bottom */
+  margin-top: 5%;
+  object-fit: contain; /* Show whole image, letterboxed/pillarboxed if necessary */
+}
+
+.selectorTextOverlay {
+  position: absolute;
+  bottom: 5px; /* Align with bottom padding of parent */
+  left: 5px;   /* Align with left padding of parent */
+  right: 5px;  /* Align with right padding of parent */
+  /* width: 100%; */ /* Removed, width is now implicit */
+  /* align-self: flex-end; */ /* Removed */
+  /* background-color: rgba(0, 0, 0, 0.65); */ /* Already removed */
+  color: white;
+  font-family: 'Cinzel', serif;
+  font-size: 1.0em;
+  padding: 1px 3px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gameTitle {
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+  text-align: center;
+  /* padding-top: 5px; */    /* Removed, spacing is now on gameEntryContainer's paddingTop */
+  margin-bottom: 8px;  /* Matches .game-slot-title margin-bottom - KEEP this */
+  /* fontSize is applied via inline style in the component */
+  /* background-color: rgba(0, 0, 0, 0.3); /* Optional: for readability */
+  /* border-radius: 2px; */ /* Optional */
+}
+
+/* .imageContainer and .letterboxedImage are removed */
+
+.gameImageRow { /* Renamed from gameRow */
+  display: grid;
+  /* gridTemplateColumns will be set dynamically in the component */
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  /* padding: 2px 0; /* Original padding, can adjust/remove if .gameTitle padding handles it */
+  min-height: 30px;
+}
+
+.civCell {
+  position: relative; /* For potential future overlays or absolute positioning within cell */
+}
+
+.leftCivCell {
+  justify-self: end; /* Align to the right of its grid column */
+}
+
+.rightCivCell {
+  justify-self: start; /* Align to the left of its grid column */
+}
+
+.mapCell {
+  justify-self: center; /* Center in its grid column */
+  position: relative;
+  z-index: 1; /* Map is typically in the middle, default stacking */
+}
+
+/* .civImage and .mapImage are removed or empty */
+.civImage {}
+.mapImage {}
+
+.winnerGlow { /* This class will be added to the selectorDisplay */
+  box-shadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset; /* Keep a strong glow */
+  border-color: #00ff00 !important; /* Ensure winner border color overrides default */
+}
+
+.noGamesMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 12px; /* Adjust as needed */
+  color: #888;
+}
+
+/* Spacers for pivot lock - their width is controlled by grid-template-columns */
+.spacer {
+  /* This class is mainly for semantic distinction if needed, actual spacing is by grid column width */
+  /* No visual styling needed unless for debugging */
+}

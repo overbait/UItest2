@@ -29,6 +29,9 @@
   padding: 20px;
   min-height: 100vh;
   box-sizing: border-box;
+  max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .main-title {
@@ -60,7 +63,7 @@
   grid-template-columns: 0.8fr 0.8fr 1.4fr; /* Draft Inputs | Saved Presets | Match Control */
   gap: 15px;
   margin-bottom: 20px;
-  align-items: flex-start;
+  align-items: stretch; /* Changed from flex-start */
 }
 
 .drafts-section-grid {
@@ -90,17 +93,17 @@
   align-items: center;
   justify-content: space-around; 
   width: 100%;
-  flex-wrap: wrap; 
+  flex-wrap: nowrap; /* Changed from wrap to nowrap */
   gap: 8px; 
   margin-top: 10px; 
 }
 .player-scores-card .player-name-input-group {
   display: flex;
   flex-direction: column; 
-  align-items: flex-start;
+  align-items: center; /* Changed from flex-start to center */
   gap: 3px; 
-  flex-grow: 1;
-  min-width: 130px; 
+  flex: 1 1 250px; /* Added flex shorthand, replaces flex-grow and sets basis */
+  /* min-width: 130px; /* Removed or adjust if necessary, 250px is the new basis */
 }
 .player-scores-card .player-name-input-group label {
   font-size: 0.8em; 
@@ -216,10 +219,11 @@
 .reset-session-button:hover { background-color: #c9302c; border-color: #a72824; }
 .saved-presets-list {
   min-height: 60px; 
-  max-height: 100px; 
+  /* max-height: 100px; */ /* Removed */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex-grow: 1; /* Added */
   gap: 6px; 
   background-color: var(--aoe-dark-bg);
   border: 1px solid var(--aoe-input-border);
@@ -313,15 +317,28 @@
 .game-slot-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .selector-group { display: flex; flex-direction: column; gap: 4px; }
 .selector-group label { font-size: 0.8em; color: var(--aoe-text-light); }
-.selector-group select.button-like { width: 100%; font-size: 0.8em; padding: 5px; }
+.selector-group select.button-like {
+  width: 100%;
+  font-size: 0.8em;
+  padding: 5px; /* This gives 5px top/bottom */
+  box-sizing: border-box; /* Be explicit */
+}
 
 /* Styles for winner/loser indication in BoX card */
 .civ-selection-group { display: flex; align-items: center; gap: 5px; }
 .civ-selection-group select { flex-grow: 1; }
 .win-button {
-  padding: 4px 6px; font-size: 0.75em; line-height: 1;
-  background-color: var(--aoe-input-bg); border: 1px solid var(--aoe-input-border);
-  color: var(--aoe-text-light); cursor: pointer; border-radius: 3px;
+  padding: 5px 8px; /* Keep vertical padding at 5px to match the select override */
+  font-size: 0.8em;
+  line-height: 1.2; /* Default line-height for select might be slightly larger than 1, try 1.2 */
+  background-color: var(--aoe-input-bg);
+  border: 1px solid var(--aoe-input-border);
+  box-sizing: border-box; /* Added */
+  color: var(--aoe-text-light);
+  cursor: pointer;
+  border-radius: 3px;
+  /* Add relative positioning for z-index context */
+  position: relative;
 }
 .win-button:hover { background-color: var(--aoe-button-hover-bg); }
 .win-button.active { background-color: var(--aoe-green-success); color: white; border-color: var(--aoe-green-success); }
@@ -371,4 +388,84 @@
   .card { padding: 10px; }
   .technical-interface { padding: 10px; }
   .game-slot-selectors { grid-template-columns: 1fr; }
+}
+
+/* Added Flag Styles */
+.name-input-reduced {
+  width: 70%; /* Adjust as needed */
+  /* Potentially other styles */
+}
+.player-input-flag-group {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Adjust as needed */
+}
+
+.flag-button {
+  padding: 4px; /* Slightly adjust padding if needed, to give image a bit of space OR rely on image's own transparency */
+  min-width: 38px;  /* Adjust if necessary to fit common flag aspect ratios well + padding */
+  height: 30px;   /* Explicit height for the button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em; /* Slightly adjust emoji size if padding changes affect it */
+  line-height: 1; /* Helps center emoji vertically if it's text-based */
+  box-sizing: border-box;
+  /* other .button-like styles (border, background, etc.) should be inherited */
+  overflow: hidden; /* Ensure image does not bleed out if somehow max-width/height fails */
+}
+
+.flag-button img {
+  max-width: 100%;   /* Fill available width within padding */
+  max-height: 100%;  /* Fill available height within padding */
+  object-fit: contain; /* Maintain aspect ratio, fit within element */
+  display: block;      /* Can help prevent extra space below image */
+}
+
+/* .selected-flag-image is no longer used as the image is inside the button */
+.selected-flag-image {
+  /* width: 24px; */
+  /* height: 24px; */
+  /* border: 1px solid #555; */
+  /* object-fit: cover; */
+}
+
+/* Flag Dropdown Styles */
+.flag-dropdown {
+  position: absolute;
+  background-color: #2c2c2c; /* Dark background - var(--aoe-panel-bg) */
+  border: 1px solid #555; /* var(--aoe-input-border) or slightly darker */
+  border-radius: 4px;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 5px;
+  min-width: 150px; /* Ensure it's not too narrow */
+}
+.flag-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--aoe-text-light); /* var(--aoe-text-light) */
+}
+.flag-dropdown-item:hover {
+  background-color: #444; /* A slightly lighter dark shade for hover */
+}
+.flag-dropdown-item img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border: 1px solid #666;
+  object-fit: contain; /* Use contain to see the whole flag */
+}
+.flag-dropdown-search-input {
+  width: calc(100% - 16px); /* Full width minus padding */
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  background-color: #1e1e1e; /* var(--aoe-dark-bg) */
+  border: 1px solid #555;    /* var(--aoe-input-border) */
+  color: var(--aoe-text-light);
+  border-radius: 3px;
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }

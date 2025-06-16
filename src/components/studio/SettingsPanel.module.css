@@ -1,0 +1,54 @@
+/* src/components/studio/SettingsPanel.module.css */
+.settingsPanel {
+  /* Styles for the main panel container if needed, though most are inline in TSX */
+  /* Example: border-left: 1px solid #444; */
+}
+
+.noElementSelected {
+  color: #888;
+  text-align: center;
+  padding: 20px;
+}
+
+.settingsHeader {
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #444;
+  color: #e0e0e0;
+}
+
+.settingItem {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.settingLabel {
+  margin-bottom: 5px;
+  font-size: 0.9em;
+  color: #ccc;
+}
+
+.settingInput {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: #2c2c2c;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.settingCheckbox {
+  transform: scale(1.1);
+  margin-right: 5px;
+  /* Align with label if label is beside it */
+  /* Example: margin-top: 2px; if label is on same line and needs alignment */
+}
+
+/* Additional styles from the TSX if they were meant to be in CSS Modules */
+/* For example, if settingRowStyle, rangeInputStyle etc. were intended to be classes */
+/* For now, only adding what was explicitly used with styles.X in the MapPoolElement section */

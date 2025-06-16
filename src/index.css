@@ -48,12 +48,13 @@
 @layer base {
   html, body, #root {
     @apply h-full; /* Ensures html, body, and #root take full viewport height */
+    background-color: #1e1e1e; /* Added here */
   }
   html, body {
     overflow-y: auto; /* Allows vertical scrolling if content overflows */
     font-family: var(--font-technical);
     color: var(--color-ui-text);
-    background-color: var(--color-aoe-dark);
+    /* background-color: #1e1e1e; */ /* Removed from here, covered by the rule above */
   }
   
   h1, h2, h3, h4, h5, h6 {
