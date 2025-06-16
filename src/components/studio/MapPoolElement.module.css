@@ -18,7 +18,7 @@
   /* For now, let them be content-sized, translation will separate them. */
   display: grid;
   /* Example: grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust mapItemWidth */ */
-  grid-template-columns: repeat(3, auto); /* Example: 3 maps per row */
+  grid-template-columns: auto auto auto; /* Example: 3 maps per row */
   gap: 8px;
   padding: 10px;
   transition: transform 0.2s ease-out; /* Smooth transition for lockPivotPoint movement */
