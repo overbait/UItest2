@@ -8,6 +8,11 @@ interface MapPoolElementProps {
 }
 
 const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
+  if (!element || !element.size) {
+    // Or return a more informative placeholder/error component
+    console.error('[MapPoolElement] Received invalid element prop:', element);
+    return null;
+  }
   // Defensive check removed
   // const { ... } = useDraftStore hook remains the same
   const {
