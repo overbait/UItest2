@@ -17,9 +17,8 @@
   flex-wrap: wrap;
   flex-direction: column;
   height: 204px; /* 3 items * (60px map height + 8px cell padding) */
-  justify-content: center; /* Vertically center content within the fixed height */
-  align-items: center; /* Horizontally center content (columns) */
   box-sizing: border-box;
+  flex-wrap: wrap; /* Ensure this is still here */
   /* padding: 10px; /* This was the line that caused the last 'Unknown word padding' error. Let's test without it first, then add it if base works. */
   /* Let's add a smaller padding or margin to the grid itself, or rely on cell padding. */
   /* For now, let cell padding handle internal spacing. Add some padding to the grid for overall inset. */
@@ -37,9 +36,13 @@
 
 .mapItemGridCell {
   padding: 4px; /* Creates 8px spacing between content of adjacent cells */
+  height: calc(204px / 3); /* Explicit height for each cell */
+  box-sizing: border-box;
 }
 
 .mapItemVisualContent {
+  height: 100%; /* Fill the cell */
+  width: 100%;   /* Fill the cell */
   box-sizing: border-box;
   border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
   border-radius: 3px; /* from BoXSeriesOverview */
