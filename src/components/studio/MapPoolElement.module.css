@@ -16,9 +16,9 @@
   /* Each grid will take up part of the space. Flex behavior will be affected by translateX. */
   /* Consider using flex-basis or width if they are not meant to grow/shrink with the parent initially. */
   /* For now, let them be content-sized, translation will separate them. */
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   /* Example: grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust mapItemWidth */ */
-  grid-template-columns: auto auto auto; /* Example: 3 maps per row */
   gap: 8px;
   padding: 10px;
   transition: transform 0.2s ease-out; /* Smooth transition for lockPivotPoint movement */
@@ -79,7 +79,7 @@
   color: #555;
   font-size: 0.8em;
   text-align: center;
-  grid-column: 1 / -1; /* Span all columns if grid is active */
+  width: 100%;
   margin-bottom: 10px;
 }
 
@@ -88,7 +88,7 @@
   font-size: 0.9em;
   text-align: center;
   padding: 10px;
-  grid-column: 1 / -1; /* Span all columns */
+  width: 100%;
 }
 
 /* Styles for map states (picked, banned, affected, adminPicked) will be added in the next step */
