@@ -71,8 +71,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
 
   // --- Temporary sample data REMOVED ---
 
-  const p1TranslateX = isPivotLocked ? -horizontalSplitOffset : 0;
-  const p2TranslateX = isPivotLocked ? horizontalSplitOffset : 0;
+  const p1TranslateX = -(element.horizontalSplitOffset || 0);
+  const p2TranslateX = (element.horizontalSplitOffset || 0);
 
   const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 30;
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
