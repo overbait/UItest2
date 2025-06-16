@@ -1,6 +1,7 @@
 import React from 'react';
 import { StudioElement } from '../../types/draft';
 import useDraftStore from '../../store/draftStore';
+import styles from './SettingsPanel.module.css';
 
 interface SettingsPanelProps {
   selectedElement: StudioElement | null;
