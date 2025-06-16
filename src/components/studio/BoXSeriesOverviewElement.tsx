@@ -132,58 +132,43 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   }
 
   // Main render method for the component.
-
-  // Scaler setup
-  const unscaledWidth = size.width / scale;
-  const unscaledHeight = size.height / scale;
-  const scalerTransformOrigin = isPivotLocked ? 'center center' : 'top left'; // Added semicolon
-
   return (
     // Base element container, applying CSS module style and dynamic font settings.
-    // This div defines the bounding box. Overflow hidden to contain the scaler.
+    // The overall 'transform: scale(element.scale)' will be applied by the parent StudioElementWrapper.
+    // Thus, fontSize here is the "unscaled" font size.
     <div
       className={styles.baseElement}
-      style={{
-        fontFamily,
-        // The baseElement should not have fontSize directly if children are scaled,
-        // or it should be very small / 0, as scaling affects perceived font size.
-        // Let's apply dynamicFontSize to the scaler's content instead.
-        overflow: 'hidden',
-        width: size.width, // Explicitly set from element.size for clarity
-        height: size.height,
-      }}
+      style={{ fontFamily, fontSize: `${dynamicFontSize}px` }}
     >
-      {/*
-        The content below has been commented out to isolate the syntax error.
-        If the component builds with this simplified JSX, the error is within this block.
-      */}
-      <div>Content Commented Out - Test Build</div>
-      {/*
-      <div
-        className={styles.boxScaler} // New class for the scaler
-        style={{
-          width: `${unscaledWidth}px`,
-          height: `${unscaledHeight}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: scalerTransformOrigin,
-          fontSize: `${dynamicFontSize}px`, // Apply base font size to scaler content
-        }}
-      >
-        {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-          const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
+        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
+
+        // gameRowDynamicStyle is now gameImageRowDynamicStyle
+        // const gameImageRowDynamicStyle: React.CSSProperties = { // Defined above
+        //   gridTemplateColumns: isPivotLocked
+        //     ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
+        //     : '1fr auto 1fr',
+        // };
+        // dynamicGameTitleStyle remains for fontSize, potentially custom fontFamily later
+        // const gameTitleFont = element.fontFamilyGameTitle || undefined; // Defined above
+        // const dynamicGameTitleStyle: React.CSSProperties = { // Defined above
+        //   fontSize: `${gameTitleFontSize}px`,
+        //   fontFamily: gameTitleFont,
+        // };
 
         return (
          <div
            key={index}
            className={styles.gameEntryContainer}
-           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}
+           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }} // Apply spacing as paddingTop to subsequent entries
          >
             <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
               Game {index + 1}
             </div>
            <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
+              {/* Left civilization display. */}
               <div className={`${styles.civCell} ${styles.leftCivCell}`}>
             <div
               key={hostCivKey + '-container'}
@@ -199,8 +184,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             </div>
           </div>
 
+          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
           {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
+          {/* Map display. */}
           <div className={styles.mapCell}>
             <div
               key={mapKey + '-container'}
@@ -216,8 +203,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             </div>
           </div>
 
+          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
           {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
+          {/* Right civilization display. */}
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>
             <div
               key={guestCivKey + '-container'}
@@ -232,12 +221,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               )}
             </div>
           </div>
-           </div>
+           </div> {/* End of gameImageRow */}
         </div>
       )})}
     </div>
-    */}
-  </div> {/* Closes baseElement */}
   );
 };
 

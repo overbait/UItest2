@@ -11,7 +11,8 @@ import {
   SavedPreset,
   StudioElement,
   SavedStudioLayout,
-  StudioCanvas // <-- Add this
+  StudioCanvas, // <-- Add this
+  MapItem,
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
@@ -43,7 +44,7 @@ interface DraftStore extends CombinedDraftState {
   _updateActivePresetIfNeeded: () => void;
 
   // Studio Actions
-  addStudioElement: (elementType: StudioElementType) => void; // Changed string to StudioElementType
+  addStudioElement: (elementType: string) => void;
   updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => void;
   updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => void;
   setSelectedElementId: (elementId: string | null) => void;
@@ -1475,7 +1476,7 @@ const useDraftStore = create<DraftStore>()(
         updateBoxSeriesGame: (gameIndex, field, value) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { newGames[gameIndex] = { ...newGames[gameIndex], [field]: value, winner: null }; return { boxSeriesGames: newGames }; } return state; }); get()._updateActivePresetIfNeeded(); },
         setGameWinner: (gameIndex, winningPlayer) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { if (newGames[gameIndex].winner === winningPlayer) newGames[gameIndex] = { ...newGames[gameIndex], winner: null }; else newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer }; } let hostScore = 0; let guestScore = 0; newGames.forEach(game => { if (game.winner === 'host') hostScore++; else if (game.winner === 'guest') guestScore++; }); return { boxSeriesGames: newGames, scores: { host: hostScore, guest: guestScore }}; }); get()._updateActivePresetIfNeeded(); },
 
-        addStudioElement: (elementType: StudioElementType) => { // Changed string to StudioElementType
+        addStudioElement: (elementType: string) => {
           set(state => {
             const activeCanvas = state.currentCanvases.find(c => c.id === state.activeCanvasId);
             if (!activeCanvas) {
@@ -1486,13 +1487,10 @@ const useDraftStore = create<DraftStore>()(
             const initialX_px = 10;
             const initialY_px = 10 + (activeCanvas.layout.length * 20); // Basic stacking
 
-            // let newElement: StudioElement; // Will be declared inside if/else for MapPool clarity
-            let elementsToAdd: StudioElement[] = []; // Array to hold elements to be added
-            // Variable for single element creation, to be pushed into elementsToAdd
-            let singleElementToAdd: StudioElement | null = null;
+            let newElement: StudioElement;
 
             if (elementType === "BoXSeriesOverview") {
-              singleElementToAdd = {
+              newElement = {
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
@@ -1506,7 +1504,7 @@ const useDraftStore = create<DraftStore>()(
                 // No showName or showScore here
               };
             } else if (elementType === "ScoreOnly") {
-              singleElementToAdd = {
+              newElement = {
                 id: Date.now().toString(), type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 100, height: 40 },
@@ -1518,7 +1516,7 @@ const useDraftStore = create<DraftStore>()(
                 pivotInternalOffset: 0,
               };
             } else if (elementType === "NicknamesOnly") {
-              singleElementToAdd = {
+              newElement = {
                 id: Date.now().toString(), type: elementType,
                 position: { x: initialX_px, y: initialY_px },
                 size: { width: 300, height: 40 },
@@ -1531,7 +1529,7 @@ const useDraftStore = create<DraftStore>()(
                 // textColor is intentionally not set here, will default in component
               };
             } else if (elementType === "CountryFlags") {
-              singleElementToAdd = {
+              newElement = {
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
@@ -1545,7 +1543,7 @@ const useDraftStore = create<DraftStore>()(
                 pivotInternalOffset: 10,
               };
             } else if (elementType === "ColorGlowElement") {
-              singleElementToAdd = {
+              newElement = {
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
@@ -1558,74 +1556,42 @@ const useDraftStore = create<DraftStore>()(
                 isPivotLocked: false,
                 pivotInternalOffset: 10,
               };
-            } else if (elementType === "MapPool") {
-              const pairId = `pair-${Date.now()}`;
-              const elementP1: StudioElement = {
+            } else if (elementType === "MapPoolElement") {
+              newElement = {
                 id: Date.now().toString(),
-                type: elementType,
+                type: "MapPoolElement",
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 300, height: 400 }, // Default size for MapPool
-                fontFamily: 'Arial, sans-serif', // Default font
-                backgroundColor: 'transparent',
-                borderColor: 'transparent', // Changed default to transparent
-                textColor: 'white',
-                scale: 1, // Default scale
-                isPivotLocked: false, // Default is false
-                pivotInternalOffset: undefined,
-                isPairMaster: true,
-                playerId: 'P1',
-                pairId: pairId
-              };
-              const elementP2: StudioElement = {
-                ...elementP1, // Inherit most properties from P1
-                id: Date.now().toString() + '-P2S',
-                isPairMaster: false,
-                playerId: 'P2',
-                position: { x: initialX_px + (elementP1.size?.width || 250) + 30, y: initialY_px },
-              };
-              elementsToAdd.push(elementP1, elementP2);
-            } else { // Generic fallback for unknown types
-              console.warn(`[draftStore] addStudioElement: Unknown elementType "${elementType}". Creating a generic element.`);
-              singleElementToAdd = {
-                id: Date.now().toString(), type: elementType, // Keep original type for potential debugging
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 200, height: 100 }, // Default generic size
+                size: { width: 500, height: 220 },
                 fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'rgba(255,0,0,0.3)', // Semi-transparent red to indicate unknown
-                borderColor: 'red',
-                textColor: 'white',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                horizontalSplitOffset: 0,
+                player1MapPool: [],
+                player2MapPool: [],
+              };
+            } else {
+              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
+              // It should NOT include showName or showScore.
+              newElement = {
+                id: Date.now().toString(), type: elementType,
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 250, height: 40 }, // Default generic size
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
                 scale: 1,
                 isPivotLocked: false,
                 pivotInternalOffset: 0,
-                // Add a property to indicate it's a fallback element
-                isFallbackElement: true
               };
             }
-
-            // If a single element was created, add it to the array
-            if (singleElementToAdd && elementType !== "MapPool") {
-              elementsToAdd.push(singleElementToAdd);
-            }
-
-            if (elementsToAdd.length > 0) {
-              const updatedLayout = [...activeCanvas.layout, ...elementsToAdd];
-              const updatedCanvases = state.currentCanvases.map(canvas =>
-                canvas.id === state.activeCanvasId
-                  ? { ...canvas, layout: updatedLayout }
-                  : canvas
-              );
-              // Select the first element added (P1 if a pair, or the single element)
-              const firstNewElementId = elementsToAdd[0].id;
-              return {
-                ...state,
-                currentCanvases: updatedCanvases, // No need for JSON.parse(JSON.stringify()) here
-                selectedElementId: firstNewElementId,
-                layoutLastUpdated: Date.now()
-              };
-            }
-            // This case should ideally not be reached if all elementTypes are handled or have a fallback.
-            console.warn(`addStudioElement: No elements were actually created for elementType '${elementType}'.`);
-            return state;
+            const updatedCanvases = state.currentCanvases.map(canvas =>
+              canvas.id === state.activeCanvasId
+                ? { ...canvas, layout: [...canvas.layout, newElement] }
+                : canvas
+            );
+            return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },

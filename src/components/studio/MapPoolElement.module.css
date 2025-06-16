@@ -1,91 +1,116 @@
-/*
-  MapPoolElement now renders a SINGLE player's view.
-  The .map-pool-element is the root of this single view.
-  The .map-pool-scaler is the direct child that handles scaling.
-  The .player-map-grid is inside the scaler and holds the map items.
-*/
-
-.map-pool-element {
-  box-sizing: border-box;
-}
-
-.map-pool-scaler {
-  /* Styles for scaling are inline */
-}
-
-.player-map-grid {
-  box-sizing: border-box;
-  height: 100%;
+/* src/components/studio/MapPoolElement.module.css */
+.mapPoolElement {
   width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex; /* This will place grids side-by-side before translateX */
+  justify-content: center; /* Center the two grids if they don't fill the width */
+  align-items: flex-start; /* Align grids to the top */
+  position: relative; /* For absolute positioning of children if needed, or stacking context */
+  overflow: visible; /* Ensure content is not clipped by default */
+  padding: 5px; /* Optional padding for the whole element */
+  background-color: transparent; /* Ensure no gray background */
 }
 
-.map-item {
+.playerMapGrid {
+  /* Each grid will take up part of the space. Flex behavior will be affected by translateX. */
+  /* Consider using flex-basis or width if they are not meant to grow/shrink with the parent initially. */
+  /* For now, let them be content-sized, translation will separate them. */
+  display: grid;
+  /* Example: grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust mapItemWidth */ */
+  grid-template-columns: repeat(3, auto); /* Example: 3 maps per row */
+  gap: 8px;
+  padding: 10px;
+  transition: transform 0.2s ease-out; /* Smooth transition for lockPivotPoint movement */
+  /* border: 1px dashed lightblue; /* Temporary for layout visualization */ */
+}
+
+.player1Grid {
+  /* Specific styles for player 1 grid if needed */
+  /* Example: margin-right: auto; /* Pushes player 2 grid away if not centered */ */
+}
+
+.player2Grid {
+  /* Specific styles for player 2 grid if needed */
+  /* Example: margin-left: auto; /* Pushes player 1 grid away if not centered */ */
+}
+
+.mapItemGridCell {
+  /* Styles for the cell that HOLDS the visual content */
+  /* Allows for additional spacing or effects around the visual content if needed */
+}
+
+.mapItemVisualContent {
+  box-sizing: border-box;
+  border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
+  border-radius: 3px; /* from BoXSeriesOverview */
+  background-color: #4a3b2a; /* --aoe-button-bg, from BoXSeriesOverview */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative; /* For text overlay */
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black; /* from BoXSeriesOverview */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center; /* Center image container */
-  overflow: hidden;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  border: 1px solid #666; /* Refined BoX border color */
-  border-radius: 3px;
-  transition: filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
-  padding: 1px; /* Reduced padding to make item fit image container more tightly */
-  position: relative;
-  background-color: rgba(25, 25, 25, 0.8); /* Refined BoX item background */
+  justify-content: flex-end; /* Align map name to the bottom */
+  align-items: center; /* Center map name horizontally */
+  padding: 4px; /* Reduced padding to make maps more rectangular */
+  overflow: hidden; /* Clip content like map name if it's too long */
+
+  /* Make it slightly more rectangular by adjusting height relative to a fixed width, */
+  /* or by adjusting padding. Current approach is fixed width/height via inline style in TSX */
+  /* and reduced vertical padding here. */
 }
 
-.map-image-container {
-  width: 100%; /* Takes full width of the padded .map-item */
-  aspect-ratio: 10 / 9; /* Squarer, but slightly wider than tall */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  position: relative; /* Anchor for the absolutely positioned map name */
-}
-
-.map-image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none; /* Prevent image dragging */
-}
-
-.map-name {
-  position: absolute;
-  bottom: 3px; /* Target: BoX positioning */
-  left: 0;
-  right: 0;
+.mapName {
+  font-family: 'Cinzel', serif; /* from BoXSeriesOverview */
+  font-size: 0.9em; /* Relative to parent's dynamicFontSize */
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.75); /* Target: BoX text strip background */
-  color: #f0f0f0; /* Target: BoX text color (off-white) */
-  padding: 3px 5px; /* Target: BoX text strip padding */
-  font-family: 'Trade Gothic Next LT Pro Cn', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; /* Target: BoX font family */
-  font-size: 13px; /* Target: BoX base unscaled font size */
-  font-weight: bold; /* Target: BoX font weight */
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  box-sizing: border-box;
-  border-top: 1px solid rgba(255,255,255,0.15); /* Target: BoX text strip border */
+  width: 100%;
+  padding: 2px 0;
+  /* background-color: rgba(0, 0, 0, 0.5); /* Optional for readability */ */
 }
 
-/* --- Draft State Styles --- */
-/* Glows applied to .map-item to make the whole "button" glow */
-
-.map-item-banned-by-self {
-  box-shadow: 0 0 8px 3px rgba(255, 0, 0, 0.75);
-  border-color: rgba(220, 50, 50, 0.85) !important;
+.placeholderText {
+  color: #555;
+  font-size: 0.8em;
+  text-align: center;
+  grid-column: 1 / -1; /* Span all columns if grid is active */
+  margin-bottom: 10px;
 }
 
-.map-item-picked-by-self {
-  box-shadow: 0 0 8px 3px rgba(0, 255, 0, 0.7);
-  border-color: rgba(50, 220, 50, 0.85) !important;
+.noMapsMessage {
+  color: #777;
+  font-size: 0.9em;
+  text-align: center;
+  padding: 10px;
+  grid-column: 1 / -1; /* Span all columns */
 }
 
-.map-item-affected-by-opponent {
-  filter: grayscale(95%);
-  opacity: 0.55;
+/* Styles for map states (picked, banned, affected, adminPicked) will be added in the next step */
+
+.mapItemVisualContent.picked {
+  border-color: #00ff00; /* Green */
+  box-shadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset; /* Similar to winnerGlow */
 }
+
+.mapItemVisualContent.banned {
+  border-color: #ff0000; /* Red */
+  box-shadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+}
+
+.mapItemVisualContent.affected {
+  filter: grayscale(100%);
+  border-color: #555; /* Darker border for affected maps */
+}
+
+.mapItemVisualContent.adminPicked {
+  border-color: #ffd700; /* Gold */
+  box-shadow: 0 0 8px 3px #ffd700, 0 0 5px 2px #ffd700 inset;
+}
+
+/* Default state is just .mapItemVisualContent without additional classes */

@@ -15,12 +15,6 @@
   padding: 5px; /* Add some internal padding */
 }
 
-.boxScaler {
-  width: 100%; /* Default, will be overridden by inline style for unscaled dimensions */
-  height: 100%; /* Default, will be overridden by inline style for unscaled dimensions */
-  /* transform, transform-origin, fontSize are set inline in the TSX */
-}
-
 .gameEntryContainer {
   /* Margin-bottom and paddingTop are now controlled by inline style in the component */
   /* Add other styles if needed, e.g., width: 100%; */

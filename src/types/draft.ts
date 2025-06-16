@@ -62,20 +62,9 @@ export interface SingleDraftData {
   currentAction?: string;
 }
 
-// Define known studio element types
-export type StudioElementType =
-  | "CivPicker"
-  | "SeriesScore"
-  | "BoXSeriesOverview"
-  | "PlayerName" // Assuming this might exist
-  | "PlayerCiv"  // Assuming this might exist
-  | "MapPool"    // Our new type
-  | "CustomText" // Assuming this might exist
-  | "ImageElement"; // Assuming this might exist
-
 export interface StudioElement {
   id: string;
-  type: StudioElementType; // Use the defined union type
+  type: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
   fontFamily?: string;
@@ -91,6 +80,15 @@ export interface StudioElement {
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
   // showName and showScore removed
   [key: string]: any;
+  player1MapPool?: MapItem[];
+  player2MapPool?: MapItem[];
+  horizontalSplitOffset?: number;
+}
+
+export interface MapItem {
+  name: string;
+  status: 'picked' | 'banned' | 'affected' | 'default' | 'adminPicked';
+  imageUrl?: string;
 }
 
 export interface SavedStudioLayout {
