@@ -1,3 +1,101 @@
-.testClass {
-  padding: 10px;
+/* src/components/studio/MapPoolElement.module.css */
+.mapPoolElement {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  overflow: visible;
+  padding: 5px;
+  background-color: transparent;
+}
+
+.playerMapGrid {
+  display: flex;
+  flex-wrap: wrap;
+  /* padding: 10px; /* This was the line that caused the last 'Unknown word padding' error. Let's test without it first, then add it if base works. */
+  /* Let's add a smaller padding or margin to the grid itself, or rely on cell padding. */
+  /* For now, let cell padding handle internal spacing. Add some padding to the grid for overall inset. */
+  padding: 5px; /* Overall padding for the grid itself */
+  transition: transform 0.2s ease-out;
+}
+
+.player1Grid {
+  /* Specific styles for player 1 grid if needed */
+}
+
+.player2Grid {
+  /* Specific styles for player 2 grid if needed */
+}
+
+.mapItemGridCell {
+  padding: 4px; /* Creates 8px spacing between content of adjacent cells */
+}
+
+.mapItemVisualContent {
+  box-sizing: border-box;
+  border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
+  border-radius: 3px; /* from BoXSeriesOverview */
+  background-color: #4a3b2a; /* --aoe-button-bg, from BoXSeriesOverview */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative; /* For text overlay */
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black; /* from BoXSeriesOverview */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Align map name to the bottom */
+  align-items: center; /* Center map name horizontally */
+  padding: 4px; /* Reduced padding to make maps more rectangular - this is for INSIDE the card */
+  overflow: hidden;
+}
+
+.mapName {
+  font-family: 'Cinzel', serif; /* from BoXSeriesOverview */
+  font-size: 0.9em; /* Relative to parent's dynamicFontSize */
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.placeholderText {
+  color: #555;
+  font-size: 0.8em;
+  text-align: center;
+  width: 100%; /* Spans full width of flex container */
+  margin-bottom: 10px;
+}
+
+.noMapsMessage {
+  color: #777;
+  font-size: 0.9em;
+  text-align: center;
+  width: 100%; /* Spans full width of flex container */
+  padding: 10px; /* Padding for the message box itself */
+}
+
+.mapItemVisualContent.picked {
+  border-color: #00ff00; /* Green */
+  box-shadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset;
+}
+
+.mapItemVisualContent.banned {
+  border-color: #ff0000; /* Red */
+  box-shadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+}
+
+.mapItemVisualContent.affected {
+  filter: grayscale(100%);
+  border-color: #555;
+}
+
+.mapItemVisualContent.adminPicked {
+  border-color: #ffd700; /* Gold */
+  box-shadow: 0 0 8px 3px #ffd700, 0 0 5px 2px #ffd700 inset;
 }
