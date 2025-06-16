@@ -19,7 +19,6 @@
   display: flex;
   flex-wrap: wrap;
   /* Example: grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust mapItemWidth */ */
-  gap: 8px;
   padding: 10px;
   transition: transform 0.2s ease-out; /* Smooth transition for lockPivotPoint movement */
   /* border: 1px dashed lightblue; /* Temporary for layout visualization */ */
@@ -38,6 +37,7 @@
 .mapItemGridCell {
   /* Styles for the cell that HOLDS the visual content */
   /* Allows for additional spacing or effects around the visual content if needed */
+  padding: 4px;
 }
 
 .mapItemVisualContent {
