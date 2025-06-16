@@ -1565,10 +1565,9 @@ const useDraftStore = create<DraftStore>()(
                 fontFamily: 'Arial, sans-serif',
                 mapNameFontSize: '0.75em',
                 lockPivotPoint: false,
-                // offset: 0, // <-- REMOVED
                 numColumns: 2,
-                // No pivotInternalOffset for MapPoolElement
-                // width & height props will be set from size initially by the component itself or settings panel
+                playerGridWidth: defaultPlayerGridWidth, // Store the fixed grid width
+                separationGap: defaultSeparationGap,   // Store the initial gap
               };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.

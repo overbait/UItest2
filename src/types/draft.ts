@@ -87,6 +87,8 @@ export interface StudioElement {
   lockPivotPoint?: boolean; // From original issue spec, effectively same as isPivotLocked
   numColumns?: number; // Number of columns for each player's grid in MapPoolElement
   mapNameFontSize?: string; // Font size for map names in MapPoolElement
+  separationGap?: number;
+  playerGridWidth?: number; // Width of each individual player's map grid area
   // Allow any other props
   [key: string]: any;
 }

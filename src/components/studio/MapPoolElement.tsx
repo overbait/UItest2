@@ -1,90 +1,33 @@
 // src/components/studio/MapPoolElement.tsx
 import React from 'react';
-// ... other imports ...
 import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft';
 import useDraftStore from '../../store/draftStore';
 import styles from './MapPoolElement.module.css';
 
-
-// ... (helper functions formatMapNameForImagePath, getCleanMapName remain the same) ...
+// ... (helper functions, MapData, DraftState, getMapItemStyleAndState as previously defined)
 const formatMapNameForImagePath = (mapName: string): string => {
   if (!mapName) return 'random';
   return mapName.toLowerCase().replace(/\s+/g, '-').replace(/'/g, '');
 };
 const getCleanMapName = (rawName: string): string => rawName;
-
-
-interface MapPoolElementProps {
-  element: StudioElement & {
-    width?: number; // Will be primary width controller
-    height?: number;
-    lockPivotPoint?: boolean; // This will enable the special drag behavior
-    // scale is handled by StudioElementWrapper
-    // offset is removed
-    numColumns?: number;
-    fontFamily?: string;
-    mapNameFontSize?: string;
-    // internalGap?: number; // This might be introduced by drag, stored as a prop if needed
-  };
-}
-
-const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
-  const {
-    width = 600, // This width is the total width of the MapPoolElement
-    height = 220,
-    lockPivotPoint = false, // Renamed from isPivotLocked for clarity if needed, or use isPivotLocked
-    // offset prop removed
-    numColumns = 2,
-    fontFamily = 'Arial, sans-serif',
-    mapNameFontSize = '0.75em',
-    // internalGap = 0, // If we store the dynamically created gap
-  } = element;
-
-  // ... (store fetching logic remains the same) ...
-  const {
-    aoe2cmRawDraftOptions, mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest,
-    mapPicksGlobal, mapBansGlobal,
-  } = useDraftStore(state => ({ /* ... selectors ... */
-    aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
-    mapPicksHost: state.mapPicksHost, mapBansHost: state.mapBansHost,
-    mapPicksGuest: state.mapPicksGuest, mapBansGuest: state.mapBansGuest,
-    mapPicksGlobal: state.mapPicksGlobal, mapBansGlobal: state.mapBansGlobal,
-  }));
-
-  interface MapData { id: string; name: string; image: string; } // Moved MapData interface definition here
-  const availableMaps: MapData[] = React.useMemo(() => { // MapData type assumed defined
-    if (!aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.length === 0) return [];
-    return aoe2cmRawDraftOptions
-      .filter(option => option.id && !option.id.startsWith('aoe4.'))
-      .map(option => {
-        const cleanName = getCleanMapName(option.name);
-        return { id: option.id, name: cleanName, image: `/assets/maps/${formatMapNameForImagePath(cleanName)}.png`};
-      });
-  }, [aoe2cmRawDraftOptions]);
-
-  const numRows = Math.ceil(availableMaps.length / numColumns);
-
-  // ... (getMapItemStyleAndState remains the same) ...
-  type DraftState = 'picked_by_self' | 'banned_by_self' | 'picked_by_opponent' | 'banned_by_opponent' | 'picked_by_admin' | 'available';
-  // interface MapData { id: string; name: string; image: string; } // Already defined above
-  const getMapItemStyleAndState = (mapName: string, playerPerspective: 'P1' | 'P2'): { class: string, stateText?: string } => {
+type DraftState = 'picked_by_self' | 'banned_by_self' | 'picked_by_opponent' | 'banned_by_opponent' | 'picked_by_admin' | 'available';
+interface MapData { id: string; name: string; image: string; }
+const getMapItemStyleAndState = (mapName: string, playerPerspective: 'P1' | 'P2', mapPicksHost: string[], mapBansHost: string[], mapPicksGuest: string[], mapBansGuest: string[], mapPicksGlobal: string[], mapBansGlobal: string[]): { class: string, stateText?: string } => {
     let currentDraftState: DraftState = 'available';
     let classNames = styles.mapItemVisualContent;
-
-    if (playerPerspective === 'P1') { // Host's perspective
+    if (playerPerspective === 'P1') {
       if (mapPicksHost.includes(mapName)) currentDraftState = 'picked_by_self';
       else if (mapBansHost.includes(mapName)) currentDraftState = 'banned_by_self';
       else if (mapPicksGuest.includes(mapName)) currentDraftState = 'picked_by_opponent';
       else if (mapBansGuest.includes(mapName)) currentDraftState = 'banned_by_opponent';
       else if (mapPicksGlobal.includes(mapName) || mapBansGlobal.includes(mapName)) currentDraftState = 'picked_by_admin';
-    } else { // Player 2 (Guest's) perspective
+    } else {
       if (mapPicksGuest.includes(mapName)) currentDraftState = 'picked_by_self';
       else if (mapBansGuest.includes(mapName)) currentDraftState = 'banned_by_self';
       else if (mapPicksHost.includes(mapName)) currentDraftState = 'picked_by_opponent';
       else if (mapBansHost.includes(mapName)) currentDraftState = 'banned_by_opponent';
       else if (mapPicksGlobal.includes(mapName) || mapBansGlobal.includes(mapName)) currentDraftState = 'picked_by_admin';
     }
-
     switch (currentDraftState) {
       case 'picked_by_self': classNames += ` ${styles.pickedBySelf}`; break;
       case 'banned_by_self': classNames += ` ${styles.bannedBySelf}`; break;
@@ -96,14 +39,65 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
   };
 
 
+interface MapPoolElementProps {
+  element: StudioElement & {
+    width?: number; // This will be the total width: (2 * playerGridWidth) + separationGap
+    height?: number;
+    lockPivotPoint?: boolean;
+    numColumns?: number;
+    fontFamily?: string;
+    mapNameFontSize?: string;
+    separationGap?: number;
+    playerGridWidth?: number; // Added prop
+  };
+}
+
+const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
+  const {
+    width: totalWidth = 600, // This is the overall width, controlled by StudioInterface drag
+    height = 220,
+    lockPivotPoint = false,
+    numColumns = 2,
+    fontFamily = 'Arial, sans-serif',
+    mapNameFontSize = '0.75em',
+    separationGap = 0,
+    playerGridWidth, // Default for playerGridWidth will be handled in calculation if not provided
+  } = element;
+
+  const actualPlayerGridWidth = playerGridWidth !== undefined ? playerGridWidth : ((totalWidth - separationGap) / 2);
+
+
+  const {
+    aoe2cmRawDraftOptions, mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest,
+    mapPicksGlobal, mapBansGlobal,
+   } = useDraftStore(state => ({
+    aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
+    mapPicksHost: state.mapPicksHost, mapBansHost: state.mapBansHost,
+    mapPicksGuest: state.mapPicksGuest, mapBansGuest: state.mapBansGuest,
+    mapPicksGlobal: state.mapPicksGlobal, mapBansGlobal: state.mapBansGlobal,
+  }));
+
+  const availableMaps: MapData[] = React.useMemo(() => {
+    if (!aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.length === 0) return [];
+    return aoe2cmRawDraftOptions
+      .filter(option => option.id && !option.id.startsWith('aoe4.'))
+      .map(option => {
+        const cleanName = getCleanMapName(option.name || 'Unknown Map'); // Ensure name is not undefined
+        return { id: option.id, name: cleanName, image: `/assets/maps/${formatMapNameForImagePath(cleanName)}.png`};
+      });
+  }, [aoe2cmRawDraftOptions]);
+
+  const numRows = Math.ceil(availableMaps.length / numColumns);
+
   const renderGrid = (playerPerspective: 'P1' | 'P2') => {
-    // ... (renderGrid logic remains the same) ...
     if (availableMaps.length === 0) return <p className={styles.noMapsMessage}>No maps available...</p>;
-    if (numRows === 0) return <p className={styles.noMapsMessage}>Calculating layout...</p>;
+    if (numRows === 0 && availableMaps.length > 0) return <p className={styles.noMapsMessage}>Calculating layout...</p>; // Show if maps exist but rows are 0
+    if (numRows === 0) return <p className={styles.noMapsMessage}>No maps to display.</p>; // Fallback if numRows is 0 for other reasons
+
     return (
       <div className={styles.playerMapGrid} style={{ gridTemplateColumns: `repeat(${numColumns}, 1fr)`, gridTemplateRows: `repeat(${numRows}, minmax(0, 1fr))` }}>
         {availableMaps.map((map) => {
-          const { class: itemStyleClass } = getMapItemStyleAndState(map.name, playerPerspective);
+          const { class: itemStyleClass } = getMapItemStyleAndState(map.name, playerPerspective, mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest, mapPicksGlobal, mapBansGlobal);
           return (
             <div key={`${playerPerspective}-${map.id}`} className={styles.mapItemGridCell}>
               <div className={itemStyleClass}>
@@ -117,41 +111,41 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     );
   };
 
-  // The internalGap prop would be calculated in StudioInterface during drag and passed down if this model is chosen.
-  // Or, the MapPoolElement simply renders its two grids, and StudioInterface adjusts MapPoolElement's total width.
-  // For now, assume MapPoolElement's width prop is the source of truth for its total span.
-  // The playerGridOuterContainers will just be 50% of this.
-  // The "gap" will be part of the parent's (MapPoolElement) width.
+  const calculatedTotalWidth = (2 * actualPlayerGridWidth) + separationGap;
+
 
   return (
     <div
-      className={styles.mapPoolElement}
+      className={styles.mapPoolElementRoot}
       style={{
-        width: `${width}px`, // This width will be dynamically adjusted by drag in StudioInterface
+        width: `${calculatedTotalWidth}px`,
         height: `${height}px`,
         fontFamily: fontFamily,
-        // overflow: 'visible', // May be needed depending on how drag is implemented
+        display: 'flex',
+        alignItems: 'stretch',
       }}
     >
       <div
         className={styles.playerGridOuterContainer}
         style={{
-          width: '50%', // Each player grid container is 50% of the MapPoolElement width
-          // transform: lockPivotPoint ? `translateX(${-Math.abs(offset)}px)` : 'none', // OLD logic with offset
-          // No transform here initially, they will be side-by-side.
-          // The parent's width will expand/contract, and these will flow.
-          // Or, if parent's center is pivot, these will be translated based on parent width.
-          // For now, let's assume they are simply 50% each of current 'width'.
-          // The drag logic in StudioInterface will modify 'width' of MapPoolElement.
+          width: `${actualPlayerGridWidth}px`,
+          height: '100%',
         }}
       >
         {renderGrid('P1')}
       </div>
       <div
+        className={styles.separationSpacer}
+        style={{
+          width: `${separationGap}px`,
+          flexShrink: 0,
+        }}
+      />
+      <div
         className={styles.playerGridOuterContainer}
         style={{
-          width: '50%',
-          // transform: lockPivotPoint ? `translateX(${Math.abs(offset)}px)` : 'none', // OLD logic with offset
+          width: `${actualPlayerGridWidth}px`,
+          height: '100%',
         }}
       >
         {renderGrid('P2')}

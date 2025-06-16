@@ -7,13 +7,13 @@ import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElem
 import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement';
-import { StudioElement, SavedStudioLayout, StudioCanvas } from '../types/draft';
+import { StudioElement, SavedStudioLayout, StudioCanvas } from '../types/draft'; // Ensure StudioCanvas is imported
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import SettingsPanel from '../components/studio/SettingsPanel';
 
-const MIN_ELEMENT_WIDTH = 50;
+const MIN_ELEMENT_WIDTH = 50; // Min width for a single sub-element like one player's grid or a score box
 
 const StudioInterface: React.FC = () => {
   const {
@@ -21,7 +21,7 @@ const StudioInterface: React.FC = () => {
     savedStudioLayouts, selectedElementId, addStudioElement, updateStudioElementPosition, updateStudioElementSize,
     updateStudioElementSettings, saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
     addCanvas, setActiveCanvas, removeCanvas, updateCanvasName, resetActiveCanvasLayout
-  } = useDraftStore(state => state);
+   } = useDraftStore(state => state);
 
   useEffect(() => {
     (window as any).IS_BROADCAST_STUDIO = true;
@@ -41,8 +41,10 @@ const StudioInterface: React.FC = () => {
     elementId: string,
     initialMouseX: number, // Screen X of mouse at drag start
     elementCenterX: number, // Screen X of element center at drag start
-    initialWidth: number, // Unscaled width of element at drag start
-    initialElementX: number // Screen X of element top-left at drag start
+    initialWidth: number, // Unscaled total width of element at drag start
+    initialElementX: number, // Screen X of element top-left at drag start
+    initialSeparationGap?: number, // For MapPoolElement
+    initialPlayerGridWidth?: number, // For MapPoolElement
   } | null>(null);
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
@@ -63,46 +65,64 @@ const StudioInterface: React.FC = () => {
     const pivotLocked = element.lockPivotPoint || element.isPivotLocked;
 
     if (pivotLocked) {
-      let newY_screen = element.position.y + data.deltaY; // Vertical drag is always simple
+      let newY_screen = element.position.y + data.deltaY;
 
-      const currentX_screen = element.position.x;
-      const currentUnscaledWidth = element.width || element.size?.width || MIN_ELEMENT_WIDTH;
-      const currentUnscaledHeight = element.height || element.size?.height || 30;
+      const currentX_screen = element.position.x; // Current screen X before this drag delta
       const currentScale = element.scale || 1;
+      const currentHeight_unscaled = element.height || element.size?.height || 30;
 
       let finalX_screen = currentX_screen;
-      let finalUnscaledWidth = currentUnscaledWidth;
-      let finalPivotOffset_unscaled = element.pivotInternalOffset || 0;
+      let finalTotalWidth_unscaled: number;
+      let finalSeparationGap_unscaled = element.separationGap; // Keep as undefined if not set
+      let finalPivotOffset_unscaled = element.pivotInternalOffset; // Keep as undefined if not set
+
 
       if (data.deltaX !== 0 && dragStartContext && dragStartContext.elementId === elementId) {
+        const initialElementScreenX = dragStartContext.initialElementX;
+        const initialUnscaledWidth = dragStartContext.initialWidth;
+
         if (element.type === "MapPoolElement") {
-          const widthChange = (data.deltaX * 2) / currentScale;
-          finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH * 2, currentUnscaledWidth + widthChange);
-          finalX_screen = currentX_screen + ((currentUnscaledWidth - finalUnscaledWidth) * currentScale / 2);
-        } else {
-            const pivotScreenX_fixed = dragStartContext.initialElementX + (dragStartContext.initialWidth / 2) * currentScale;
-            // Use total mouse drag from start for non-MapPoolElements, as their logic relied on it
-            const totalMouseDragXUnscaled = (data.x - dragStartContext.initialElementX) / currentScale;
+          const playerGridWidth = dragStartContext.initialPlayerGridWidth || MIN_ELEMENT_WIDTH; // Fallback to MIN_ELEMENT_WIDTH
+          const initialGap = dragStartContext.initialSeparationGap || 0;
 
-            let actualEffectiveUnscaledDrag = totalMouseDragXUnscaled;
-             // This determines if we are dragging the left or right edge effectively
-            if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) { // Grabbed left half
-                actualEffectiveUnscaledDrag = -totalMouseDragXUnscaled + (dragStartContext.initialWidth/2);
-                 // if you drag left edge to right, actualEffectiveUnscaledDrag should be positive to grow width
-            } else { // Grabbed right half
-                actualEffectiveUnscaledDrag = totalMouseDragXUnscaled - (dragStartContext.initialWidth/2);
+          const mouseDragDeltaX_scaled = data.deltaX;
+          const separationGapChange = (mouseDragDeltaX_scaled * 2) / currentScale;
+
+          finalSeparationGap_unscaled = Math.max(0, initialGap + separationGapChange);
+          finalTotalWidth_unscaled = (2 * playerGridWidth) + finalSeparationGap_unscaled;
+          // Ensure total width is not less than minimum required for two player grids
+          finalTotalWidth_unscaled = Math.max(MIN_ELEMENT_WIDTH * 2, finalTotalWidth_unscaled);
+
+          const originalCenterX = initialElementScreenX + (initialUnscaledWidth * currentScale / 2);
+          finalX_screen = originalCenterX - (finalTotalWidth_unscaled * currentScale / 2);
+
+        } else { // Other pivot-locked elements
+            const effectiveUnscaledDrag = data.deltaX / currentScale;
+            let actualEffectiveUnscaledDrag = effectiveUnscaledDrag;
+
+            if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) {
+                actualEffectiveUnscaledDrag = -effectiveUnscaledDrag;
             }
 
-            finalUnscaledWidth = Math.max(MIN_ELEMENT_WIDTH, dragStartContext.initialWidth + (2 * actualEffectiveUnscaledDrag));
-            finalX_screen = pivotScreenX_fixed - (finalUnscaledWidth / 2) * currentScale;
+            finalTotalWidth_unscaled = Math.max(MIN_ELEMENT_WIDTH, initialUnscaledWidth + (2 * actualEffectiveUnscaledDrag));
 
-            const actualUnscaledDragAppliedToEdge = (dragStartContext.initialWidth - finalUnscaledWidth) / 2;
+            const originalCenterX = initialElementScreenX + (initialUnscaledWidth * currentScale / 2);
+            finalX_screen = originalCenterX - (finalTotalWidth_unscaled * currentScale / 2);
 
+            const currentPivotOffset = element.pivotInternalOffset || 0;
             if (element.type === "BoXSeriesOverview") {
-                finalPivotOffset_unscaled = Math.max(0, (element.pivotInternalOffset || 0) - actualUnscaledDragAppliedToEdge);
+                finalPivotOffset_unscaled = Math.max(0, currentPivotOffset + actualEffectiveUnscaledDrag);
             } else {
-                finalPivotOffset_unscaled = Math.max(0, (element.pivotInternalOffset || 0) - (2 * actualUnscaledDragAppliedToEdge));
+                finalPivotOffset_unscaled = Math.max(0, currentPivotOffset + (2 * actualEffectiveUnscaledDrag));
             }
+        }
+      } else {
+        // If no deltaX or no drag context, keep current width values
+        finalTotalWidth_unscaled = element.width || element.size?.width || MIN_ELEMENT_WIDTH;
+        if (element.type === "MapPoolElement") {
+            finalSeparationGap_unscaled = element.separationGap || 0;
+        } else {
+            finalPivotOffset_unscaled = element.pivotInternalOffset || 0;
         }
       }
 
@@ -111,11 +131,13 @@ const StudioInterface: React.FC = () => {
       };
 
       if (element.type === "MapPoolElement") {
-        updatePayload.width = finalUnscaledWidth;
-        updatePayload.height = currentUnscaledHeight;
-        updatePayload.size = { width: finalUnscaledWidth, height: currentUnscaledHeight };
+        updatePayload.width = finalTotalWidth_unscaled;
+        updatePayload.height = currentHeight_unscaled;
+        updatePayload.size = { width: finalTotalWidth_unscaled, height: currentHeight_unscaled };
+        updatePayload.separationGap = finalSeparationGap_unscaled;
+        // playerGridWidth is considered fixed during drag, set at creation/settings panel
       } else {
-        updatePayload.size = { width: finalUnscaledWidth, height: currentUnscaledHeight };
+        updatePayload.size = { width: finalTotalWidth_unscaled, height: currentHeight_unscaled };
         updatePayload.pivotInternalOffset = finalPivotOffset_unscaled;
       }
       updateStudioElementSettings(elementId, updatePayload);
@@ -129,15 +151,30 @@ const StudioInterface: React.FC = () => {
     const currentElement = activeLayout.find(el => el.id === elementId);
     if (!currentElement) return;
     const currentScale = currentElement.scale || 1;
-    const newUnscaledWidth = data.size.width / currentScale;
-    const newUnscaledHeight = data.size.height / currentScale;
+    let newUnscaledWidth = data.size.width / currentScale;
+    let newUnscaledHeight = data.size.height / currentScale;
 
     const settingsUpdate: Partial<StudioElement> = {
         size: { width: newUnscaledWidth, height: newUnscaledHeight }
     };
+
     if (currentElement.type === "MapPoolElement") {
-        settingsUpdate.width = newUnscaledWidth;
+        settingsUpdate.width = newUnscaledWidth; // Update total width
         settingsUpdate.height = newUnscaledHeight;
+        // If playerGridWidth should adjust on resize, that logic would be here.
+        // For now, assume playerGridWidth is fixed and separationGap might need to adjust,
+        // or it's up to the user to resize appropriately for the content.
+        // Let's assume resize changes playerGridWidth implicitly if not locked.
+        const currentGap = currentElement.separationGap || 0;
+        const newPlayerGridWidth = (newUnscaledWidth - currentGap) / 2;
+        if (newPlayerGridWidth >= MIN_ELEMENT_WIDTH) {
+            settingsUpdate.playerGridWidth = newPlayerGridWidth;
+        } else {
+            // If new width is too small, adjust gap instead or cap playerGridWidth
+            settingsUpdate.playerGridWidth = MIN_ELEMENT_WIDTH;
+            settingsUpdate.width = (MIN_ELEMENT_WIDTH * 2) + currentGap; // Recalculate total width
+            settingsUpdate.size = { ...settingsUpdate.size, width: settingsUpdate.width };
+        }
     }
     updateStudioElementSettings(elementId, settingsUpdate);
   };
@@ -294,21 +331,21 @@ const StudioInterface: React.FC = () => {
                   if (currentElement && (currentElement.isPivotLocked || currentElement.lockPivotPoint) ) {
                     const eventAsMouseEvent = e as MouseEvent;
                     const scale = currentElement.scale || 1;
-                    const unscaledWidth = currentElement.width || currentElement.size?.width || MIN_ELEMENT_WIDTH;
-                    const elementCurrentScreenX = currentElement.position.x;
+                    const unscaledTotalWidth = currentElement.width || currentElement.size?.width || MIN_ELEMENT_WIDTH;
+                    const initialPlayerGridW = currentElement.playerGridWidth || ((unscaledTotalWidth - (currentElement.separationGap || 0)) / 2);
 
                     setDragStartContext({
                       elementId: currentElement.id,
                       initialMouseX: eventAsMouseEvent.clientX,
-                      elementCenterX: elementCurrentScreenX + (unscaledWidth * scale / 2),
-                      initialWidth: unscaledWidth,
-                      initialElementX: elementCurrentScreenX
+                      elementCenterX: currentElement.position.x + (unscaledTotalWidth * scale / 2),
+                      initialWidth: unscaledTotalWidth,
+                      initialElementX: currentElement.position.x,
+                      initialSeparationGap: currentElement.separationGap || 0,
+                      initialPlayerGridWidth: initialPlayerGridW,
                     });
                   }
                 }}
-                onStop={() => {
-                  setDragStartContext(null);
-                }}
+                onStop={() => { setDragStartContext(null); }}
               >
                 <ResizableBox
                   width={(element.width || element.size?.width || MIN_ELEMENT_WIDTH) * currentScale}
@@ -324,7 +361,7 @@ const StudioInterface: React.FC = () => {
                     style={{
                       width: `${element.width || element.size?.width || MIN_ELEMENT_WIDTH}px`,
                       height: `${element.height || element.size?.height || 30}px`,
-                      overflow: 'hidden',
+                      overflow: 'visible', // Changed for ColorGlowElement
                       boxSizing: 'border-box',
                       border: `1px solid ${element.borderColor || 'transparent'}`,
                       background: element.backgroundColor || 'transparent',
