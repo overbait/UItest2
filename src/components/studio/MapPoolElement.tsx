@@ -82,7 +82,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     );
   }, [aoe2cmRawDraftOptions]);
 
-  const perspective = playerId === 'P1' ? 'P1' : 'P2';
+  const perspective = element.playerId === 'P1' ? 'P1' : 'P2'; // Ensure element.playerId is used
 
   if (mapDraftStatus !== 'connected' && mapDraftStatus !== 'live') {
     return (
@@ -116,20 +116,17 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     );
   }
 
-  const numMapsForThisView = maps.length;
-  const viewCols = Math.ceil(Math.sqrt(numMapsForThisView));
-  const viewRows = Math.ceil(numMapsForThisView / viewCols);
+  const numMapsForThisView = maps.length; // Still useful for the "No maps available" check
 
-  const baseSizeWidth = size.width || 300;
-  const baseSizeHeight = size.height || 200;
+  const baseSizeWidth = size.width || 300; // Retain for overall component sizing
+  const baseSizeHeight = size.height || 200; // Retain for overall component sizing
 
+  // scalerLayoutWidth and scalerLayoutHeight are used by mapPoolScalerStyle for scaling.
   const scalerLayoutWidth = baseSizeWidth;
   const scalerLayoutHeight = baseSizeHeight;
 
-  const viewItemWidth = scalerLayoutWidth / viewCols;
-  const viewItemHeight = scalerLayoutHeight / viewRows;
-
-  const textHeightWithinItem = viewItemHeight * 0.2;
+  // viewCols, viewRows, viewItemWidth, viewItemHeight, textHeightWithinItem are removed.
+  // Font size calculations will now use size.width, size.height and maxRows directly.
 
   const mapPoolScalerStyle: React.CSSProperties = {
     width: `${scalerLayoutWidth}px`,
@@ -148,6 +145,24 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
     mapPoolScalerStyle.transform = `scale(${displayScale})`;
     mapPoolScalerStyle.transformOrigin = 'top left';
   }
+
+  // Define prepareMapsForGrid helper function
+  const prepareMapsForGrid = (
+    originalMaps: any[], // TODO: Replace any[] with the actual type of map objects
+    maxRowsPerColumn: number
+  ): any[] => {
+    const items = [...originalMaps]; // Shallow copy
+    const orderedMaps: any[] = [];
+
+    for (let i = 0; i < items.length; i += maxRowsPerColumn) {
+      const chunk = items.slice(i, i + maxRowsPerColumn);
+      orderedMaps.push(...chunk.reverse()); // Add reversed chunk to the final list
+    }
+    return orderedMaps;
+  };
+
+  const maxRows = perspective === 'P1' ? 4 : 3;
+  const processedMaps = prepareMapsForGrid(maps, maxRows);
 
   const getMapItemClassName = (mapName: string) => {
     let itemClassName = styles['map-item-visual-content'];
@@ -188,25 +203,23 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
       }}
     >
       <div
-        className={styles['map-pool-scaler']}
-      style={mapPoolScalerStyle}
+        className={styles['map-pool-scaler']} // This class handles the scaling
+        style={mapPoolScalerStyle}
       >
         <div
-          className={styles['player-map-grid']}
-          style={{
-            width: '100%', height: '100%', display: 'grid',
-            gridTemplateColumns: `repeat(${viewCols}, 1fr)`,
-            gridTemplateRows: `repeat(${viewRows}, 1fr)`,
-            gap: '1px',
-            padding: '2px',
-            overflow: 'visible',
-          }}
+          className={`${styles['player-map-grid']} ${perspective === 'P1' ? styles.player1MapGrid : styles.player2MapGrid}`}
+          style={
+            {
+              // Inline styles (width, height, display, gridTemplateColumns,
+              // gridTemplateRows, gap, padding, overflow) are now handled by CSS module.
+            }
+          }
         >
-          {maps.map(map => (
+          {processedMaps.map(map => ( // Use processedMaps here
             <div
-              key={`${playerId}-${map.id}`}
+              key={`${element.playerId}-${map.id}`} // Use element.playerId for key consistency
               title={map.name}
-              className={styles['map-item-grid-cell']}
+              className={styles['map-item-grid-cell']} // Existing class for cell, if any specific styling needed
             >
               <div className={getMapItemClassName(map.name)}>
                 <div className={styles['map-image-container']}>
@@ -223,7 +236,12 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                         const placeholder = document.createElement('span');
                         placeholder.className = 'map-image-placeholder';
                         placeholder.textContent = `${map.name} (err)`;
-                        placeholder.style.fontSize = Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.55), 10) + 'px';
+                        // Adjusted font size calculation:
+                        const conceptualItemWidth = size.width / 5; // 5 columns
+                        const conceptualItemHeight = size.height / maxRows;
+                        const textHeight = conceptualItemHeight * 0.2; // Text area is 20% of item height
+                        // Font size is 70% of text area height, capped by width and an absolute max.
+                        placeholder.style.fontSize = Math.min(textHeight * 0.7, conceptualItemWidth / (map.name.length * 0.55), 10) + 'px';
                         placeholder.style.color = displayTextColor || 'grey';
                         placeholder.style.textAlign = 'center';
                         parent.appendChild(placeholder);
@@ -236,7 +254,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
                   style={{
                     color: displayTextColor || '#f0f0f0',
                     fontFamily: displayFontFamily,
-                    fontSize: Math.min(textHeightWithinItem * 0.7, viewItemWidth / (map.name.length * 0.5 + 2), 11.5) + 'px',
+                    // Adjusted font size calculation:
+                    // Font size is 70% of 20% of item height, capped by item width relative to name length, and absolute max.
+                    fontSize: Math.min((size.height / maxRows) * 0.2 * 0.7, (size.width / 5) / (map.name.length * 0.5 + 2), 11.5) + 'px',
                   }}
                 >
                   {map.name}

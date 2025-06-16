@@ -23,3 +23,48 @@
     color: #ccc; /* Light grey color for text, assuming dark theme */
     text-align: center; /* Center text */
   }
+
+.player-map-grid {
+  display: grid; /* This will be overridden by player specific classes but good for fallback */
+  width: 100%;
+  height: 100%;
+  gap: 1px; /* From inline style */
+  padding: 2px; /* From inline style */
+  overflow: visible; /* From inline style */
+  /* align-items and justify-content might be useful for vertical alignment */
+}
+
+.player1MapGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  /* Attempting bottom-to-top, then column-by-column flow.
+     The grid items themselves will need to be ordered appropriately in the TSX
+     if this CSS isn't enough. `align-content: end` places the grid content
+     at the end of the grid container (bottom for row direction, right for column direction).
+     We want items to stack upwards within each column.
+     `grid-auto-flow: column` is essential.
+     The actual order of items flowing into these columns will be critical.
+  */
+  grid-auto-flow: column;
+  align-content: end; /* Aligns the whole grid content to the bottom */
+}
+
+/* Styling for items within player1MapGrid to flow upwards.
+   This might be better handled by manipulating the order of children
+   in the TSX, as `grid-auto-flow: column` fills columns LTR, TTB by default.
+   To get a true bottom-left start and stack upwards, the items need to be
+   fed to the grid in an order that places the first item at the bottom of the first column.
+   Let's assume for now TSX will handle item order.
+*/
+
+.player2MapGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-flow: column; /* Fill columns first */
+  align-content: end; /* Aligns the whole grid content to the bottom */
+  direction: rtl; /* Makes columns flow from right to left */
+}
+
+.player2MapGrid > * {
+  direction: ltr; /* Reset direction for the content of map items */
+}
