@@ -1488,86 +1488,63 @@ const useDraftStore = create<DraftStore>()(
 
             let newElement: StudioElement;
 
+            // Define defaults here if they are used by multiple element types
+            // or specifically within each block. For MapPoolElement, they are specific.
+
             if (elementType === "BoXSeriesOverview") {
               newElement = {
-                id: Date.now().toString(),
-                type: elementType,
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 420, height: 320 }, // New W/H to account for padding and Bo5
-                fontFamily: 'Arial, sans-serif', // Default font
-                fontFamilyGameTitle: undefined, // Use CSS default initially for Game X title
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false,
-                // No showName or showScore here
+                id: Date.now().toString(), type: elementType, position: { x: initialX_px, y: initialY_px },
+                size: { width: 420, height: 320 }, fontFamily: 'Arial, sans-serif',
+                fontFamilyGameTitle: undefined, backgroundColor: 'transparent', borderColor: 'transparent',
+                scale: 1, isPivotLocked: false,
+                showCivNames: true, showMapNames: true, gameEntrySpacing: 10, // BoX specific defaults
               };
             } else if (elementType === "ScoreOnly") {
               newElement = {
-                id: Date.now().toString(), type: elementType,
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 100, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 0,
+                id: Date.now().toString(), type: elementType, position: { x: initialX_px, y: initialY_px },
+                size: { width: 100, height: 40 }, fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent', borderColor: 'transparent',
+                scale: 1, isPivotLocked: false, pivotInternalOffset: 0, textColor: '#FFFFFF',
               };
             } else if (elementType === "NicknamesOnly") {
               newElement = {
-                id: Date.now().toString(), type: elementType,
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 300, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                scale: 1,
-                isPivotLocked: false, // Changed from true
-                pivotInternalOffset: 50,
-                // textColor is intentionally not set here, will default in component
+                id: Date.now().toString(), type: elementType, position: { x: initialX_px, y: initialY_px },
+                size: { width: 300, height: 40 }, fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent', borderColor: 'transparent',
+                scale: 1, isPivotLocked: false, pivotInternalOffset: 50, textColor: '#FFFFFF',
               };
             } else if (elementType === "CountryFlags") {
               newElement = {
-                id: Date.now().toString(),
-                type: elementType,
-                position: { x: initialX_px, y: initialY_px },
+                id: Date.now().toString(), type: elementType, position: { x: initialX_px, y: initialY_px },
                 size: { width: 120, height: 40 },
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                textColor: 'white',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 10,
+                scale: 1, isPivotLocked: false, pivotInternalOffset: 10,
               };
             } else if (elementType === "ColorGlowElement") {
               newElement = {
-                id: Date.now().toString(),
-                type: elementType,
-                position: { x: initialX_px, y: initialY_px },
-                size: { width: 250, height: 150 }, // Increased default size
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-                textColor: 'white',
-                scale: 1,
-                isPivotLocked: false,
-                pivotInternalOffset: 10,
+                id: Date.now().toString(), type: elementType, position: { x: initialX_px, y: initialY_px },
+                size: { width: 250, height: 150 },
+                scale: 1, isPivotLocked: false, pivotInternalOffset: 10, // color is from store
               };
-            } else if (elementType === "MapPoolElement") { // Add this case
+            } else if (elementType === "MapPoolElement") {
+              // Define constants INSIDE this block or ensure they are passed correctly if defined outside 'set'
+              const defaultPlayerGridWidthVal = 280;
+              const defaultSeparationGapVal = 0;
+              const totalInitialWidth = (2 * defaultPlayerGridWidthVal) + defaultSeparationGapVal;
+
               newElement = {
                 id: Date.now().toString(),
                 type: elementType,
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 600, height: 220 }, // Default size for map pool
+                width: totalInitialWidth,
+                height: 220,
+                size: { width: totalInitialWidth, height: 220 },
                 scale: 1,
                 fontFamily: 'Arial, sans-serif',
                 mapNameFontSize: '0.75em',
                 lockPivotPoint: false,
                 numColumns: 2,
-                playerGridWidth: defaultPlayerGridWidth, // Store the fixed grid width
-                separationGap: defaultSeparationGap,   // Store the initial gap
+                playerGridWidth: defaultPlayerGridWidthVal,
+                separationGap: defaultSeparationGapVal,
               };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.

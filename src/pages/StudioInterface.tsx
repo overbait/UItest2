@@ -361,7 +361,7 @@ const StudioInterface: React.FC = () => {
                     style={{
                       width: `${element.width || element.size?.width || MIN_ELEMENT_WIDTH}px`,
                       height: `${element.height || element.size?.height || 30}px`,
-                      overflow: 'visible', // Changed for ColorGlowElement
+                      overflow: element.type === 'ColorGlowElement' ? 'visible' : 'hidden',
                       boxSizing: 'border-box',
                       border: `1px solid ${element.borderColor || 'transparent'}`,
                       background: element.backgroundColor || 'transparent',

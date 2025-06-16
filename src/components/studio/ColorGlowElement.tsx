@@ -62,8 +62,8 @@ const ColorGlowElement: React.FC<ColorGlowElementProps> = ({ element, isSelected
     gridTemplateColumns: (isPivotLocked && currentPivotOffset > 0) ? `1fr ${currentPivotOffset}px 1fr` : '1fr 1fr',
     columnGap: (!isPivotLocked && currentPivotOffset > 0) ? `${currentPivotOffset}px` : '0px',
     alignItems: 'stretch',
-    justifyItems: 'stretch',
-    overflow: 'hidden', // Important for gradient edges if element is small
+    justifyItems: 'stretch', // Ensures children fill the cell width if not intrinsically sized
+    overflow: 'visible', // Allow glow to extend beyond bounds
     position: 'relative',
     backgroundColor: element.backgroundColor || 'transparent', // Element background
   };
