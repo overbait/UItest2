@@ -187,9 +187,9 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element }) => {
 
   let rootTransform = '';
   if (displayIsPivotLocked && displayPivotInternalOffset !== 0) {
-    if (element.playerId === 'P1') {
+    if (playerId === 'P1') { // MODIFIED: was element.playerId
       rootTransform = `translateX(-${displayPivotInternalOffset}px)`;
-    } else if (element.playerId === 'P2') {
+    } else if (playerId === 'P2') { // MODIFIED: was element.playerId
       rootTransform = `translateX(${displayPivotInternalOffset}px)`;
     }
   }

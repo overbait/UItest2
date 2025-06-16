@@ -68,3 +68,74 @@
 .player2MapGrid > * {
   direction: ltr; /* Reset direction for the content of map items */
 }
+
+/* Added for map item states - visual content wrapper */
+.map-item-visual-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Adjust as needed, e.g., space-between */
+  position: relative; /* For potential overlays or absolute positioned elements inside */
+  /* Base styling - can be overridden by specific states */
+  background-color: rgba(50, 50, 50, 0.5); /* Example base background */
+  border: 1px solid transparent;
+  border-radius: 4px; /* Consistent with mapItem */
+  padding: 5px; /* Consistent with mapItem */
+  box-sizing: border-box;
+}
+
+/* Styles for picked/banned maps */
+.map-item-banned-by-self {
+  opacity: 0.4;
+  /* Example: Reddish tint or border for self-banned maps */
+  /* background-color: rgba(255, 0, 0, 0.2); */
+  /* border: 1px solid red; */
+}
+
+.map-item-picked-by-self {
+  /* Example: Greenish tint or border for self-picked maps */
+  /* background-color: rgba(0, 255, 0, 0.2); */
+  border: 2px solid #00ff00; /* Bright green border for emphasis */
+  box-shadow: 0 0 5px #00ff00;
+}
+
+.map-item-affected-by-opponent {
+  opacity: 0.7;
+  /* Example: Greyish tint or different border for maps affected by opponent */
+  /* background-color: rgba(150, 150, 150, 0.2); */
+  /* border: 1px dashed #888; */
+}
+
+/* Ensure .map-image-container and .map-name styles within .map-item-visual-content work well.
+   The existing .mapItem might have been intended to be this visual content wrapper,
+   or .map-item-grid-cell is the outer box and .map-item-visual-content is the inner styled part.
+   The current TSX uses:
+   <div className={styles['map-item-grid-cell']}>
+     <div className={getMapItemClassName(map.name)}> // This is where .map-item-visual-content and state classes are applied
+       ...image and name...
+     </div>
+   </div>
+   This structure is fine. The styles below are just to ensure the image and name behave.
+*/
+
+.map-image-container {
+  width: 80%; /* Example: take most of the item width */
+  max-height: 60%; /* Example: take most of the item height for image */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px; /* Space between image and name */
+}
+
+.map-image-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* Or scale-down, depending on desired behavior for various aspect ratios */
+  border-radius: 3px;
+}
+
+/* .map-name is already defined, ensure its styling is compatible. */
+/* The existing .mapItem can be removed if .map-item-grid-cell and .map-item-visual-content cover its role. */
+/* For now, let's not remove .mapItem, just add the missing classes. */

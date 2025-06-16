@@ -520,7 +520,7 @@ const StudioInterface: React.FC = () => {
             else if (element.type === "BoXSeriesOverview") { content = <BoXSeriesOverviewElement element={element} />; }
             else if (element.type === "CountryFlags") { content = <CountryFlagsElement element={element} isSelected={isSelected} />; }
             else if (element.type === "ColorGlowElement") { content = <ColorGlowElement element={element} isSelected={element.id === selectedElementId} />; }
-            else if (element.type === "MapPool") { content = <MapPoolElement element={element} />; }
+            else if (element.type === "MapPool") { content = <MapPoolElement {...element} element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (
