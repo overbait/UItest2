@@ -4,40 +4,40 @@ import { StudioElement, MapItem, Aoe2cmRawDraftData } from '../../types/draft'; 
 import styles from './MapPoolElement.module.css';
 
 // Helper function to reorder maps for bottom-to-top display in columns
-// Now returns (MapItem | null)[] to allow for padding
-const reorderMapsForDisplay = (maps: MapItem[], columnSize: number): (MapItem | null)[] => {
-  if (!maps || !maps.length) return [];
+// Now returns (MapItem | null)[] to allow for padding, and always returns full grid size
+const NUM_ROWS = 4; // Define NUM_ROWS as per instructions - already here from previous step
+const NUM_COLUMNS = 5; // Define NUM_COLUMNS
 
-  const reorderedAndPadded: (MapItem | null)[] = [];
-  const numOriginalMaps = maps.length;
-  const totalColumns = Math.ceil(numOriginalMaps / columnSize);
+const reorderMapsForDisplay = (maps: MapItem[], numRows: number): (MapItem | null)[] => {
+  const finalDisplayList: (MapItem | null)[] = [];
 
-  let mapIndex = 0;
-  for (let colIndex = 0; colIndex < totalColumns; colIndex++) {
-    const columnActualItems: MapItem[] = [];
-    for (let i = 0; i < columnSize; i++) {
-      if (mapIndex < numOriginalMaps) {
-        columnActualItems.push(maps[mapIndex++]);
-      } else {
-        break; // No more maps left
-      }
+  for (let colIdx = 0; colIdx < NUM_COLUMNS; colIdx++) {
+    // Get the actual maps for this column from the input 'maps'
+    // These are the maps that would originally fall into this column based on simple top-to-bottom, left-to-right filling
+    const mapsForThisColumnSegment = maps.slice(colIdx * numRows, (colIdx + 1) * numRows);
+
+    // Reverse them for bottom-up stacking visual within this column segment
+    const reversedMapItemsInSegment = mapsForThisColumnSegment.reverse();
+
+    // Create the column for display, padded with leading nulls to ensure bottom alignment for the items in this segment
+    const columnForDisplay: (MapItem | null)[] = Array(numRows).fill(null);
+
+    // Place the reversed items at the end of this conceptual column
+    // Example: if numRows=4 and reversedMapItemsInSegment=[M1, M2] (M2 was "above" M1 visually in source)
+    // M1 (first in reversed, last in original column segment) goes to columnForDisplay[3] (bottom-most)
+    // M2 (second in reversed, second-to-last in original) goes to columnForDisplay[2]
+    // Resulting in [null, null, M2, M1] for this column in the final flat list
+    for (let itemIdx = 0; itemIdx < reversedMapItemsInSegment.length; itemIdx++) {
+      columnForDisplay[numRows - 1 - itemIdx] = reversedMapItemsInSegment[itemIdx];
     }
 
-    // Reverse the actual items for this column to get bottom-up effect
-    const reversedActualItems = columnActualItems.reverse();
-
-    // Create a full column, padding with nulls at the start if column isn't full
-    const finalColumnDisplay: (MapItem | null)[] = [];
-    const numEmptySlots = columnSize - reversedActualItems.length;
-
-    for (let i = 0; i < numEmptySlots; i++) {
-      finalColumnDisplay.push(null); // Pad beginning of column
-    }
-    finalColumnDisplay.push(...reversedActualItems); // Add reversed items
-
-    reorderedAndPadded.push(...finalColumnDisplay);
+    finalDisplayList.push(...columnForDisplay);
   }
-  return reorderedAndPadded;
+  // Ensure the list is exactly NUM_COLUMNS * numRows long, truncating or padding if necessary
+  // Though the loop structure above should guarantee this if NUM_COLUMNS is fixed.
+  // If maps array is shorter than NUM_COLUMNS * numRows, later columns will be all nulls.
+  // If maps array is somehow longer (shouldn't happen with upstream logic), it's implicitly truncated by slice.
+  return finalDisplayList.slice(0, NUM_COLUMNS * numRows);
 };
 
 interface MapPoolElementProps {
@@ -50,8 +50,6 @@ const formatMapNameForImagePath = (mapName: string): string => {
   if (!mapName) return 'random'; // Or a placeholder image name
   return mapName.toLowerCase().replace(/\s+/g, '-').replace(/'/g, '');
 };
-
-const NUM_ROWS = 4; // Define NUM_ROWS as per instructions
 
 const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast }) => {
   const {
@@ -105,11 +103,13 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
 
   const player1MapPool = useMemo(() => {
     const pool = deriveMapPool('host');
+    // NUM_ROWS is passed as the second argument (previously columnSize)
     return reorderMapsForDisplay(pool, NUM_ROWS);
   }, [deriveMapPool]);
 
   const player2MapPool = useMemo(() => {
     const pool = deriveMapPool('guest');
+    // NUM_ROWS is passed as the second argument
     return reorderMapsForDisplay(pool, NUM_ROWS);
   }, [deriveMapPool]);
 
