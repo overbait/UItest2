@@ -14,7 +14,7 @@
 
 .playerMapGrid {
   display: grid;
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(5, 250px);
   grid-template-rows: repeat(4, auto);
   grid-auto-flow: column;
   grid-gap: 8px;
@@ -62,7 +62,7 @@
 
 .mapName {
   font-family: 'Cinzel', serif; /* from BoXSeriesOverview */
-  font-size: 0.9em; /* Relative to parent's dynamicFontSize */
+  font-size: 1.6em; /* Changed from 0.9em */
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
