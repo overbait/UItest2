@@ -14,7 +14,7 @@
 
 .playerMapGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, auto);
   grid-template-rows: repeat(4, auto);
   grid-auto-flow: column;
   grid-gap: 8px;
@@ -42,13 +42,11 @@
 }
 
 .mapItemVisualContent {
-  height: 100%; /* Fill the cell */
-  width: 100%;   /* Fill the cell */
   box-sizing: border-box;
   border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
   border-radius: 3px; /* from BoXSeriesOverview */
   background-color: #4a3b2a; /* --aoe-button-bg, from BoXSeriesOverview */
-  background-size: cover;
+  background-size: cover; /* Changed from contain */
   background-position: center;
   background-repeat: no-repeat;
   position: relative; /* For text overlay */
