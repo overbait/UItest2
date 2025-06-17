@@ -13,11 +13,12 @@
 }
 
 .playerMapGrid {
-  display: flex;
-  flex-wrap: wrap;
-  /* padding: 10px; /* This was the line that caused the last 'Unknown word padding' error. Let's test without it first, then add it if base works. */
-  /* Let's add a smaller padding or margin to the grid itself, or rely on cell padding. */
-  /* For now, let cell padding handle internal spacing. Add some padding to the grid for overall inset. */
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(4, auto);
+  grid-auto-flow: column;
+  grid-gap: 8px;
+  box-sizing: border-box;
   padding: 5px; /* Overall padding for the grid itself */
   transition: transform 0.2s ease-out;
 }
@@ -27,14 +28,22 @@
 }
 
 .player2Grid {
-  /* Specific styles for player 2 grid if needed */
+  direction: rtl;
 }
 
 .mapItemGridCell {
-  padding: 4px; /* Creates 8px spacing between content of adjacent cells */
+  padding: 0; /* grid-gap on parent now handles spacing */
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .mapItemVisualContent {
+  height: 100%; /* Fill the cell */
+  width: 100%;   /* Fill the cell */
   box-sizing: border-box;
   border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
   border-radius: 3px; /* from BoXSeriesOverview */
