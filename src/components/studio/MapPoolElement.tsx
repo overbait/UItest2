@@ -120,8 +120,8 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
 
-  const mapItemWidth = 100;
-  const mapItemHeight = 60;
+  const mapItemWidth = 160;
+  const mapItemHeight = 50;
 
   // Updated conditional rendering logic
   const noMapsAvailableInOptions = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter(opt => opt.id && !opt.id.startsWith('aoe4.')).length === 0;
