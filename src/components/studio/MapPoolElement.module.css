@@ -24,29 +24,22 @@
     text-align: center; /* Center text */
   }
 
+/* Ensure this is present or add it for base grid setup */
 .player-map-grid {
-  display: grid; /* This will be overridden by player specific classes but good for fallback */
+  display: grid; /* Can be overridden by player specific classes but good for base */
   width: 100%;
   height: 100%;
-  gap: 1px; /* From inline style */
-  padding: 2px; /* From inline style */
-  overflow: visible; /* From inline style */
-  /* align-items and justify-content might be useful for vertical alignment */
+  gap: 1px;
+  padding: 2px;
+  overflow: visible;
+  box-sizing: border-box; /* Good practice for grid containers */
 }
 
 .player1MapGrid {
-  display: grid;
+  display: grid; /* Explicitly set display: grid */
   grid-template-columns: repeat(5, 1fr);
-  /* Attempting bottom-to-top, then column-by-column flow.
-     The grid items themselves will need to be ordered appropriately in the TSX
-     if this CSS isn't enough. `align-content: end` places the grid content
-     at the end of the grid container (bottom for row direction, right for column direction).
-     We want items to stack upwards within each column.
-     `grid-auto-flow: column` is essential.
-     The actual order of items flowing into these columns will be critical.
-  */
   grid-auto-flow: column;
-  align-content: end; /* Aligns the whole grid content to the bottom */
+  align-content: end; /* Aligns the grid content to the bottom if container is taller */
 }
 
 /* Styling for items within player1MapGrid to flow upwards.
@@ -58,15 +51,15 @@
 */
 
 .player2MapGrid {
-  display: grid;
+  display: grid; /* Explicitly set display: grid */
   grid-template-columns: repeat(5, 1fr);
-  grid-auto-flow: column; /* Fill columns first */
-  align-content: end; /* Aligns the whole grid content to the bottom */
+  grid-auto-flow: column;
+  align-content: end; /* Aligns the grid content to the bottom */
   direction: rtl; /* Makes columns flow from right to left */
 }
 
 .player2MapGrid > * {
-  direction: ltr; /* Reset direction for the content of map items */
+  direction: ltr; /* Reset direction for the content of map items themselves */
 }
 
 /* Added for map item states - visual content wrapper */
