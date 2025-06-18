@@ -161,11 +161,15 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
         {player1CivPool.length > 0 ? player1CivPool.map((civItem, index) => (
           <div key={`p1-civ-${index}-${civItem?.id || 'empty'}`} className={styles.civItemGridCell}>
             {civItem && (
-              <div className={`${styles.civItemVisualContent} ${styles[civItem.status]}`} style={{ width: civItemWidth, height: civItemHeight }}>
-                <div style={{ backgroundImage: `url(${civItem.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', width: '100%', height: '100%' }}>
-                  {/* Display civ name */}
-                  <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
-                </div>
+              <div
+                className={`${styles.civItemVisualContent} ${styles[civItem.status] || ''}`}
+                style={{
+                  width: `${civItemWidth}px`,
+                  height: `${civItemHeight}px`,
+                  backgroundImage: `url('${civItem.imageUrl}')`,
+                }}
+              >
+                <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
               </div>
             )}
           </div>
@@ -179,11 +183,15 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
         {player2CivPool.length > 0 ? player2CivPool.map((civItem, index) => (
           <div key={`p2-civ-${index}-${civItem?.id || 'empty'}`} className={styles.civItemGridCell}>
             {civItem && (
-              <div className={`${styles.civItemVisualContent} ${styles[civItem.status]}`} style={{ width: civItemWidth, height: civItemHeight }}>
-                <div style={{ backgroundImage: `url(${civItem.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', width: '100%', height: '100%' }}>
-                  {/* Display civ name */}
-                  <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
-                </div>
+              <div
+                className={`${styles.civItemVisualContent} ${styles[civItem.status] || ''}`}
+                style={{
+                  width: `${civItemWidth}px`,
+                  height: `${civItemHeight}px`,
+                  backgroundImage: `url('${civItem.imageUrl}')`,
+                }}
+              >
+                <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
               </div>
             )}
           </div>
