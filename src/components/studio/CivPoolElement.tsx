@@ -59,8 +59,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   } = element;
 
   const {
-    // UPDATED: Fetch currentCivDraftOptions from store and rename variable
-    currentCivOptionsFromStore,
+    // DIAGNOSTIC: Fetching raw options instead of pre-filtered civ options
+    diagnosticsRawOptions,
     // RENAMED: mapPicksHost to civPicksHost, etc. Assumes store provides these.
     civPicksHost,
     civBansHost,
@@ -68,8 +68,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     civBansGuest,
     civPicksGlobal,
   } = useDraftStore(state => ({
-    // UPDATED: Selector for currentCivDraftOptions
-    currentCivOptionsFromStore: state.currentCivDraftOptions || [],
+    // DIAGNOSTIC: Fetching raw options instead of pre-filtered civ options
+    diagnosticsRawOptions: state.aoe2cmRawDraftOptions || [],
     // Assumes store has civPicksHost, etc.
     civPicksHost: state.civPicksHost,
     civBansHost: state.civBansHost,
@@ -78,18 +78,20 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     civPicksGlobal: state.civPicksGlobal,
   }));
 
-  console.log('[CivPoolElement] currentCivOptionsFromStore:', JSON.parse(JSON.stringify(currentCivOptionsFromStore || [])));
+  console.log('[CivPoolElement] diagnosticsRawOptions:', JSON.parse(JSON.stringify(diagnosticsRawOptions || [])));
 
   // RENAMED: deriveMapPool to deriveCivPool
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => { // MapItem might change to CivItem
-    // UPDATED: Use currentCivOptionsFromStore (already filtered)
-    // Ensure it defaults to an empty array if undefined/null from the store, though selector does this.
-    const optionsToProcess = currentCivOptionsFromStore || [];
+    // DIAGNOSTIC: Using raw options and re-filtering
+    const optionsToProcess = diagnosticsRawOptions || [];
     if (optionsToProcess.length === 0) return [];
 
-    // currentCivOptionsFromStore is already the list of civ options. No further filtering needed.
+    // DIAGNOSTIC: Re-add filter for civs since we are using raw options
     const currentAvailableCivsFromOpts = optionsToProcess
-      .map(opt => opt.name || opt.id); // opt.id is already filtered to be civ ids
+      .filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'))
+      .map(opt => opt.name || opt.id);
+
+    if (currentAvailableCivsFromOpts.length === 0) return [];
 
     // Default pick/ban arrays to empty if undefined from store
     const safeCivPicksHost = civPicksHost || [];
@@ -119,7 +121,7 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
       }
       return { name: civNameString, status, imageUrl };
     });
-  }, [currentCivOptionsFromStore, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]); // UPDATED Dependency Array
+  }, [diagnosticsRawOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]); // DIAGNOSTIC: UPDATED Dependency Array
 
   // RENAMED: player1MapPool to player1CivPool, player2MapPool to player2CivPool
   // RENAMED: deriveMapPool to deriveCivPool
@@ -155,8 +157,10 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
 
   // Step 1: Create a memoized list of available civ options - UPDATED to use currentCivOptionsFromStore
   const availableCivOptions = useMemo(() => {
-    return currentCivOptionsFromStore || []; // Directly use the (already filtered) list from store
-  }, [currentCivOptionsFromStore]);
+    // DIAGNOSTIC: Filter raw options for available civs
+    if (!diagnosticsRawOptions) return [];
+    return diagnosticsRawOptions.filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'));
+  }, [diagnosticsRawOptions]);
 
   // Step 4: Update early return logic (already uses availableCivOptions.length - this is fine)
   if (isBroadcast &&
@@ -191,7 +195,7 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
         pointerEvents: 'none', // Make it non-interactive
       }}>
         DEBUG INFO (CivPoolElement):<br />
-        currentCivOptionsFromStore: {currentCivOptionsFromStore?.length || 0}<br />
+        diagnosticsRawOptions (unfiltered): {diagnosticsRawOptions?.length || 0}<br />
         P1 Raw (derived): {player1CivPoolRaw?.length || 0}<br />
         P1 Display (non-null): {player1CivPool?.filter(Boolean).length || 0}<br />
         P2 Raw (derived): {player2CivPoolRaw?.length || 0}<br />
