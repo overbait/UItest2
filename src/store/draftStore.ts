@@ -11,14 +11,15 @@ import {
   SavedPreset,
   StudioElement,
   SavedStudioLayout,
-  StudioCanvas, // <-- Add this
+  StudioCanvas,
   MapItem,
+  Aoe2cmRawDraftOption,
 } from '../types/draft';
 
-import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
+import { customLocalStorageWithBroadcast } from './customStorage';
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
-const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net'; // Base domain
+const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net';
 
 interface DraftStore extends CombinedDraftState {
   connectToDraft: (draftIdOrUrl: string, draftType: 'civ' | 'map') => Promise<boolean>;
@@ -43,7 +44,6 @@ interface DraftStore extends CombinedDraftState {
   _resetCurrentSessionState: () => void;
   _updateActivePresetIfNeeded: () => void;
 
-  // Studio Actions
   addStudioElement: (elementType: string) => void;
   updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => void;
   updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => void;
@@ -51,28 +51,23 @@ interface DraftStore extends CombinedDraftState {
   updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => void;
   removeStudioElement: (elementId: string) => void;
 
-  // Studio Layout Preset Actions
   saveCurrentStudioLayout: (name: string) => void;
   loadStudioLayout: (layoutId: string) => void;
   deleteStudioLayout: (layoutId: string) => void;
   updateStudioLayoutName: (layoutId: string, newName: string) => void;
 
-  // Player Color Actions
   setHostColor: (color: string | null) => void;
   setGuestColor: (color: string | null) => void;
 
-  // Player Flag Actions
   setHostFlag: (flag: string | null) => void;
   setGuestFlag: (flag: string | null) => void;
 
-  // Add new action signatures for canvas management
   setActiveCanvas: (canvasId: string) => void;
   addCanvas: (name?: string) => void;
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
   setActiveStudioLayoutId: (layoutId: string | null) => void;
 
-  // WebSocket Actions
   connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => void;
   disconnectWebSocket: () => void;
   resetActiveCanvasLayout: () => void;
@@ -122,128 +117,58 @@ const transformRawDataToSingleDraft = ( raw: Aoe2cmRawDraftData, draftType: 'civ
     const optionName = getOptionNameById(chosenOptionId);
     const isCivAction = draftType === 'civ' || chosenOptionId.startsWith('aoe4.');
     const isMapAction = draftType === 'map' || !chosenOptionId.startsWith('aoe4.');
-
     if (action === 'pick') {
       if (isCivAction && draftType === 'civ') {
-        if (executingPlayer === 'HOST') {
-          if (!output.civPicksHost) output.civPicksHost = [];
-          if (!output.civPicksHost.includes(optionName)) output.civPicksHost.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.civPicksGuest) output.civPicksGuest = [];
-          if (!output.civPicksGuest.includes(optionName)) output.civPicksGuest.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.civPicksHost) output.civPicksHost = []; if (!output.civPicksHost.includes(optionName)) output.civPicksHost.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.civPicksGuest) output.civPicksGuest = []; if (!output.civPicksGuest.includes(optionName)) output.civPicksGuest.push(optionName); }
       } else if (isMapAction && draftType === 'map') {
-        if (executingPlayer === 'HOST') {
-          if (!output.mapPicksHost) output.mapPicksHost = [];
-          if (!output.mapPicksHost.includes(optionName)) output.mapPicksHost.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.mapPicksGuest) output.mapPicksGuest = [];
-          if (!output.mapPicksGuest.includes(optionName)) output.mapPicksGuest.push(optionName);
-        } else if (executingPlayer === 'NONE') {
-          if (!output.mapPicksGlobal) output.mapPicksGlobal = [];
-          if (!output.mapPicksGlobal.includes(optionName)) output.mapPicksGlobal.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.mapPicksHost) output.mapPicksHost = []; if (!output.mapPicksHost.includes(optionName)) output.mapPicksHost.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.mapPicksGuest) output.mapPicksGuest = []; if (!output.mapPicksGuest.includes(optionName)) output.mapPicksGuest.push(optionName); }
+        else if (executingPlayer === 'NONE') { if (!output.mapPicksGlobal) output.mapPicksGlobal = []; if (!output.mapPicksGlobal.includes(optionName)) output.mapPicksGlobal.push(optionName); }
       }
     } else if (action === 'ban') {
       if (isCivAction && draftType === 'civ') {
-        if (executingPlayer === 'HOST') {
-          if (!output.civBansHost) output.civBansHost = [];
-          if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.civBansGuest) output.civBansGuest = [];
-          if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.civBansHost) output.civBansHost = []; if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.civBansGuest) output.civBansGuest = []; if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName); }
       } else if (isMapAction && draftType === 'map') {
-        if (executingPlayer === 'HOST') {
-          if (!output.mapBansHost) output.mapBansHost = [];
-          if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.mapBansGuest) output.mapBansGuest = [];
-          if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName);
-        } else if (executingPlayer === 'NONE') {
-          if (!output.mapBansGlobal) output.mapBansGlobal = [];
-          if (!output.mapBansGlobal.includes(optionName)) output.mapBansGlobal.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.mapBansHost) output.mapBansHost = []; if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.mapBansGuest) output.mapBansGuest = []; if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName); }
+        else if (executingPlayer === 'NONE') { if (!output.mapBansGlobal) output.mapBansGlobal = []; if (!output.mapBansGlobal.includes(optionName)) output.mapBansGlobal.push(optionName); }
       }
     } else if (action === 'snipe') {
       if (isCivAction && draftType === 'civ') {
-        if (executingPlayer === 'HOST') {
-          if (!output.civBansGuest) output.civBansGuest = [];
-          if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.civBansHost) output.civBansHost = [];
-          if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.civBansGuest) output.civBansGuest = []; if (!output.civBansGuest.includes(optionName)) output.civBansGuest.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.civBansHost) output.civBansHost = []; if (!output.civBansHost.includes(optionName)) output.civBansHost.push(optionName); }
       } else if (isMapAction && draftType === 'map') {
-        if (executingPlayer === 'HOST') {
-          if (!output.mapBansGuest) output.mapBansGuest = [];
-          if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName);
-        } else if (executingPlayer === 'GUEST') {
-          if (!output.mapBansHost) output.mapBansHost = [];
-          if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName);
-        }
+        if (executingPlayer === 'HOST') { if (!output.mapBansGuest) output.mapBansGuest = []; if (!output.mapBansGuest.includes(optionName)) output.mapBansGuest.push(optionName); }
+        else if (executingPlayer === 'GUEST') { if (!output.mapBansHost) output.mapBansHost = []; if (!output.mapBansHost.includes(optionName)) output.mapBansHost.push(optionName); }
       }
     }
   });
-
   if (draftType === 'map' && raw.preset?.draftOptions) {
-    const allMapOptions = raw.preset.draftOptions
-      .filter(opt => !opt.id.startsWith('aoe4.'))
-      .map(opt => getOptionNameById(opt.id));
-    const pickedOrBannedMaps = new Set<string>([
-      ...(output.mapPicksHost || []), ...(output.mapPicksGuest || []), ...(output.mapPicksGlobal || []),
-      ...(output.mapBansHost || []), ...(output.mapBansGuest || []), ...(output.mapBansGlobal || []),
-    ]);
+    const allMapOptions = raw.preset.draftOptions.filter(opt => !opt.id.startsWith('aoe4.')).map(opt => getOptionNameById(opt.id));
+    const pickedOrBannedMaps = new Set<string>([...(output.mapPicksHost || []), ...(output.mapPicksGuest || []), ...(output.mapPicksGlobal || []), ...(output.mapBansHost || []), ...(output.mapBansGuest || []), ...(output.mapBansGlobal || []),]);
     const remainingMaps: string[] = allMapOptions.filter(mapName => !pickedOrBannedMaps.has(mapName));
-    if (remainingMaps.length === 1) {
-      if (!output.mapPicksGlobal) output.mapPicksGlobal = [];
-      if (!output.mapPicksGlobal.includes(remainingMaps[0])) output.mapPicksGlobal.push(remainingMaps[0]);
-    }
+    if (remainingMaps.length === 1) { if (!output.mapPicksGlobal) output.mapPicksGlobal = []; if (!output.mapPicksGlobal.includes(remainingMaps[0])) output.mapPicksGlobal.push(remainingMaps[0]); }
   }
-
   let currentTurnPlayerDisplay: string | undefined = 'none'; let currentActionDisplay: string | undefined = 'unknown'; let draftStatus: SingleDraftData['status'] = 'unknown'; if (raw.preset?.turns && typeof raw.nextAction === 'number') { if (raw.nextAction >= raw.preset.turns.length) draftStatus = 'completed'; else { draftStatus = 'inProgress'; const currentTurnInfo = raw.preset.turns[raw.nextAction]; if (currentTurnInfo) { currentTurnPlayerDisplay = currentTurnInfo.player === 'HOST' ? hostName : currentTurnInfo.player === 'GUEST' ? guestName : 'None'; currentActionDisplay = currentTurnInfo.action?.toUpperCase().replace('G', ''); } } } else if (raw.status) draftStatus = raw.status.toLowerCase() as SingleDraftData['status']; else if (raw.ongoing === false) draftStatus = 'completed'; else if (raw.ongoing === true) draftStatus = 'inProgress';
   output.status = draftStatus; output.currentTurnPlayer = currentTurnPlayerDisplay; output.currentAction = currentActionDisplay; return output;
 };
-
 const getOptionNameFromStore = (optionId: string, draftOptions: Aoe2cmRawDraftData['preset']['draftOptions'] | undefined): string => {
-  if (!draftOptions) {
-    return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
-  }
+  if (!draftOptions) { return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId; }
   const option = draftOptions.find(opt => opt.id === optionId);
-  if (option?.name) {
-    return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name;
-  }
+  if (option?.name) { return option.name.startsWith('aoe4.') ? option.name.substring(5) : option.name; }
   return optionId.startsWith('aoe4.') ? optionId.substring(5) : optionId;
 };
-
-const _calculateUpdatedBoxSeriesGames = (
-  boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null,
-  currentBoxSeriesGames: Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }>,
-  civPicksHost: string[],
-  civPicksGuest: string[],
-  mapPicksHost: string[],
-  mapPicksGuest: string[],
-  mapPicksGlobal: string[]
-): Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }> => {
+const _calculateUpdatedBoxSeriesGames = (boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null, currentBoxSeriesGames: Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }>, civPicksHost: string[], civPicksGuest: string[], mapPicksHost: string[], mapPicksGuest: string[], mapPicksGlobal: string[]): Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }> => {
   let numGames = 0;
-  if (boxSeriesFormat === 'bo1') numGames = 1;
-  else if (boxSeriesFormat === 'bo3') numGames = 3;
-  else if (boxSeriesFormat === 'bo5') numGames = 5;
-  else if (boxSeriesFormat === 'bo7') numGames = 7;
-
+  if (boxSeriesFormat === 'bo1') numGames = 1; else if (boxSeriesFormat === 'bo3') numGames = 3; else if (boxSeriesFormat === 'bo5') numGames = 5; else if (boxSeriesFormat === 'bo7') numGames = 7;
   if (numGames === 0) return [];
-
   const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
-
   const newBoxSeriesArray = Array(numGames).fill(null).map((_, index) => {
     const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null };
     const mapForGame = combinedMapPicks[index] || null;
-    return {
-      map: mapForGame,
-      hostCiv: civPicksHost[index] || null,
-      guestCiv: civPicksGuest[index] || null,
-      winner: existingGame.winner || null,
-    };
+    return { map: mapForGame, hostCiv: civPicksHost[index] || null, guestCiv: civPicksGuest[index] || null, winner: existingGame.winner || null, };
   });
   return newBoxSeriesArray;
 };
@@ -253,7 +178,6 @@ const useDraftStore = create<DraftStore>()(
     persist(
       (set, get) => ({
         ...initialCombinedState,
-
         connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => {
           console.log(`[connectToWebSocket] Attempting connection for draft ID: ${draftId}, type: ${draftType}`);
           if (currentSocket) {
@@ -261,17 +185,14 @@ const useDraftStore = create<DraftStore>()(
             currentSocket.disconnect();
             currentSocket = null;
           }
-
           try {
             set({ socketStatus: 'connecting', socketError: null, socketDraftType: draftType, draftIsLikelyFinished: false });
-
             currentSocket = io(DRAFT_WEBSOCKET_URL_PLACEHOLDER, {
               path: '/socket.io/',
               query: { draftId: draftId, EIO: '4' },
               transports: ['websocket'],
               reconnection: false,
             });
-
             if (currentSocket) {
                 currentSocket.off('connect');
                 currentSocket.off('draft_state');
@@ -284,7 +205,6 @@ const useDraftStore = create<DraftStore>()(
                 currentSocket.off('connect_error');
                 currentSocket.off('disconnect');
             }
-
             currentSocket.on('connect', () => {
               console.log(`Socket.IO "connect" event: Successfully connected for draft ${draftId}, type ${draftType}. Socket ID: ${currentSocket?.id}`);
               const currentStoreDraftId = get()[draftType === 'civ' ? 'civDraftId' : 'mapDraftId'];
@@ -293,7 +213,6 @@ const useDraftStore = create<DraftStore>()(
                     { isLoadingCivDraft: false, civDraftStatus: 'live' as ConnectionStatus } :
                     { isLoadingMapDraft: false, mapDraftStatus: 'live' as ConnectionStatus };
                 set({ socketStatus: 'live', socketError: null, ...loadStatusUpdate });
-
                 if (currentSocket) {
                   currentSocket.on('draft_state', (data) => {
                     console.log('[draftStore] Socket.IO "draft_state" event received:', data);
@@ -382,7 +301,7 @@ const useDraftStore = create<DraftStore>()(
                         });
                       }
                       if (eventsProcessedCausingChange) actualStateChangeOccurred = true;
-                      if (!actualStateChangeOccurred && newNameHost === state.hostName && newNameGuest === state.guestName && newAoe2cmRawDraftOptions === state.aoe2cmRawDraftOptions) { // Check if only options potentially changed but didn't
+                      if (!actualStateChangeOccurred && newNameHost === state.hostName && newNameGuest === state.guestName && newAoe2cmRawDraftOptions === state.aoe2cmRawDraftOptions) {
                         return state;
                       }
                       const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
@@ -396,15 +315,13 @@ const useDraftStore = create<DraftStore>()(
                         actualStateChangeOccurred = false;
                       }
                       let newCurrentCivDraftOptions = state.currentCivDraftOptions;
-                      if (newAoe2cmRawDraftOptions && Array.isArray(newAoe2cmRawDraftOptions)) { // Ensure newAoe2cmRawDraftOptions is valid before filtering
+                      if (newAoe2cmRawDraftOptions && Array.isArray(newAoe2cmRawDraftOptions)) {
                           const filteredCivOpts = newAoe2cmRawDraftOptions.filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'));
                           if (JSON.stringify(state.currentCivDraftOptions) !== JSON.stringify(filteredCivOpts)) {
                               newCurrentCivDraftOptions = filteredCivOpts;
                               actualStateChangeOccurred = true;
                           }
                       } else if (data.preset && data.preset.draftOptions && Array.isArray(data.preset.draftOptions) && newAoe2cmRawDraftOptions === state.aoe2cmRawDraftOptions) {
-                        // Fallback if newAoe2cmRawDraftOptions didn't get updated from data.preset.draftOptions (e.g. it was already identical)
-                        // but we still need to check currentCivDraftOptions
                         const filteredCivOpts = data.preset.draftOptions.filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'));
                         if (JSON.stringify(state.currentCivDraftOptions) !== JSON.stringify(filteredCivOpts)) {
                             newCurrentCivDraftOptions = filteredCivOpts;
@@ -464,9 +381,9 @@ const useDraftStore = create<DraftStore>()(
                     } else if (chosenOptionId === "" && currentSocketDraftType) {
                         effectiveDraftType = currentSocketDraftType;
                     }
-                    let pickBanStateChangedOuter = false; // To track if the event should trigger _updateActivePresetIfNeeded
+                    let pickBanStateChangedOuter = false;
                     if (effectiveDraftType && actionType && (actionType === 'pick' || actionType === 'ban' || actionType === 'snipe')) {
-                        pickBanStateChangedOuter = true; // Assume change, will be confirmed by set's return
+                        pickBanStateChangedOuter = true;
                     } else {
                         console.warn(`[draftStore] Socket.IO "playerEvent": Could not determine type or invalid actionType for event. chosenOptionId: ${chosenOptionId}, actionType: ${actionType}, socketDraftType: ${currentSocketDraftType}`);
                     }
@@ -668,11 +585,14 @@ const useDraftStore = create<DraftStore>()(
                   });
                   currentSocket.on('draft_update', (data) => {
                     console.log('Socket.IO "draft_update" event received:', data);
+
                     let draftUpdateStateChanged = false;
                     set(state => {
                         let newHostName = state.hostName;
                         let newGuestName = state.guestName;
                         let newAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions;
+                        let newCurrentCivDraftOptionsUpdate = state.currentCivDraftOptions;
+
                         let tempCivPicksHost = [...state.civPicksHost];
                         let tempCivBansHost = [...state.civBansHost];
                         let tempCivPicksGuest = [...state.civPicksGuest];
@@ -683,10 +603,12 @@ const useDraftStore = create<DraftStore>()(
                         let tempMapBansGuest = [...state.mapBansGuest];
                         let tempMapPicksGlobal = [...state.mapPicksGlobal];
                         let tempMapBansGlobal = [...state.mapBansGlobal];
+
                         if (typeof data !== 'object' || data === null) {
                             console.warn('[draftStore] Socket.IO "draft_update": Invalid data type received:', data);
                             return state;
                         }
+
                         if (typeof data.nameHost === 'string' && newHostName !== data.nameHost) {
                             newHostName = data.nameHost;
                             draftUpdateStateChanged = true;
@@ -701,6 +623,22 @@ const useDraftStore = create<DraftStore>()(
                                 draftUpdateStateChanged = true;
                             }
                         }
+
+                        let optionsSourceForCivFiltering = state.aoe2cmRawDraftOptions;
+                        if (newAoe2cmRawDraftOptions && newAoe2cmRawDraftOptions !== state.aoe2cmRawDraftOptions) {
+                            optionsSourceForCivFiltering = newAoe2cmRawDraftOptions;
+                        } else if (data.preset && data.preset.draftOptions && Array.isArray(data.preset.draftOptions)) {
+                            optionsSourceForCivFiltering = data.preset.draftOptions;
+                        }
+
+                        if (optionsSourceForCivFiltering && Array.isArray(optionsSourceForCivFiltering)) {
+                            const filteredCivOpts = optionsSourceForCivFiltering.filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'));
+                            if (JSON.stringify(state.currentCivDraftOptions) !== JSON.stringify(filteredCivOpts)) {
+                                newCurrentCivDraftOptionsUpdate = filteredCivOpts;
+                                draftUpdateStateChanged = true;
+                            }
+                        }
+
                         if (data.events && Array.isArray(data.events)) {
                             const currentSocketDraftType = state.socketDraftType;
                             data.events.forEach(event => {
@@ -710,7 +648,7 @@ const useDraftStore = create<DraftStore>()(
                                 }
                                 const { executingPlayer, chosenOptionId, actionType } = event;
                                 let optionName = (actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") ? "Hidden Ban" :
-                                                 (typeof chosenOptionId === 'string') ? getOptionNameFromStore(chosenOptionId, newAoe2cmRawDraftOptions) : "";
+                                                 (typeof chosenOptionId === 'string') ? getOptionNameFromStore(chosenOptionId, newAoe2cmRawDraftOptions || state.aoe2cmRawDraftOptions) : ""; // Use latest raw options
                                 if (optionName === "" && !(actionType === 'ban' && chosenOptionId === "HIDDEN_BAN") && (typeof chosenOptionId !== 'string' || chosenOptionId.length === 0) ) {
                                      console.warn('[draftStore] Socket.IO "draft_update": Invalid or empty chosenOptionId in event array item (and not a Hidden Ban):', chosenOptionId, "Event:", event);
                                      return;
@@ -733,8 +671,8 @@ const useDraftStore = create<DraftStore>()(
                                         if (executingPlayer === 'HOST') tempCivBansGuest = [...new Set([...tempCivBansGuest, optionName])];
                                         else if (executingPlayer === 'GUEST') tempCivBansHost = [...new Set([...tempCivBansHost, optionName])];
                                     }
-                                    if (tempCivPicksHost.length !== originalCivPicksHost.length || tempCivBansHost.length !== originalCivBansHost.length ||
-                                        tempCivPicksGuest.length !== originalCivPicksGuest.length || tempCivBansGuest.length !== originalCivBansGuest.length) {
+                                    if (JSON.stringify(tempCivPicksHost) !== JSON.stringify(originalCivPicksHost) || JSON.stringify(tempCivBansHost) !== JSON.stringify(originalCivBansHost) ||
+                                        JSON.stringify(tempCivPicksGuest) !== JSON.stringify(originalCivPicksGuest) || JSON.stringify(tempCivBansGuest) !== JSON.stringify(originalCivBansGuest)) {
                                         individualEventCausedChange = true;
                                     }
                                 } else if (effectiveDraftType === 'map') {
@@ -753,9 +691,9 @@ const useDraftStore = create<DraftStore>()(
                                         if (executingPlayer === 'HOST') tempMapBansGuest = [...new Set([...tempMapBansGuest, optionName])];
                                         else if (executingPlayer === 'GUEST') tempMapBansHost = [...new Set([...tempMapBansHost, optionName])];
                                     }
-                                    if (tempMapPicksHost.length !== originalMapPicksHost.length || tempMapBansHost.length !== originalMapBansHost.length ||
-                                        tempMapPicksGuest.length !== originalMapPicksGuest.length || tempMapBansGuest.length !== originalMapBansGuest.length ||
-                                        tempMapPicksGlobal.length !== originalMapPicksGlobal.length || tempMapBansGlobal.length !== originalMapBansGlobal.length) {
+                                    if (JSON.stringify(tempMapPicksHost) !== JSON.stringify(originalMapPicksHost) || JSON.stringify(tempMapBansHost) !== JSON.stringify(originalMapBansHost) ||
+                                        JSON.stringify(tempMapPicksGuest) !== JSON.stringify(originalMapPicksGuest) || JSON.stringify(tempMapBansGuest) !== JSON.stringify(originalMapBansGuest) ||
+                                        JSON.stringify(tempMapPicksGlobal) !== JSON.stringify(originalMapPicksGlobal) || JSON.stringify(tempMapBansGlobal) !== JSON.stringify(originalMapBansGlobal)) {
                                         individualEventCausedChange = true;
                                     }
                                 } else {
@@ -764,6 +702,7 @@ const useDraftStore = create<DraftStore>()(
                                 if (individualEventCausedChange) draftUpdateStateChanged = true;
                             });
                         }
+
                         if (draftUpdateStateChanged) {
                             const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
                                 state.boxSeriesFormat,
@@ -777,6 +716,7 @@ const useDraftStore = create<DraftStore>()(
                             return {
                                 ...state,
                                 hostName: newHostName, guestName: newGuestName, aoe2cmRawDraftOptions: newAoe2cmRawDraftOptions,
+                                currentCivDraftOptions: newCurrentCivDraftOptionsUpdate,
                                 civPicksHost: tempCivPicksHost, civBansHost: tempCivBansHost,
                                 civPicksGuest: tempCivPicksGuest, civBansGuest: tempCivBansGuest,
                                 mapPicksHost: tempMapPicksHost, mapBansHost: tempMapBansHost,
@@ -788,10 +728,10 @@ const useDraftStore = create<DraftStore>()(
                         return state;
                     });
                     if(draftUpdateStateChanged) {
-                        console.log('[draftStore] Socket.IO "draft_update": State updated, calling _updateActivePresetIfNeeded.');
+                        console.log('[draftStore] Socket.IO "draft_update": State updated (names, options, events, or civ options), calling _updateActivePresetIfNeeded.');
                         get()._updateActivePresetIfNeeded();
                     }
-                  });
+                  }); // END OF DRAFT_UPDATE HANDLER
                   currentSocket.on('adminEvent', (data) => {
                     console.log('Socket.IO "adminEvent" received:', data);
                     if (data && data.action === "REVEAL_BANS" && data.events && Array.isArray(data.events)) {
@@ -1079,7 +1019,7 @@ const useDraftStore = create<DraftStore>()(
             }
             const rawDraftData = response.data;
             const allPresetOptionsConnect = rawDraftData.preset?.draftOptions;
-            let civOptionsForStoreConnect: Aoe2cmRawDraftData['preset']['draftOptions'] = [];
+            let civOptionsForStoreConnect: Aoe2cmRawDraftOption[] = [];
             if (allPresetOptionsConnect && Array.isArray(allPresetOptionsConnect)) {
                 civOptionsForStoreConnect = allPresetOptionsConnect.filter(opt => opt.id && typeof opt.id === 'string' && opt.id.startsWith('aoe4.'));
             }
@@ -1267,7 +1207,7 @@ const useDraftStore = create<DraftStore>()(
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
         saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
-        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
+        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], currentCivDraftOptions: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
         setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
@@ -1681,5 +1621,4 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
-
-[end of src/store/draftStore.ts]
+// [end of src/store/draftStore.ts]
