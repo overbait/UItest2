@@ -46,11 +46,11 @@ const reorderCivsForDisplay = (civs: CivItem[], columns: number, rows: number): 
 };
 
 // Helper function to format civ names for image paths
-const formatCivNameForImagePath = (civId: string): string => {
-  if (!civId) return 'random'; // Or a placeholder for missing ID
-  // Transforms "aoe4.CivilizationName" to "aoe4-CivilizationName"
-  const transformedName = civId.startsWith('aoe4.') ? 'aoe4-' + civId.substring(5) : civId;
-  return `/assets/civflags_simplified/${transformedName}.png`;
+const formatCivNameForImagePath = (civName: string): string => {
+  if (!civName) return 'random'; // Or a placeholder for missing name
+  // Converts "English" to "english", "Delhi Sultanate" to "delhi_sultanate"
+  const formattedName = civName.toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_').replace(/'/g, '');
+  return `/assets/civflags_normal/${formattedName}.png`;
 };
 
 interface CivPoolElementProps extends StudioElement {
@@ -95,12 +95,14 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
       .filter(opt => opt.id && opt.id.startsWith('aoe4.')); // Filter for civs
 
     return currentAvailableCivsData.map(opt => {
-      const civId = opt.id;
+      const civId = opt.id; // e.g., "aoe4.English"
       // Clean name, e.g., "aoe4.English" -> "English"
-      const displayName = (opt.name || opt.id).startsWith('aoe4.') ? (opt.name || opt.id).substring(5) : (opt.name || opt.id);
+      const displayName = (opt.name || opt.id).startsWith('aoe4.')
+                       ? (opt.name || opt.id).substring(5)
+                       : (opt.name || opt.id); // e.g., "English"
 
       let status: CivItem['status'] = 'default';
-      const imageUrl = formatCivNameForImagePath(civId);
+      const imageUrl = formatCivNameForImagePath(displayName); // CHANGED: Use displayName
 
       // Status checks use displayName, as that's what civPicksHost etc. store
       if (playerType === 'host') {
