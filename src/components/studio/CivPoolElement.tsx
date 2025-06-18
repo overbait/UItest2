@@ -3,6 +3,27 @@ import useDraftStore from '../../store/draftStore';
 import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft'; // Added Aoe2cmRawDraftData
 import styles from './CivPoolElement.module.css';
 
+const DEFAULT_CIV_POOL = [
+  { id: 'aoe4.AbbasidDynasty', name: 'AbbasidDynasty' },
+  { id: 'aoe4.Ayyubids', name: 'Ayyubids' },
+  { id: 'aoe4.Byzantines', name: 'Byzantines' },
+  { id: 'aoe4.Chinese', name: 'Chinese' },
+  { id: 'aoe4.DelhiSultanate', name: 'DelhiSultanate' },
+  { id: 'aoe4.English', name: 'English' },
+  { id: 'aoe4.French', name: 'French' },
+  { id: 'aoe4.HolyRomanEmpire', name: 'HolyRomanEmpire' },
+  { id: 'aoe4.HouseOfLancaster', name: 'HouseOfLancaster' },
+  { id: 'aoe4.Japanese', name: 'Japanese' },
+  { id: 'aoe4.JeanneDArc', name: 'JeanneDArc' },
+  { id: 'aoe4.KnightsTemplar', name: 'KnightsTemplar' },
+  { id: 'aoe4.Malians', name: 'Malians' },
+  { id: 'aoe4.Mongols', name: 'Mongols' },
+  { id: 'aoe4.OrderOfTheDragon', name: 'OrderOfTheDragon' },
+  { id: 'aoe4.Ottomans', name: 'Ottomans' },
+  { id: 'aoe4.Rus', name: 'Rus' },
+  { id: 'aoe4.ZhuXisLegacy', name: 'ZhuXisLegacy' }
+];
+
 interface CivItem {
   id: string; // e.g., "aoe4.English"
   name: string; // e.g., "English"
@@ -13,7 +34,7 @@ interface CivItem {
 // Helper function to reorder civs for bottom-to-top display in columns
 // Now returns (CivItem | null)[] to allow for padding, and always returns full grid size
 const reorderCivsForDisplay = (civs: CivItem[], columns: number, rows: number): (CivItem | null)[] => {
-  console.log('[CivPoolElement.reorderCivsForDisplay] Input:', { civs, columns, rows });
+  // console.log('[CivPoolElement.reorderCivsForDisplay] Input:', { civs, columns, rows }); // DEBUG: Remove/comment
   const totalGridSize = columns * rows;
   const fullGridItems: (CivItem | null)[] = new Array(totalGridSize).fill(null);
 
@@ -43,7 +64,7 @@ const reorderCivsForDisplay = (civs: CivItem[], columns: number, rows: number): 
     currentCivIndex += itemsInThisColumn;
   }
 
-  console.log('[CivPoolElement.reorderCivsForDisplay] Output fullGridItems:', fullGridItems);
+  // console.log('[CivPoolElement.reorderCivsForDisplay] Output fullGridItems:', fullGridItems); // DEBUG: Remove/comment
   return fullGridItems;
 };
 
@@ -77,50 +98,37 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
   columns = 5, // Default to 5 columns
   rows = 2,    // Default to 2 rows
 }) => {
-  console.log('[CivPoolElement] Props:', { elementId, elementType, isBroadcast, columns, rows });
+  // console.log('[CivPoolElement] Props:', { elementId, elementType, isBroadcast, columns, rows }); // DEBUG: Remove/comment
   const {
-    aoe2cmRawDraftOptions,
+    // aoe2cmRawDraftOptions, // No longer needed directly for DEFAULT_CIV_POOL
     civPicksHost,
     civBansHost,
     civPicksGuest,
     civBansGuest,
   } = useDraftStore(state => ({
-    aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
+    // aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions, // No longer needed
     civPicksHost: state.civPicksHost,
     civBansHost: state.civBansHost,
     civPicksGuest: state.civPicksGuest,
     civBansGuest: state.civBansGuest,
   }));
-  console.log('[CivPoolElement] Store Data:', { aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest });
+  // console.log('[CivPoolElement] Store Data (relevant):', { civPicksHost, civBansHost, civPicksGuest, civBansGuest }); // DEBUG: Remove/comment
 
-  // Add this useEffect
-  useEffect(() => {
-    console.log('[CivPoolElement] useEffect detected change in aoe2cmRawDraftOptions. New value:', aoe2cmRawDraftOptions);
-    // You could also log other relevant states here if needed, like civPicksHost, etc.
-    // to see if they change along with aoe2cmRawDraftOptions.
-  }, [aoe2cmRawDraftOptions]);
+  // useEffect for aoe2cmRawDraftOptions can be removed as we use DEFAULT_CIV_POOL
+  // useEffect(() => {
+  //   console.log('[CivPoolElement] useEffect detected change in aoe2cmRawDraftOptions. New value:', aoe2cmRawDraftOptions);
+  // }, [aoe2cmRawDraftOptions]);
 
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): CivItem[] => {
-    console.log('[CivPoolElement.deriveCivPool] Called for playerType:', playerType);
-    if (!aoe2cmRawDraftOptions) {
-      console.log('[CivPoolElement.deriveCivPool] No aoe2cmRawDraftOptions, returning empty array.');
-      return [];
-    }
-    const currentAvailableCivsData = aoe2cmRawDraftOptions
-      .filter(opt => opt.id && opt.id.startsWith('aoe4.')); // Filter for civs
-    console.log('[CivPoolElement.deriveCivPool] Filtered currentAvailableCivsData:', currentAvailableCivsData);
+    // console.log('[CivPoolElement.deriveCivPool] Called for playerType:', playerType, 'Using DEFAULT_CIV_POOL.'); // DEBUG: Keep if desired, or remove
 
-    const result = currentAvailableCivsData.map(opt => {
-      const civId = opt.id; // e.g., "aoe4.English"
-      // Clean name, e.g., "aoe4.English" -> "English"
-      const displayName = (opt.name || opt.id).startsWith('aoe4.')
-                       ? (opt.name || opt.id).substring(5)
-                       : (opt.name || opt.id); // e.g., "English"
+    return DEFAULT_CIV_POOL.map(defaultCiv => {
+      const civId = defaultCiv.id;
+      const displayName = defaultCiv.name;
 
       let status: CivItem['status'] = 'default';
-      const imageUrl = formatCivNameForImagePath(displayName); // CHANGED: Use displayName
+      const imageUrl = formatCivNameForImagePath(displayName);
 
-      // Status checks use displayName, as that's what civPicksHost etc. store
       if (playerType === 'host') {
         if (civPicksHost.includes(displayName)) status = 'picked';
         else if (civBansHost.includes(displayName)) status = 'banned';
@@ -130,159 +138,94 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
         else if (civBansGuest.includes(displayName)) status = 'banned';
         else if (civPicksHost.includes(displayName) || civBansHost.includes(displayName)) status = 'affected';
       }
-      // Global pick logic is removed for civs for now.
+
       return { id: civId, name: displayName, status, imageUrl };
     });
-    console.log('[CivPoolElement.deriveCivPool] Returning processed civs:', result);
-    return result;
-  }, [aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest]);
+  }, [civPicksHost, civBansHost, civPicksGuest, civBansGuest]);
 
   const player1CivPool = useMemo(() => {
     const civs = deriveCivPool('host');
     return reorderCivsForDisplay(civs, columns, rows);
   }, [deriveCivPool, columns, rows]);
-  console.log('[CivPoolElement] player1CivPool computed:', player1CivPool);
+  // console.log('[CivPoolElement] player1CivPool computed:', player1CivPool); // DEBUG: Remove/comment
 
   const player2CivPool = useMemo(() => {
     const civs = deriveCivPool('guest');
     return reorderCivsForDisplay(civs, columns, rows);
   }, [deriveCivPool, columns, rows]);
-  console.log('[CivPoolElement] player2CivPool computed:', player2CivPool);
+  // console.log('[CivPoolElement] player2CivPool computed:', player2CivPool); // DEBUG: Remove/comment
 
   const civItemWidth = 80; // Fixed width for civ items
   const civItemHeight = 80; // Fixed height for civ items
 
   // Dynamic style for the element
-  // const elementStyle: React.CSSProperties = {
-  //   position: 'absolute',
-  //   left: `${positionX}%`,
-  //   top: `${positionY}%`,
-  //   width: `${width}%`,
-  //   height: `${height}%`,
-  //   opacity: opacity,
-  //   transform: `rotate(${rotation}deg) scale(${scale})`,
-  //   visibility: visible ? 'visible' : 'hidden',
-  //   // other styles as needed by StudioElement props
-  // };
+  const elementStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: `${positionX}%`,
+    top: `${positionY}%`,
+    width: `${width}%`,
+    height: `${height}%`,
+    opacity: opacity,
+    transform: `rotate(${rotation}deg) scale(${scale})`,
+    visibility: visible ? 'visible' : 'hidden',
+    // other styles as needed by StudioElement props
+  };
 
-  // Check if there are any civs available in the draft options at all
-  const noCivsAvailableInOptions = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter(opt => opt.id && opt.id.startsWith('aoe4.')).length === 0;
-
-  // Render null if in broadcast mode and no civs are available AND no civs in options
-  // This prevents showing an empty box if the draft hasn't started or has no civs.
-  console.log('[CivPoolElement] Pre-render check:', { isBroadcast, p1PoolLength: player1CivPool.length, p2PoolLength: player2CivPool.length, noCivsAvailableInOptions });
-  if (isBroadcast && player1CivPool.length === 0 && player2CivPool.length === 0 && noCivsAvailableInOptions) {
-    console.log('[CivPoolElement] Rendering null due to broadcast mode and empty/unavailable civs.');
+  // Render null if in broadcast mode and if both filtered pools are empty
+  // console.log('[CivPoolElement] Pre-render check:', { isBroadcast, p1PoolLength: player1CivPool.filter(Boolean).length, p2PoolLength: player2CivPool.filter(Boolean).length }); // DEBUG: Remove/comment
+  if (isBroadcast && player1CivPool.filter(Boolean).length === 0 && player2CivPool.filter(Boolean).length === 0) {
+    // console.log('[CivPoolElement] Rendering null due to broadcast mode and empty/unavailable civs (after filtering nulls).'); // DEBUG: Remove/comment
     return null;
   }
 
   return (
-    <div
-      id={elementId}
-      style={{
-        border: '5px solid red',
-        background: 'yellow',
-        padding: '20px',
-        color: 'black',
-        fontSize: '12px',
-        width: '300px', // Fixed width for better visibility
-        height: '200px', // Fixed height
-        overflow: 'auto', // To see content if it overflows
-        position: 'absolute', // Ensure it's positioned if props are missing
-        left: '10px',
-        top: '10px',
-        zIndex: 10000 // Ensure it's on top
-      }}
-      // className={styles.civPoolElement} // DEBUG: Commented out
-    >
-      <div>CivPoolElement Debug Output (elementId: {elementId})</div>
-      <div style={{ fontStyle: 'italic' }}>Position: X={positionX}%, Y={positionY}%, Width={width}%, Height={height}%</div>
-      <div style={{ fontStyle: 'italic' }}>Scale: {scale}, Opacity: {opacity}, Rotation: {rotation}</div>
-      <div style={{ fontStyle: 'italic' }}>Columns: {columns}, Rows: {rows}, isBroadcast: {String(isBroadcast)}</div>
-
-
+    <div id={elementId} style={elementStyle} className={styles.civPoolElement}>
       {/* Player 1 Grid */}
-      <div
-        // className={`${styles.playerCivGrid} ${styles.player1Grid}`} // DEBUG: Commented out
-        style={{
-          border: '1px dashed blue',
-          padding: '5px',
-          marginBottom: '5px',
-          gridTemplateColumns: `repeat(${columns}, 1fr)` // Keep if columns prop is reliable
-        }}
-      >
-        Player 1 Civs:
-        {player1CivPool.length > 0 ? player1CivPool.map((civItem, index) => {
-          console.log('[CivPoolElement] Rendering P1 CivItem:', civItem, 'at index:', index);
+      <div className={`${styles.playerCivGrid} ${styles.player1Grid}`} style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+        {player1CivPool.map((civItem, index) => {
+          // console.log('[CivPoolElement] Rendering P1 CivItem:', civItem, 'at index:', index); // DEBUG: Remove/comment
           if (!civItem) {
-            return <div key={`p1-empty-${index}`} style={{ background: '#eee', padding: '2px', fontSize: '10px' }}>Empty Slot</div>;
+            return <div key={`p1-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
           return (
-            <div
-              key={`p1-civ-${index}-${civItem.id}`}
-              style={{ border: '1px solid black', padding: '3px', margin: '2px', fontSize: '11px' }}
-            >
-              Name: {civItem.name || "N/A"}<br/>
-              ID: {civItem.id || "N/A"}<br/>
-              Status: {civItem.status || "N/A"}
+            <div key={`p1-civ-${index}-${civItem.id}`} className={styles.civItemGridCell}>
+              <div
+                className={`${styles.civItemVisualContent} ${styles[civItem.status] || ''}`}
+                style={{
+                  width: `${civItemWidth}px`,
+                  height: `${civItemHeight}px`,
+                  backgroundImage: `url('${civItem.imageUrl}')`,
+                }}
+              >
+                <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
+              </div>
             </div>
           );
-        }) : (
-          <div
-            // className={styles.noCivsMessage} // DEBUG: Commented out
-            style={{
-              gridColumn: `span ${columns}`, // Keep if columns prop is reliable
-              color: 'darkred',
-              fontWeight: 'bold',
-              padding: '10px',
-              border: '1px solid darkred'
-            }}
-          >
-            (P1: No Civs Available in Draft)
-          </div>
-        )}
+        })}
       </div>
 
       {/* Player 2 Grid */}
-      <div
-        // className={`${styles.playerCivGrid} ${styles.player2Grid}`} // DEBUG: Commented out
-        style={{
-          border: '1px dashed blue',
-          padding: '5px',
-          marginBottom: '5px',
-          gridTemplateColumns: `repeat(${columns}, 1fr)` // Keep if columns prop is reliable
-        }}
-      >
-        Player 2 Civs:
-        {player2CivPool.length > 0 ? player2CivPool.map((civItem, index) => {
-          console.log('[CivPoolElement] Rendering P2 CivItem:', civItem, 'at index:', index);
+      <div className={`${styles.playerCivGrid} ${styles.player2Grid}`} style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+        {player2CivPool.map((civItem, index) => {
+          // console.log('[CivPoolElement] Rendering P2 CivItem:', civItem, 'at index:', index); // DEBUG: Remove/comment
           if (!civItem) {
-            return <div key={`p2-empty-${index}`} style={{ background: '#eee', padding: '2px', fontSize: '10px' }}>Empty Slot</div>;
+            return <div key={`p2-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
           return (
-            <div
-              key={`p2-civ-${index}-${civItem.id}`}
-              style={{ border: '1px solid black', padding: '3px', margin: '2px', fontSize: '11px' }}
-            >
-              Name: {civItem.name || "N/A"}<br/>
-              ID: {civItem.id || "N/A"}<br/>
-              Status: {civItem.status || "N/A"}
+            <div key={`p2-civ-${index}-${civItem.id}`} className={styles.civItemGridCell}>
+              <div
+                className={`${styles.civItemVisualContent} ${styles[civItem.status] || ''}`}
+                style={{
+                  width: `${civItemWidth}px`,
+                  height: `${civItemHeight}px`,
+                  backgroundImage: `url('${civItem.imageUrl}')`,
+                }}
+              >
+                <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
+              </div>
             </div>
           );
-        }) : (
-          <div
-            // className={styles.noCivsMessage} // DEBUG: Commented out
-            style={{
-              gridColumn: `span ${columns}`, // Keep if columns prop is reliable
-              color: 'darkred',
-              fontWeight: 'bold',
-              padding: '10px',
-              border: '1px solid darkred'
-            }}
-          >
-            (P2: No Civs Available in Draft)
-          </div>
-        )}
+        })}
       </div>
 
       {/* Optional: Custom CSS block */}
