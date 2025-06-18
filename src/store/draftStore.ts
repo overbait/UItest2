@@ -1481,8 +1481,38 @@ const useDraftStore = create<DraftStore>()(
           const preset = get().savedPresets.find(p => p.id === presetId);
           console.log('[draftStore.loadPreset] Attempting to load preset:', preset); // Log the found preset
           if (preset) {
-            set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] });
-            console.log('[draftStore.loadPreset] Cleared existing draft states and picks/bans.');
+            set({ // This is the target 'set' call
+              activePresetId: preset.id, // Keep existing fields being set
+              civDraftId: preset.civDraftId,
+              mapDraftId: preset.mapDraftId,
+              hostName: preset.hostName,
+              guestName: preset.guestName,
+              scores: { ...preset.scores },
+              boxSeriesFormat: preset.boxSeriesFormat,
+              boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)),
+              hostColor: preset.hostColor || null,
+              guestColor: preset.guestColor || null,
+
+              // Reset draft-specific operational states
+              civDraftStatus: 'disconnected',
+              civDraftError: null,
+              isLoadingCivDraft: false,
+              mapDraftStatus: 'disconnected',
+              mapDraftError: null,
+              isLoadingMapDraft: false,
+
+              // Reset pick/ban arrays
+              civPicksHost: [], civBansHost: [],
+              civPicksGuest: [], civBansGuest: [],
+              mapPicksHost: [], mapBansHost: [],
+              mapPicksGuest: [], mapBansGuest: [],
+              mapPicksGlobal: [], mapBansGlobal: [],
+
+              // ADD THIS LINE: Explicitly clear aoe2cmRawDraftOptions
+              aoe2cmRawDraftOptions: undefined,
+
+            });
+            console.log('[draftStore.loadPreset] Cleared existing draft states, picks/bans, and aoe2cmRawDraftOptions.'); // Update log message slightly
             if (preset.civDraftId) {
               console.log(`[draftStore.loadPreset] Calling connectToDraft for CIV draft ID: ${preset.civDraftId}`);
               await get().connectToDraft(preset.civDraftId, 'civ');
