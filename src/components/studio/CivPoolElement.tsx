@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'; // Import useMemo
+import React, { useMemo, useCallback, useEffect } from 'react'; // Import useMemo
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft'; // Added Aoe2cmRawDraftData
 import styles from './CivPoolElement.module.css';
@@ -92,6 +92,13 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({
     civBansGuest: state.civBansGuest,
   }));
   console.log('[CivPoolElement] Store Data:', { aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest });
+
+  // Add this useEffect
+  useEffect(() => {
+    console.log('[CivPoolElement] useEffect detected change in aoe2cmRawDraftOptions. New value:', aoe2cmRawDraftOptions);
+    // You could also log other relevant states here if needed, like civPicksHost, etc.
+    // to see if they change along with aoe2cmRawDraftOptions.
+  }, [aoe2cmRawDraftOptions]);
 
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): CivItem[] => {
     console.log('[CivPoolElement.deriveCivPool] Called for playerType:', playerType);
