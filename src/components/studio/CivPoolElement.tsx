@@ -80,30 +80,37 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => { // MapItem might change to CivItem
     if (!aoe2cmRawDraftOptions) return [];
     // UPDATED: Filter logic for civs
-    const currentAvailableCivs = aoe2cmRawDraftOptions
+    const currentAvailableCivsFromOpts = aoe2cmRawDraftOptions // Renamed for clarity from currentAvailableCivs
       .filter(opt => opt.id && opt.id.startsWith('aoe4.'))
       .map(opt => opt.name || opt.id);
 
-    // RENAMED: mapName to civName
-    return currentAvailableCivs.map(civName => {
+    // Default pick/ban arrays to empty if undefined from store
+    const safeCivPicksHost = civPicksHost || [];
+    const safeCivBansHost = civBansHost || [];
+    const safeCivPicksGuest = civPicksGuest || [];
+    const safeCivBansGuest = civBansGuest || [];
+    const safeCivPicksGlobal = civPicksGlobal || [];
+
+    // RENAMED: mapName to civName (already done, but civName is the loop variable here)
+    return currentAvailableCivsFromOpts.map(civNameString => { // Use a distinct loop variable name
       let status: MapItem['status'] = 'default';
       // UPDATED: Image path and function call for simplified civ flags
-      const formattedNamePart = formatCivNameForImagePath(civName);
+      const formattedNamePart = formatCivNameForImagePath(civNameString);
       const imageUrl = `/assets/civflags_simplified/aoe4-${formattedNamePart}.png`;
 
-      // RENAMED: mapPicksGlobal to civPicksGlobal, etc.
-      if (civPicksGlobal.includes(civName)) {
+      // Use safe arrays for .includes() checks
+      if (safeCivPicksGlobal.includes(civNameString)) {
         status = 'adminPicked';
       } else if (playerType === 'host') {
-        if (civPicksHost.includes(civName)) status = 'picked';
-        else if (civBansHost.includes(civName)) status = 'banned';
-        else if (civPicksGuest.includes(civName) || civBansGuest.includes(civName)) status = 'affected';
+        if (safeCivPicksHost.includes(civNameString)) status = 'picked';
+        else if (safeCivBansHost.includes(civNameString)) status = 'banned';
+        else if (safeCivPicksGuest.includes(civNameString) || safeCivBansGuest.includes(civNameString)) status = 'affected';
       } else { // playerType === 'guest'
-        if (civPicksGuest.includes(civName)) status = 'picked';
-        else if (civBansGuest.includes(civName)) status = 'banned';
-        else if (civPicksHost.includes(civName) || civBansHost.includes(civName)) status = 'affected';
+        if (safeCivPicksGuest.includes(civNameString)) status = 'picked';
+        else if (safeCivBansGuest.includes(civNameString)) status = 'banned';
+        else if (safeCivPicksHost.includes(civNameString) || safeCivBansHost.includes(civNameString)) status = 'affected';
       }
-      return { name: civName, status, imageUrl };
+      return { name: civNameString, status, imageUrl };
     });
   }, [aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]);
 
