@@ -59,7 +59,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   } = element;
 
   const {
-    aoe2cmRawDraftOptions,
+    // UPDATED: Fetch currentCivDraftOptions from store and rename variable
+    currentCivOptionsFromStore,
     // RENAMED: mapPicksHost to civPicksHost, etc. Assumes store provides these.
     civPicksHost,
     civBansHost,
@@ -67,7 +68,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     civBansGuest,
     civPicksGlobal,
   } = useDraftStore(state => ({
-    aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
+    // UPDATED: Selector for currentCivDraftOptions
+    currentCivOptionsFromStore: state.currentCivDraftOptions || [],
     // Assumes store has civPicksHost, etc.
     civPicksHost: state.civPicksHost,
     civBansHost: state.civBansHost,
@@ -78,11 +80,14 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
 
   // RENAMED: deriveMapPool to deriveCivPool
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => { // MapItem might change to CivItem
-    if (!aoe2cmRawDraftOptions) return [];
-    // UPDATED: Filter logic for civs
-    const currentAvailableCivsFromOpts = aoe2cmRawDraftOptions // Renamed for clarity from currentAvailableCivs
-      .filter(opt => opt.id && opt.id.startsWith('aoe4.'))
-      .map(opt => opt.name || opt.id);
+    // UPDATED: Use currentCivOptionsFromStore (already filtered)
+    // Ensure it defaults to an empty array if undefined/null from the store, though selector does this.
+    const optionsToProcess = currentCivOptionsFromStore || [];
+    if (optionsToProcess.length === 0) return [];
+
+    // currentCivOptionsFromStore is already the list of civ options. No further filtering needed.
+    const currentAvailableCivsFromOpts = optionsToProcess
+      .map(opt => opt.name || opt.id); // opt.id is already filtered to be civ ids
 
     // Default pick/ban arrays to empty if undefined from store
     const safeCivPicksHost = civPicksHost || [];
@@ -112,7 +117,7 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
       }
       return { name: civNameString, status, imageUrl };
     });
-  }, [aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]);
+  }, [currentCivOptionsFromStore, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]); // UPDATED Dependency Array
 
   // RENAMED: player1MapPool to player1CivPool, player2MapPool to player2CivPool
   // RENAMED: deriveMapPool to deriveCivPool
@@ -138,13 +143,12 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   const civItemWidth = 250;
   const civItemHeight = 160;
 
-  // Step 1: Create a memoized list of available civ options
+  // Step 1: Create a memoized list of available civ options - UPDATED to use currentCivOptionsFromStore
   const availableCivOptions = useMemo(() => {
-    if (!aoe2cmRawDraftOptions) return [];
-    return aoe2cmRawDraftOptions.filter(opt => opt.id && opt.id.startsWith('aoe4.'));
-  }, [aoe2cmRawDraftOptions]);
+    return currentCivOptionsFromStore || []; // Directly use the (already filtered) list from store
+  }, [currentCivOptionsFromStore]);
 
-  // Step 4: Update early return logic
+  // Step 4: Update early return logic (already uses availableCivOptions.length - this is fine)
   if (isBroadcast &&
       player1CivPool.filter(Boolean).length === 0 &&
       player2CivPool.filter(Boolean).length === 0 &&
