@@ -127,6 +127,10 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   console.log('[CivPoolElement] Final player1CivPool for render:', player1CivPool);
   console.log('[CivPoolElement] Final player2CivPool for render:', player2CivPool);
 
+  const civItemWidth = 250;
+  const civItemHeight = 160;
+  // const dynamicFontSize = 10; // This was already here, keep if still used for civName or similar
+
   const p1TranslateX = -horizontalSplitOffset;
   const p2TranslateX = horizontalSplitOffset;
 
