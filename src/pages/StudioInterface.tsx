@@ -6,7 +6,7 @@ import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElem
 import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement';
-import CivPoolElement from '../components/studio/CivPoolElement';
+import CivPoolElement from '../components/studio/CivPoolElement'; // Added CivPoolElement import
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -61,7 +61,7 @@ const StudioInterface: React.FC = () => {
   const handleAddCountryFlags = () => { addStudioElement("CountryFlags"); };
   const handleAddColorGlowElement = () => { addStudioElement("ColorGlowElement"); };
   const handleAddMapPoolElement = () => { addStudioElement("MapPoolElement"); };
-  const handleAddCivPoolElement = () => { addStudioElement("CivPoolElement"); };
+  const handleAddCivPoolElement = () => { addStudioElement("CivPoolElement"); }; // Added CivPoolElement handler
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
@@ -72,7 +72,7 @@ const StudioInterface: React.FC = () => {
     let newY_screen = element.position.y + data.deltaY;
 
     // element, data, newY_screen, currentX_screen, currentScale, dragStartContext are available from the outer scope or calculated just before this
-    if (element.type === "MapPoolElement") {
+    if (element.type === "MapPoolElement" || element.type === "CivPoolElement") { // Extended condition
         let newHorizontalSplitOffset = element.horizontalSplitOffset || 0;
         const currentX_screen = element.position.x; // Added for clarity, though already available
         const currentScale = element.scale || 1; // Added for clarity
@@ -188,13 +188,11 @@ const StudioInterface: React.FC = () => {
     // Note: Using getState() inside useEffect is fine for one-time reads on mount.
     // If this effect were to re-run based on these values changing, you'd select them with useDraftStore(state => ...)
     const { activePresetId, savedPresets, loadPreset, hostName, scores, civDraftId, mapDraftId } = useDraftStore.getState();
-    const currentAoe2cmRawDraftOptions = useDraftStore.getState().aoe2cmRawDraftOptions; // Get options
 
     console.log('LOGAOEINFO: [StudioInterface Mount Effect] Initial state check:', {
       activePresetId,
       hasSavedPresets: savedPresets && savedPresets.length > 0,
-      currentHostName: hostName,
-      currentAoe2cmRawDraftOptions: currentAoe2cmRawDraftOptions // Log options (direct log)
+      currentHostName: hostName
     });
 
     if (activePresetId && savedPresets && savedPresets.length > 0) {
@@ -208,22 +206,11 @@ const StudioInterface: React.FC = () => {
                               civDraftId === presetToLoad.civDraftId &&
                               mapDraftId === presetToLoad.mapDraftId;
 
-        // The problematic log line for currentAoe2cmRawDraftOptions was here,
-        // it's now part of the initial log above with direct logging.
-        // For clarity, the check log remains, but also direct:
-        console.log('[StudioInterface Mount Effect] Current aoe2cmRawDraftOptions for load decision:', currentAoe2cmRawDraftOptions);
-
-
-        // MODIFIED CONDITION:
-        // Load if:
-        // 1. Any of the previous conditions for NOT being loaded are met (names, scores, IDs differ)
-        // OR
-        // 2. aoe2cmRawDraftOptions is currently undefined (meaning the actual pool of civs/maps is missing)
-        if (!isAlreadyLoaded || currentAoe2cmRawDraftOptions === undefined) {
-          console.log(`LOGAOEINFO: [StudioInterface Mount Effect] Preset data needs loading (isAlreadyLoaded: ${isAlreadyLoaded}, currentAoe2cmRawDraftOptions is undefined: ${currentAoe2cmRawDraftOptions === undefined}). Calling loadPreset(activePresetId).`);
+        if (!isAlreadyLoaded) {
+          console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data not yet fully applied. Calling loadPreset(activePresetId).');
           loadPreset(activePresetId);
         } else {
-          console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data (including options) seems to be already applied. Skipping loadPreset.');
+          console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data seems to be already applied. Skipping loadPreset.');
         }
       } else {
         console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset ID found, but corresponding preset not in savedPresets. ID:', activePresetId);
@@ -255,8 +242,8 @@ const StudioInterface: React.FC = () => {
              <button onClick={handleAddBoXSeriesOverview} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add BoX Series Overview</button>
              <button onClick={handleAddCountryFlags} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Country Flags</button>
              <button onClick={handleAddColorGlowElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Color Glow</button>
-             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)', marginRight: '10px' }}>Add Map Pool</button>
-             <button onClick={handleAddCivPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Civ Pool</button>
+             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Map Pool</button>
+             <button onClick={handleAddCivPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Civ Pool</button> {/* Added Civ Pool button */}
            </div>
          )}
         </div>
@@ -562,7 +549,7 @@ const StudioInterface: React.FC = () => {
             else if (element.type === "CountryFlags") { content = <CountryFlagsElement element={element} isSelected={isSelected} />; }
             else if (element.type === "ColorGlowElement") { content = <ColorGlowElement element={element} isSelected={element.id === selectedElementId} />; }
             else if (element.type === "MapPoolElement") { content = <MapPoolElement element={element} />; }
-            else if (element.type === "CivPoolElement") { content = <CivPoolElement element={element} />; }
+            else if (element.type === "CivPoolElement") { content = <CivPoolElement element={element} />; } // Added CivPoolElement rendering
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (

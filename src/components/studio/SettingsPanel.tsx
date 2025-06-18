@@ -212,65 +212,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
             </div>
           )}
         </>
-      )} else if (selectedElement.type === 'CivPoolElement') {
-        // Settings for CivPoolElement will go here
-        // For now, let's add similar settings to MapPoolElement as a starting point
-        <>
-          <h4 style={sectionHeaderStyle}>Civ Pool Options</h4>
-          <div style={settingRowStyle}>
-            <label htmlFor="civPoolScaleSlider" style={labelStyle}>Scale:</label>
-            <input
-              type="range"
-              id="civPoolScaleSlider"
-              style={rangeInputStyle}
-              min="0.1"
-              max="5"
-              step="0.05"
-              value={selectedElement.scale || 1}
-              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
-            />
-            <span style={rangeValueStyle}>{(selectedElement.scale || 1).toFixed(2)}</span>
-          </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="civPoolFontFamilyInput" style={labelStyle}>Font Family:</label>
-            <input
-              type="text"
-              id="civPoolFontFamilyInput"
-              style={inputStyle}
-              value={selectedElement.fontFamily || 'Arial, sans-serif'}
-              onChange={(e) => handleSettingChange('fontFamily', e.target.value)}
-              placeholder="e.g., Arial, sans-serif"
-            />
-          </div>
-          <div style={settingRowStyle}>
-            <label htmlFor="civPoolPivotLockCheckbox" style={labelStyle}>Lock Pivot Point:</label>
-            <input
-              type="checkbox"
-              id="civPoolPivotLockCheckbox"
-              style={checkboxStyle}
-              checked={!!selectedElement.isPivotLocked}
-              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
-            />
-          </div>
-          {selectedElement.isPivotLocked && ( // Only show offset if pivot is locked
-            <div style={settingRowStyle}>
-              <label htmlFor="civPoolHorizontalSplitOffsetSlider" style={labelStyle}>Horizontal Split Offset (px):</label>
-              <input
-                type="range" // Changed to range for consistency, can be number too
-                id="civPoolHorizontalSplitOffsetSlider"
-                style={rangeInputStyle}
-                min="-200" // Example range, adjust as needed
-                max="200"  // Example range, adjust as needed
-                step="1"
-                value={selectedElement.horizontalSplitOffset || 0}
-                onChange={(e) => handleSettingChange('horizontalSplitOffset', parseInt(e.target.value, 10))}
-              />
-              <span style={rangeValueStyle}>{(selectedElement.horizontalSplitOffset || 0)}px</span>
-            </div>
-          )}
-          {/* Add other CivPoolElement specific settings here if any in the future */}
-        </>
-      }
+      )}
 
      {selectedElement.type === 'NicknamesOnly' && (
        <>
