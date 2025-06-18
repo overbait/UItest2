@@ -194,7 +194,7 @@ const StudioInterface: React.FC = () => {
       activePresetId,
       hasSavedPresets: savedPresets && savedPresets.length > 0,
       currentHostName: hostName,
-      currentAoe2cmRawDraftOptions: JSON.parse(JSON.stringify(currentAoe2cmRawDraftOptions)) // Log options
+      currentAoe2cmRawDraftOptions: currentAoe2cmRawDraftOptions // Log options (direct log)
     });
 
     if (activePresetId && savedPresets && savedPresets.length > 0) {
@@ -208,7 +208,11 @@ const StudioInterface: React.FC = () => {
                               civDraftId === presetToLoad.civDraftId &&
                               mapDraftId === presetToLoad.mapDraftId;
 
-        console.log('[StudioInterface Mount Effect] Current aoe2cmRawDraftOptions for check:', currentAoe2cmRawDraftOptions);
+        // The problematic log line for currentAoe2cmRawDraftOptions was here,
+        // it's now part of the initial log above with direct logging.
+        // For clarity, the check log remains, but also direct:
+        console.log('[StudioInterface Mount Effect] Current aoe2cmRawDraftOptions for load decision:', currentAoe2cmRawDraftOptions);
+
 
         // MODIFIED CONDITION:
         // Load if:
@@ -216,7 +220,7 @@ const StudioInterface: React.FC = () => {
         // OR
         // 2. aoe2cmRawDraftOptions is currently undefined (meaning the actual pool of civs/maps is missing)
         if (!isAlreadyLoaded || currentAoe2cmRawDraftOptions === undefined) {
-          console.log(`LOGAOEINFO: [StudioInterface Mount Effect] Preset data needs loading (isAlreadyLoaded: ${isAlreadyLoaded}, currentAoe2cmRawDraftOptions undefined: ${currentAoe2cmRawDraftOptions === undefined}). Calling loadPreset(activePresetId).`);
+          console.log(`LOGAOEINFO: [StudioInterface Mount Effect] Preset data needs loading (isAlreadyLoaded: ${isAlreadyLoaded}, currentAoe2cmRawDraftOptions is undefined: ${currentAoe2cmRawDraftOptions === undefined}). Calling loadPreset(activePresetId).`);
           loadPreset(activePresetId);
         } else {
           console.log('LOGAOEINFO: [StudioInterface Mount Effect] Active preset data (including options) seems to be already applied. Skipping loadPreset.');
