@@ -1208,6 +1208,7 @@ const useDraftStore = create<DraftStore>()(
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
+          console.log(`[draftStore.connectToDraft] Called with draftIdOrUrl: ${draftIdOrUrl}, draftType: ${draftType}`);
           if (draftType === 'civ') {
             set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null });
           } else {
@@ -1238,18 +1239,21 @@ const useDraftStore = create<DraftStore>()(
           } else {
             set({ activePresetId: null });
           }
+          console.log(`[draftStore.connectToDraft] Extracted ID: ${extractedId}`);
 
-          console.log(`[ConnectToDraft] Attempting to fetch ${draftType} draft ${extractedId} via HTTP.`);
           const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
+          console.log(`[draftStore.connectToDraft] Attempting to fetch from API URL: ${apiUrl}`);
 
           try {
             const response = await axios.get<Aoe2cmRawDraftData>(apiUrl);
-            console.log(`[ConnectToDraft] HTTP data received for ${extractedId}. Processing...`);
+            console.log(`[draftStore.connectToDraft] HTTP data received for ${extractedId}. Full response.data:`, JSON.parse(JSON.stringify(response.data))); // Deep log of response data
+            const rawDraftData = response.data;
 
-            if (!response.data || typeof response.data !== 'object') {
+            if (!rawDraftData || typeof response.data !== 'object') {
+              console.error('[draftStore.connectToDraft] Received invalid or empty data structure from the API for draft ID:', extractedId);
               throw new Error('Received invalid or empty data structure from the API.');
             }
-            const rawDraftData = response.data;
+            console.log(`[draftStore.connectToDraft] rawDraftData.preset?.draftOptions for ${extractedId}:`, JSON.parse(JSON.stringify(rawDraftData.preset?.draftOptions)));
 
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
 
@@ -1335,11 +1339,14 @@ const useDraftStore = create<DraftStore>()(
                     finalMapPicksGlobal
                 );
 
+                const newOptions = rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions;
+                console.log('[draftStore.connectToDraft] Updating aoe2cmRawDraftOptions in store with:', JSON.parse(JSON.stringify(newOptions)));
+
                 const updatePayload: Partial<CombinedDraftState> = {
                     ...state, // Start with current state
                     hostName: newHostName,
                     guestName: newGuestName,
-                    aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions,
+                    aoe2cmRawDraftOptions: newOptions,
 
                     civPicksHost: finalCivPicksHost, civBansHost: finalCivBansHost,
                     civPicksGuest: finalCivPicksGuest, civBansGuest: finalCivBansGuest,
@@ -1390,7 +1397,8 @@ const useDraftStore = create<DraftStore>()(
             } else if (error instanceof Error) {
               httpErrorMessage = error.message;
             }
-            console.warn(`[ConnectToDraft] HTTP fetch for draft ${extractedId} (type ${draftType}) failed: ${httpErrorMessage}. Proceeding with WebSocket connection attempt.`);
+            console.error(`[draftStore.connectToDraft] Error during HTTP fetch or processing for ${extractedId}:`, httpErrorMessage, 'Full error object:', JSON.parse(JSON.stringify(error)));
+            console.warn(`[draftStore.connectToDraft] Despite HTTP error, proceeding with WebSocket connection attempt for ${extractedId}.`);
             get().connectToWebSocket(extractedId, draftType);
             return true;
           }
@@ -1469,7 +1477,26 @@ const useDraftStore = create<DraftStore>()(
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
         saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
-        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
+        loadPreset: async (presetId: string) => {
+          const preset = get().savedPresets.find(p => p.id === presetId);
+          console.log('[draftStore.loadPreset] Attempting to load preset:', preset); // Log the found preset
+          if (preset) {
+            set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] });
+            console.log('[draftStore.loadPreset] Cleared existing draft states and picks/bans.');
+            if (preset.civDraftId) {
+              console.log(`[draftStore.loadPreset] Calling connectToDraft for CIV draft ID: ${preset.civDraftId}`);
+              await get().connectToDraft(preset.civDraftId, 'civ');
+            }
+            if (preset.mapDraftId) {
+              console.log(`[draftStore.loadPreset] Calling connectToDraft for MAP draft ID: ${preset.mapDraftId}`);
+              await get().connectToDraft(preset.mapDraftId, 'map');
+            }
+            set({ activePresetId: preset.id });
+            console.log(`[draftStore.loadPreset] Finished loading preset ID: ${preset.id}`);
+          } else {
+            console.warn(`[draftStore.loadPreset] Preset with ID ${presetId} not found.`);
+          }
+        },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
         setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
