@@ -120,16 +120,12 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     return reorderCivsForDisplay(civs, NUM_ROWS);
   }, [deriveCivPool]);
 
-  const civItemWidth = 80;
-  const civItemHeight = 80;
-  const dynamicFontSize = 10; // Similar to MapPoolElement's base
-
   console.log('[CivPoolElement] Final player1CivPool for render:', player1CivPool);
   console.log('[CivPoolElement] Final player2CivPool for render:', player2CivPool);
 
   const civItemWidth = 250;
   const civItemHeight = 160;
-  // const dynamicFontSize = 10; // This was already here, keep if still used for civName or similar
+  const dynamicFontSize = 10; // Ensured single, active declaration
 
   const p1TranslateX = -horizontalSplitOffset;
   const p2TranslateX = horizontalSplitOffset;
