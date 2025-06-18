@@ -214,6 +214,62 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
         </>
       )}
 
+      {selectedElement.type === 'CivPoolElement' && (
+        <>
+          <div className={styles.settingItem}>
+            <label htmlFor="scale" className={styles.settingLabel}>Scale:</label>
+            <input
+              type="number"
+              id="scale"
+              name="scale"
+              className={styles.settingInput}
+              value={selectedElement.scale || 1}
+              onChange={(e) => handleSettingChange('scale', parseFloat(e.target.value))}
+              step="0.05"
+              min="0.1"
+              max="5"
+            />
+          </div>
+          <div className={styles.settingItem}>
+            <label htmlFor="fontFamily" className={styles.settingLabel}>Font Family:</label>
+            <input
+              type="text"
+              id="fontFamily"
+              name="fontFamily"
+              className={styles.settingInput}
+              value={selectedElement.fontFamily || 'Arial, sans-serif'}
+              onChange={(e) => handleSettingChange('fontFamily', e.target.value)}
+              placeholder="e.g., Arial, sans-serif"
+            />
+          </div>
+          <div className={styles.settingItem}>
+            <label htmlFor="isPivotLocked" className={styles.settingLabel}>Lock Pivot Point:</label>
+            <input
+              type="checkbox"
+              id="isPivotLocked"
+              name="isPivotLocked"
+              className={styles.settingCheckbox} // Assuming a style for checkboxes
+              checked={!!selectedElement.isPivotLocked}
+              onChange={(e) => handleSettingChange('isPivotLocked', e.target.checked)}
+            />
+          </div>
+          {selectedElement.isPivotLocked && (
+            <div className={styles.settingItem}>
+              <label htmlFor="horizontalSplitOffset" className={styles.settingLabel}>Horizontal Split Offset (px):</label>
+              <input
+                type="number"
+                id="horizontalSplitOffset"
+                name="horizontalSplitOffset"
+                className={styles.settingInput}
+                value={selectedElement.horizontalSplitOffset || 0}
+                onChange={(e) => handleSettingChange('horizontalSplitOffset', parseInt(e.target.value, 10))}
+                step="1"
+              />
+            </div>
+          )}
+        </>
+      )}
+
      {selectedElement.type === 'NicknamesOnly' && (
        <>
          <h4 style={sectionHeaderStyle}>Nicknames Options</h4>

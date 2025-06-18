@@ -126,10 +126,17 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   const civItemWidth = 250;
   const civItemHeight = 160;
 
-  // UPDATED: Text in message and conditional check variable names
-  const noCivsAvailableInOptions = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter(opt => opt.id && opt.id.startsWith('aoe4.')).length === 0;
+  // Step 1: Create a memoized list of available civ options
+  const availableCivOptions = useMemo(() => {
+    if (!aoe2cmRawDraftOptions) return [];
+    return aoe2cmRawDraftOptions.filter(opt => opt.id && opt.id.startsWith('aoe4.'));
+  }, [aoe2cmRawDraftOptions]);
 
-  if (isBroadcast && player1CivPool.length === 0 && player2CivPool.length === 0 && noCivsAvailableInOptions) {
+  // Step 4: Update early return logic
+  if (isBroadcast &&
+      player1CivPool.filter(Boolean).length === 0 &&
+      player2CivPool.filter(Boolean).length === 0 &&
+      availableCivOptions.length === 0) {
     return null;
   }
 
@@ -157,8 +164,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
           transform: `translateX(${p1TranslateX}px)`,
         }}
       >
-        {/* UPDATED: Text in message and conditional check variable names */}
-        {!isBroadcast && player1CivPool.filter(Boolean).length === 0 && noCivsAvailableInOptions && <div className={styles.noMapsMessage}>(P1: No Civs Available in Draft)</div>}
+        {/* Step 3: Correct "No Civs Available" message condition for P1 */}
+        {!isBroadcast && player1CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P1: No Civs Available in Draft)</div>}
         {/* RENAMED: player1MapPool to player1CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
         {player1CivPool.map((civItem, index) => {
           if (!civItem) {
@@ -187,8 +194,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
           transform: `translateX(${p2TranslateX}px)`,
         }}
       >
-        {/* UPDATED: Text in message and conditional check variable names */}
-        {!isBroadcast && player2CivPool.filter(Boolean).length === 0 && noCivsAvailableInOptions && <div className={styles.noMapsMessage}>(P2: No Civs Available in Draft)</div>}
+        {/* Step 3: Correct "No Civs Available" message condition for P2 */}
+        {!isBroadcast && player2CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P2: No Civs Available in Draft)</div>}
         {/* RENAMED: player2MapPool to player2CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
         {player2CivPool.map((civItem, index) => {
           if (!civItem) {
