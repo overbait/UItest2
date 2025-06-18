@@ -30,20 +30,25 @@ interface CivPoolElementProps {
 }
 
 // RENAMED: formatMapNameForImagePath to formatCivNameForImagePath
-// UPDATED: Logic for civ flag filenames
-const formatCivNameForImagePath = (civOptName: string): string => {
-  if (!civOptName) return 'RandomCiv'; // Placeholder for a default/random civ image name part
+// UPDATED: Logic for civ flag filenames to parse ID strings
+const formatCivNameForImagePath = (civIdOrNameFromOpt: string): string => {
+  if (!civIdOrNameFromOpt) {
+    return "RandomCiv"; // Fallback for missing name/ID
+  }
+  // Check if the input is an ID string starting with "aoe4."
+  if (civIdOrNameFromOpt.startsWith('aoe4.')) {
+    // Extract the base name part (e.g., "AbbasidDynasty" from "aoe4.AbbasidDynasty")
+    // This base name is used directly in the simplified filenames (e.g., aoe4-AbbasidDynasty.png)
+    return civIdOrNameFromOpt.substring(5); // Remove "aoe4." prefix
+  }
 
-  // Specific known transformations first
-  if (civOptName === "Zhu Xi's Legacy") return "ZhuXiLegacy";
-  if (civOptName === "Jeanne d'Arc") return "JeanneDArc";
-  // Add more special cases here if needed, e.g.:
-  // if (civOptName === "Order of the Dragon") return "OrderOfTheDragon"; // If different from general rule
-
-  // General rule: remove apostrophes, then remove spaces
-  let formattedName = civOptName.replace(/'/g, "");
-  formattedName = formattedName.replace(/\s+/g, "");
-  return formattedName;
+  // Fallback for unexpected formats (e.g., if it's a display name directly, though logs indicate IDs are used)
+  // This path is less likely given current data structure shown in logs.
+  // A warning can help identify if the data structure changes or if this path is hit unexpectedly.
+  console.warn(`CivPoolElement: formatCivNameForImagePath received unexpected format that does not start with 'aoe4.': "${civIdOrNameFromOpt}". Attempting basic cleanup.`);
+  // Basic cleanup for a raw name: remove apostrophes and spaces.
+  // This is a fallback and might not perfectly match all filenames if the input isn't an ID.
+  return civIdOrNameFromOpt.replace(/'/g, "").replace(/\s+/g, "");
 };
 
 const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast }) => {
