@@ -583,6 +583,7 @@ const useDraftStore = create<DraftStore>()(
                   currentSocket.onAny((eventName, ...args) => {
                     console.log('Socket.IO [DEBUG] event received:', eventName, args);
                   });
+                  // MODIFIED 'draft_update' HANDLER
                   currentSocket.on('draft_update', (data) => {
                     console.log('Socket.IO "draft_update" event received:', data);
 
@@ -1621,4 +1622,3 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
-// [end of src/store/draftStore.ts]

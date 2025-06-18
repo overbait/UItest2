@@ -78,6 +78,8 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     civPicksGlobal: state.civPicksGlobal,
   }));
 
+  console.log('[CivPoolElement] currentCivOptionsFromStore:', JSON.parse(JSON.stringify(currentCivOptionsFromStore || [])));
+
   // RENAMED: deriveMapPool to deriveCivPool
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => { // MapItem might change to CivItem
     // UPDATED: Use currentCivOptionsFromStore (already filtered)
@@ -122,15 +124,23 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   // RENAMED: player1MapPool to player1CivPool, player2MapPool to player2CivPool
   // RENAMED: deriveMapPool to deriveCivPool
   // RENAMED: reorderMapsForDisplay to reorderItemsForDisplay
+
+  // Define raw pools first to make them available for diagnostics
+  const player1CivPoolRaw = useMemo(() => deriveCivPool('host'), [deriveCivPool]);
+  console.log('[CivPoolElement] player1CivPoolRaw (after deriveCivPool):', JSON.parse(JSON.stringify(player1CivPoolRaw || [])));
+
+  const player2CivPoolRaw = useMemo(() => deriveCivPool('guest'), [deriveCivPool]);
+  console.log('[CivPoolElement] player2CivPoolRaw (after deriveCivPool):', JSON.parse(JSON.stringify(player2CivPoolRaw || [])));
+
   const player1CivPool = useMemo(() => {
-    const pool = deriveCivPool('host');
-    return reorderItemsForDisplay(pool, NUM_ROWS);
-  }, [deriveCivPool]);
+    return reorderItemsForDisplay(player1CivPoolRaw, NUM_ROWS);
+  }, [player1CivPoolRaw]);
+  console.log('[CivPoolElement] player1CivPool (final for render, with nulls):', JSON.parse(JSON.stringify(player1CivPool || [])));
 
   const player2CivPool = useMemo(() => {
-    const pool = deriveCivPool('guest');
-    return reorderItemsForDisplay(pool, NUM_ROWS);
-  }, [deriveCivPool]);
+    return reorderItemsForDisplay(player2CivPoolRaw, NUM_ROWS);
+  }, [player2CivPoolRaw]);
+  console.log('[CivPoolElement] player2CivPool (final for render, with nulls):', JSON.parse(JSON.stringify(player2CivPool || [])));
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
@@ -167,73 +177,97 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   };
 
   return (
-    <div
-      className={styles.mapPoolElement} // This class name might be better as styles.civPoolElement if CSS is also refactored
-      style={{
-        fontFamily,
-        fontSize: `${dynamicFontSize}px`,
-      }}
-    >
-      <div
-        className={`${styles.playerMapGrid} ${styles.player1Grid}`} // CSS classes might be renamed too
-        style={{
-          transform: `translateX(${p1TranslateX}px)`,
-        }}
-      >
-        {/* Step 3: Correct "No Civs Available" message condition for P1 */}
-        {!isBroadcast && player1CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P1: No Civs Available in Draft)</div>}
-        {/* RENAMED: player1MapPool to player1CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
-        {player1CivPool.map((civItem, index) => {
-          if (!civItem) {
-            return <div key={`p1-placeholder-${index}`} className={styles.mapItemGridCell} />;
-          }
-          return (
-            <div key={`p1-civ-${index}-${civItem.name}`} className={styles.mapItemGridCell}>
-              <div
-                className={`${styles.mapItemVisualContent} ${getStatusClass(civItem.status)}`}
-                style={{
-                  width: `${civItemWidth}px`,
-                  height: `${civItemHeight}px`,
-                  backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
-                }}
-              >
-                <span className={styles.mapName}>{civItem.name || 'Unknown Civ'}</span>
-              </div>
-            </div>
-          );
-        })}
+    <> {/* Use a fragment to wrap diagnostics and main content */}
+      <div style={{
+        position: 'absolute',
+        top: '0px',
+        left: '0px',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        color: 'red',
+        padding: '5px',
+        fontSize: '10px',
+        zIndex: 9999, // Ensure it's on top
+        border: '1px solid red',
+        pointerEvents: 'none', // Make it non-interactive
+      }}>
+        DEBUG INFO (CivPoolElement):<br />
+        currentCivOptionsFromStore: {currentCivOptionsFromStore?.length || 0}<br />
+        P1 Raw (derived): {player1CivPoolRaw?.length || 0}<br />
+        P1 Display (non-null): {player1CivPool?.filter(Boolean).length || 0}<br />
+        P2 Raw (derived): {player2CivPoolRaw?.length || 0}<br />
+        P2 Display (non-null): {player2CivPool?.filter(Boolean).length || 0}<br />
       </div>
 
+      {/* Original main content of the component */}
       <div
-        className={`${styles.playerMapGrid} ${styles.player2Grid}`}
+        className={styles.mapPoolElement} // This class name might be better as styles.civPoolElement if CSS is also refactored
         style={{
-          transform: `translateX(${p2TranslateX}px)`,
+          fontFamily,
+          fontSize: `${dynamicFontSize}px`,
+          // position: 'relative' is already on .mapPoolElement in the CSS file
         }}
       >
-        {/* Step 3: Correct "No Civs Available" message condition for P2 */}
-        {!isBroadcast && player2CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P2: No Civs Available in Draft)</div>}
-        {/* RENAMED: player2MapPool to player2CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
-        {player2CivPool.map((civItem, index) => {
-          if (!civItem) {
-            return <div key={`p2-placeholder-${index}`} className={styles.mapItemGridCell} />;
-          }
-          return (
-            <div key={`p2-civ-${index}-${civItem.name}`} className={styles.mapItemGridCell}>
-              <div
-                className={`${styles.mapItemVisualContent} ${getStatusClass(civItem.status)}`}
-                style={{
-                  width: `${civItemWidth}px`,
-                  height: `${civItemHeight}px`,
-                  backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
-                }}
-              >
-                <span className={styles.mapName}>{civItem.name || 'Unknown Civ'}</span>
+        <div
+          className={`${styles.playerMapGrid} ${styles.player1Grid}`} // CSS classes might be renamed too
+          style={{
+            transform: `translateX(${p1TranslateX}px)`,
+          }}
+        >
+          {/* Step 3: Correct "No Civs Available" message condition for P1 */}
+          {!isBroadcast && player1CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P1: No Civs Available in Draft)</div>}
+          {/* RENAMED: player1MapPool to player1CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
+          {player1CivPool.map((civItem, index) => {
+            if (!civItem) {
+              return <div key={`p1-placeholder-${index}`} className={styles.mapItemGridCell} />;
+            }
+            return (
+              <div key={`p1-civ-${index}-${civItem.name}`} className={styles.mapItemGridCell}>
+                <div
+                  className={`${styles.mapItemVisualContent} ${getStatusClass(civItem.status)}`}
+                  style={{
+                    width: `${civItemWidth}px`,
+                    height: `${civItemHeight}px`,
+                    backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
+                  }}
+                >
+                  <span className={styles.mapName}>{civItem.name || 'Unknown Civ'}</span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        <div
+          className={`${styles.playerMapGrid} ${styles.player2Grid}`}
+          style={{
+            transform: `translateX(${p2TranslateX}px)`,
+          }}
+        >
+          {/* Step 3: Correct "No Civs Available" message condition for P2 */}
+          {!isBroadcast && player2CivPool.filter(Boolean).length === 0 && <div className={styles.noMapsMessage}>(P2: No Civs Available in Draft)</div>}
+          {/* RENAMED: player2MapPool to player2CivPool, mapItem to civItem, mapItemWidth/Height to civItemWidth/Height, keys updated */}
+          {player2CivPool.map((civItem, index) => {
+            if (!civItem) {
+              return <div key={`p2-placeholder-${index}`} className={styles.mapItemGridCell} />;
+            }
+            return (
+              <div key={`p2-civ-${index}-${civItem.name}`} className={styles.mapItemGridCell}>
+                <div
+                  className={`${styles.mapItemVisualContent} ${getStatusClass(civItem.status)}`}
+                  style={{
+                    width: `${civItemWidth}px`,
+                    height: `${civItemHeight}px`,
+                    backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
+                  }}
+                >
+                  <span className={styles.mapName}>{civItem.name || 'Unknown Civ'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

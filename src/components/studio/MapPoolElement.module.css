@@ -14,7 +14,7 @@
 
 .playerMapGrid {
   display: grid;
-  grid-template-columns: repeat(5, 250px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-template-rows: repeat(4, auto);
   grid-auto-flow: column;
   grid-gap: 8px;
