@@ -1,0 +1,111 @@
+.civPoolElement {
+    display: flex;
+    flex-direction: column; /* Stack player grids vertically */
+    justify-content: space-between; /* Distribute space between player grids */
+    width: 100%;
+    height: 100%;
+    border: 1px solid #ccc; /* Optional: for visualizing the element bounds */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    overflow: hidden; /* Ensure nothing spills out */
+  }
+
+  .playerCivGrid {
+    display: grid;
+    /* grid-template-columns: repeat(var(--columns, 5), 1fr); Dynamically set via style prop */
+    /* grid-template-rows: repeat(var(--rows, 2), 1fr); Might not be needed if height is fixed */
+    gap: 4px; /* Space between map items */
+    padding: 4px; /* Padding around the grid */
+    width: 100%; /* Full width of its container (.civPoolElement) */
+    box-sizing: border-box;
+    /* border: 1px solid blue; */ /* For debugging grid layout */
+  }
+
+  .player1Grid {
+    /* Specific styles for player 1's grid, if any */
+    /* Example: border-bottom: 1px solid #eee; */
+  }
+
+  .player2Grid {
+    /* Specific styles for player 2's grid, if any */
+    /* Example: border-top: 1px solid #eee; */
+  }
+
+  .civItemGridCell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* border: 1px solid lightcoral; */ /* For debugging cell layout */
+    min-width: 0; /* Prevent overflow issues in grid cells */
+    min-height: 0; /* Prevent overflow issues in grid cells */
+  }
+
+  .civItemVisualContent {
+    width: 100%; /* Default width, will be overridden by JS */
+    height: 100%; /* Default height, will be overridden by JS */
+    background-color: #f0f0f0; /* Placeholder */
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Align name to the bottom */
+    align-items: center;
+    text-align: center;
+    position: relative; /* For positioning the civ name */
+    background-size: cover;
+    background-position: center;
+    overflow: hidden; /* Ensures the name doesn't spill if too long */
+  }
+
+  .civName {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background for readability */
+    color: white;
+    padding: 2px 0; /* Small padding around the text */
+    font-size: 0.8em; /* Adjust as needed */
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+    box-sizing: border-box;
+  }
+
+  .noCivsMessage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%; /* Ensure it takes up cell space if needed, or adjust */
+    color: #888;
+    font-size: 0.9em;
+    text-align: center;
+  }
+
+  /* Status Styles */
+  .picked {
+    border-color: #4CAF50; /* Green border for picked */
+    box-shadow: 0 0 8px #4CAF50;
+  }
+
+  .banned {
+    border-color: #F44336; /* Red border for banned */
+    box-shadow: 0 0 8px #F44336;
+    opacity: 0.5; /* Make banned items more faded */
+  }
+
+  .affected {
+    border-color: #FFC107; /* Amber border for affected */
+    /* box-shadow: 0 0 8px #FFC107; */ /* Optional shadow */
+    opacity: 0.7; /* Slightly faded */
+  }
+
+  .adminPicked {
+    border-color: #2196F3; /* Blue border for admin picked */
+    box-shadow: 0 0 8px #2196F3;
+  }
+
+  /* Default style if no other status applies (though usually covered by .civItemVisualContent base) */
+  .default {
+    border-color: #ddd; /* Default border */
+  }

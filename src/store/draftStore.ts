@@ -1568,8 +1568,21 @@ const useDraftStore = create<DraftStore>()(
                 scale: 1,
                 isPivotLocked: false,
                 horizontalSplitOffset: 0,
-                player1MapPool: [],
-                player2MapPool: [],
+                // player1MapPool and player2MapPool are not part of StudioElement definition; they are derived within the component.
+              };
+            } else if (elementType === "CivPoolElement") { // New case for CivPoolElement
+              newElement = {
+                id: Date.now().toString(),
+                type: "CivPoolElement",
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 400, height: 180 }, // Adjusted default size for CivPoolElement
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                horizontalSplitOffset: 0,
+                // player1CivPool and player2CivPool are not part of StudioElement definition; they are derived within the component.
               };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.

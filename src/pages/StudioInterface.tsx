@@ -6,6 +6,7 @@ import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElem
 import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement';
+import CivPoolElement from '../components/studio/CivPoolElement';
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -60,6 +61,7 @@ const StudioInterface: React.FC = () => {
   const handleAddCountryFlags = () => { addStudioElement("CountryFlags"); };
   const handleAddColorGlowElement = () => { addStudioElement("ColorGlowElement"); };
   const handleAddMapPoolElement = () => { addStudioElement("MapPoolElement"); };
+  const handleAddCivPoolElement = () => { addStudioElement("CivPoolElement"); };
 
   const handleDrag = (elementId: string, data: DraggableData) => {
     const element = activeLayout.find(el => el.id === elementId);
@@ -240,7 +242,8 @@ const StudioInterface: React.FC = () => {
              <button onClick={handleAddBoXSeriesOverview} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add BoX Series Overview</button>
              <button onClick={handleAddCountryFlags} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Country Flags</button>
              <button onClick={handleAddColorGlowElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Color Glow</button>
-             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Map Pool</button>
+             <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)', marginRight: '10px' }}>Add Map Pool</button>
+             <button onClick={handleAddCivPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Civ Pool</button>
            </div>
          )}
         </div>
@@ -546,6 +549,7 @@ const StudioInterface: React.FC = () => {
             else if (element.type === "CountryFlags") { content = <CountryFlagsElement element={element} isSelected={isSelected} />; }
             else if (element.type === "ColorGlowElement") { content = <ColorGlowElement element={element} isSelected={element.id === selectedElementId} />; }
             else if (element.type === "MapPoolElement") { content = <MapPoolElement element={element} />; }
+            else if (element.type === "CivPoolElement") { content = <CivPoolElement element={element} />; }
             else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
             return (
