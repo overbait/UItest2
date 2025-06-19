@@ -66,6 +66,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
     mapPicksGuest,
     mapBansGuest,
     mapPicksGlobal,
+    forceMapPoolUpdate, // Add this line
   } = useDraftStore(state => ({
     aoe2cmRawDraftOptions: state.aoe2cmRawDraftOptions,
     mapPicksHost: state.mapPicksHost,
@@ -73,6 +74,7 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
     mapPicksGuest: state.mapPicksGuest,
     mapBansGuest: state.mapBansGuest,
     mapPicksGlobal: state.mapPicksGlobal,
+    forceMapPoolUpdate: state.forceMapPoolUpdate, // Add this line
   }));
 
   const deriveMapPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => {
@@ -105,13 +107,13 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
     const pool = deriveMapPool('host');
     // NUM_ROWS is passed as the second argument (previously columnSize)
     return reorderMapsForDisplay(pool, NUM_ROWS);
-  }, [deriveMapPool]);
+  }, [deriveMapPool, forceMapPoolUpdate]);
 
   const player2MapPool = useMemo(() => {
     const pool = deriveMapPool('guest');
     // NUM_ROWS is passed as the second argument
     return reorderMapsForDisplay(pool, NUM_ROWS);
-  }, [deriveMapPool]);
+  }, [deriveMapPool, forceMapPoolUpdate]);
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
