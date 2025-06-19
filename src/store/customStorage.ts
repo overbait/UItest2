@@ -29,9 +29,19 @@ const applyStateFromLocalStorage = (sourceTabIdentifier?: string) => {
 
         // Define properties to sync from the persisted state
         const propertiesToSync: (keyof typeof actualAppState)[] = [
+          // Original properties
           'currentCanvases', 'activeCanvasId', 'scores', 'hostName',
           'guestName', 'layoutLastUpdated', 'civDraftId', 'mapDraftId',
-          'boxSeriesFormat', 'boxSeriesGames', 'activePresetId'
+          'boxSeriesFormat', 'boxSeriesGames', 'activePresetId',
+
+          // Added properties
+          'hostColor', 'guestColor', 'hostFlag', 'guestFlag',
+          'aoe2cmRawDraftOptions',
+          'civPicksHost', 'civBansHost', 'civPicksGuest', 'civBansGuest', 'civPicksGlobal',
+          'mapPicksHost', 'mapBansHost', 'mapPicksGuest', 'mapBansGuest', 'mapPicksGlobal', 'mapBansGlobal',
+          'forceMapPoolUpdate',
+          'draftIsLikelyFinished', 'isNewSessionAwaitingFirstDraft',
+          'socketStatus', 'socketError', 'socketDraftType'
         ];
 
         propertiesToSync.forEach(key => {

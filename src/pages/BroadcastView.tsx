@@ -3,7 +3,12 @@ import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
 import NicknamesOnlyElement from '../components/studio/NicknamesOnlyElement';
-// BoXSeriesOverviewElement would need to be imported here if it's intended for broadcast
+import BoXSeriesOverviewElement from '../components/studio/BoXSeriesOverviewElement';
+import CountryFlagsElement from '../components/studio/CountryFlagsElement';
+import ColorGlowElement from '../components/studio/ColorGlowElement';
+import MapPoolElement from '../components/studio/MapPoolElement';
+import CivPoolElement from '../components/studio/CivPoolElement';
+// All elements are now imported.
 
 interface BroadcastViewProps {
   targetCanvasId: string;
@@ -85,7 +90,16 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           content = <ScoreOnlyElement element={element} isBroadcast={true} />;
         } else if (element.type === "NicknamesOnly") {
           content = <NicknamesOnlyElement element={element} isBroadcast={true} />;
-        // BoXSeriesOverviewElement would need a case here if it's intended for broadcast
+        } else if (element.type === "BoXSeriesOverview") {
+          content = <BoXSeriesOverviewElement element={element} isBroadcast={true} />;
+        } else if (element.type === "CountryFlags") {
+          content = <CountryFlagsElement element={element} isBroadcast={true} />;
+        } else if (element.type === "ColorGlowElement") {
+          content = <ColorGlowElement element={element} isBroadcast={true} />;
+        } else if (element.type === "MapPoolElement") {
+          content = <MapPoolElement element={element} isBroadcast={true} />;
+        } else if (element.type === "CivPoolElement") {
+          content = <CivPoolElement element={element} isBroadcast={true} />;
         } else {
           content = (
             <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555', color: '#ccc' }}>
