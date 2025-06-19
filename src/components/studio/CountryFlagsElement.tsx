@@ -85,36 +85,21 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSe
   };
 
   return (
-    <div style={{ ...baseDivStyle, display: 'flex', flexDirection: 'column', color: 'white', backgroundColor: 'rgba(0,0,0,0.7)', fontSize: '10px', padding: '5px' }}>
-      <div>Host Flag Code: {liveHostFlag || 'null'}</div>
-      <div>Host Flag Path: {hostFlagPath || 'null'}</div>
-      <div>Host Img Error: <span id={`host-flag-error-${element.id}`}>No</span></div>
-      <hr />
-      <div>Guest Flag Code: {liveGuestFlag || 'null'}</div>
-      <div>Guest Flag Path: {guestFlagPath || 'null'}</div>
-      <div>Guest Img Error: <span id={`guest-flag-error-${element.id}`}>No</span></div>
-      <hr />
-      {/* Original content (commented out or can be below for comparison) */}
+    <div style={baseDivStyle}>
       {/* Host Flag Cell */}
-      <div style={{ ...flagContainerStyle, border: '1px solid red' }}>
-        {React.cloneElement(hostFlagDisplay, {
-          onError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-            e.currentTarget.style.display = 'none';
-            const errorSpan = document.getElementById(`host-flag-error-${element.id}`);
-            if (errorSpan) errorSpan.textContent = 'Yes';
-          }
-        })}
+      <div style={flagContainerStyle}>
+        {hostFlagDisplay}
       </div>
+
+      {/* Middle Spacer Cell (only if pivot locked and offset > 0) */}
+      {isPivotLocked && currentPivotOffset > 0 && <div></div>}
+
       {/* Guest Flag Cell */}
-      <div style={{ ...flagContainerStyle, border: '1px solid blue' }}>
-        {React.cloneElement(guestFlagDisplay, {
-          onError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-            e.currentTarget.style.display = 'none';
-            const errorSpan = document.getElementById(`guest-flag-error-${element.id}`);
-            if (errorSpan) errorSpan.textContent = 'Yes';
-          }
-        })}
+      <div style={flagContainerStyle}>
+        {guestFlagDisplay}
       </div>
+
+      {isPivotLocked && isSelected && <div style={pivotLineStyle}></div>}
     </div>
   );
 };
