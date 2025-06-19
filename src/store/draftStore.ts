@@ -1288,6 +1288,8 @@ const useDraftStore = create<DraftStore>()(
             }
             const rawDraftData = response.data;
 
+            console.log(`[ConnectToDraft] Full rawDraftData for ID ${extractedId}:`, JSON.stringify(rawDraftData, null, 2));
+
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
 
             if (wasNewSessionAwaitingFirstDraft) {
