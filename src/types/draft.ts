@@ -78,6 +78,7 @@ export interface StudioElement {
   showCivNames?: boolean;  // For toggling civ names on civ selectors
   showMapNames?: boolean;  // For toggling map names on map selectors
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
+  hideCivs?: boolean; // New property for BoXSeriesOverview to hide civs
   // showName and showScore removed
   [key: string]: any;
   player1MapPool?: MapItem[];

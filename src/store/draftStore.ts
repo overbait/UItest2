@@ -1501,6 +1501,7 @@ const useDraftStore = create<DraftStore>()(
                 borderColor: 'transparent',
                 scale: 1,
                 isPivotLocked: false,
+                hideCivs: false, // Added hideCivs default
                 // No showName or showScore here
               };
             } else if (elementType === "ScoreOnly") {

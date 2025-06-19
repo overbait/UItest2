@@ -111,6 +111,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
            onChange={(e) => handleSettingChange('showMapNames', e.target.checked)}
          />
        </div>
+       <div style={settingRowStyle}>
+         <label htmlFor="boxHideCivsCheckbox" style={labelStyle}>Hide Civs:</label>
+         <input
+           type="checkbox"
+           id="boxHideCivsCheckbox"
+           style={checkboxStyle}
+           checked={selectedElement.hideCivs || false} // Default to false if undefined
+           onChange={(e) => handleSettingChange('hideCivs', e.target.checked)}
+         />
+       </div>
         <div style={{ marginBottom: '12px' }}> {/* Game Spacing Slider from previous step */}
           <label
             htmlFor="boxGameSpacingSlider"
