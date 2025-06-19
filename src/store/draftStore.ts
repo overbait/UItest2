@@ -1218,7 +1218,7 @@ const useDraftStore = create<DraftStore>()(
             // activeStudioLayoutId: state.activeStudioLayoutId,
 
             // Ensure activePresetId is reset as per original logic for resetting session state
-            activePresetId: null,
+            // activePresetId: null, // This was already set above, removed duplicate
           }));
         },
 
@@ -1954,5 +1954,4 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
-
-[end of src/store/draftStore.ts]
+// [end of src/store/draftStore.ts] // This marker was removed in the actual modification
