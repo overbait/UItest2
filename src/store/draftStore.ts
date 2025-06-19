@@ -36,7 +36,7 @@ interface DraftStore extends CombinedDraftState {
   incrementScore: (player: 'host' | 'guest') => void;
   decrementScore: (player: 'host' | 'guest') => void;
   
-  saveCurrentAsPreset: (name?: string) => void;
+  saveCurrentAsPreset: (name?: string) => Promise<void>; // Changed to Promise<void>
   loadPreset: (presetId: string) => Promise<void>;
   deletePreset: (presetId: string) => void;
   updatePresetName: (presetId: string, newName: string) => void;
@@ -1328,29 +1328,32 @@ const useDraftStore = create<DraftStore>()(
             const currentBoxSeriesFormat = get().boxSeriesFormat; // Get current format from state
 
             if (rawDraftData.preset?.name) {
-              const presetName = rawDraftData.preset.name.toLowerCase();
               // Only auto-detect if no active preset is loaded and no format is currently set by the user
               if (get().activePresetId === null && !currentBoxSeriesFormat) {
-                if (presetName.includes('best of 1')) {
-                    detectedFormatDuringLoad = 'bo1';
-                } else if (presetName.includes('best of 3')) {
-                    detectedFormatDuringLoad = 'bo3';
-                } else if (presetName.includes('best of 5')) {
-                    detectedFormatDuringLoad = 'bo5';
-                } else if (presetName.includes('best of 7')) {
-                    detectedFormatDuringLoad = 'bo7';
-                } else if (presetName.includes('bo1')) { // Fallback to short forms
-                    detectedFormatDuringLoad = 'bo1';
-                } else if (presetName.includes('bo3')) {
-                    detectedFormatDuringLoad = 'bo3';
-                } else if (presetName.includes('bo5')) {
-                    detectedFormatDuringLoad = 'bo5';
-                } else if (presetName.includes('bo7')) {
-                    detectedFormatDuringLoad = 'bo7';
+                const nameForRegex = rawDraftData.preset.name; // Use original casing for regex if needed, or .toLowerCase() if regex is case insensitive
+
+                // Regex for "Best of X"
+                const bestOfMatch = nameForRegex.match(/best of (\d+)/i);
+                if (bestOfMatch && bestOfMatch[1]) {
+                  const number = parseInt(bestOfMatch[1]);
+                  if ([1, 3, 5, 7].includes(number)) {
+                    detectedFormatDuringLoad = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
+                  }
+                }
+
+                // Regex for "BO X" (e.g., BO3, BO 3), only if not already found by "Best of X"
+                if (!detectedFormatDuringLoad) {
+                  const boMatch = nameForRegex.match(/bo\s?(\d+)/i);
+                  if (boMatch && boMatch[1]) {
+                    const number = parseInt(boMatch[1]);
+                    if ([1, 3, 5, 7].includes(number)) {
+                      detectedFormatDuringLoad = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
+                    }
+                  }
                 }
 
                 if (detectedFormatDuringLoad) {
-                    console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormatDuringLoad} for ${extractedId} from preset name: "${rawDraftData.preset.name}"`);
+                  console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormatDuringLoad} for draft ID ${extractedId} from preset name: "${rawDraftData.preset.name}"`);
                 }
               }
             }
@@ -1519,13 +1522,14 @@ const useDraftStore = create<DraftStore>()(
         },
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
-        saveCurrentAsPreset: (name?: string) => {
+        saveCurrentAsPreset: async (name?: string) => {
           console.log('[saveCurrentAsPreset] Attempting to save preset. Provided name:', name, 'Current state context:', { hostName: get().hostName, guestName: get().guestName, civDraftId: get().civDraftId, mapDraftId: get().mapDraftId });
           const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get();
           const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
           const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName);
           const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString();
           const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor };
+
           if (existingPresetIndex !== -1) {
             console.log('[saveCurrentAsPreset] Updating existing preset. Name:', presetName, 'ID:', presetIdToUse, 'Updated data:', presetData);
             const updatedPresets = [...savedPresets];
@@ -1534,6 +1538,27 @@ const useDraftStore = create<DraftStore>()(
           } else {
             console.log('[saveCurrentAsPreset] Creating new preset. Name:', presetName, 'ID:', presetIdToUse, 'Data:', presetData);
             set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id });
+          }
+
+          // After saving and activating, reload draft data
+          const newlyActivePreset = get().savedPresets.find(p => p.id === get().activePresetId);
+          if (newlyActivePreset) {
+            console.log('[saveCurrentAsPreset] Preset activated/updated. ID:', newlyActivePreset.id, 'CivDraftID:', newlyActivePreset.civDraftId, 'MapDraftID:', newlyActivePreset.mapDraftId);
+            set({
+              aoe2cmRawDraftOptions: undefined,
+              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
+            });
+            console.log('[saveCurrentAsPreset] Cleared draft options and picks before connecting for preset ID:', newlyActivePreset.id);
+
+            if (newlyActivePreset.civDraftId) {
+              await get().connectToDraft(newlyActivePreset.civDraftId, 'civ');
+            }
+            if (newlyActivePreset.mapDraftId) {
+              await get().connectToDraft(newlyActivePreset.mapDraftId, 'map');
+            }
+            set({ activePresetId: newlyActivePreset.id });
+            console.log('[saveCurrentAsPreset] Finished connectToDraft calls for preset ID:', newlyActivePreset.id);
           }
         },
         loadPreset: async (presetId: string) => {
