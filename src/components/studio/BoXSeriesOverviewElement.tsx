@@ -28,6 +28,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     showCivNames = true,  // Default from element prop
     showMapNames = true,  // Default from element prop
     gameEntrySpacing = 10, // Default from element prop, store will set initial 10
+    hideCivs = false, // Destructure hideCivs prop
   } = element;
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
@@ -78,10 +79,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   // The fontFamily for the overall element is set on styles.baseElement,
   // so it should cascade unless overridden here.
   const gameImageRowDynamicStyle: React.CSSProperties = {
-    gridTemplateColumns: (pivotInternalOffset && pivotInternalOffset > 0)
-      ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
-      : '1fr auto 1fr',
-    // fontFamily: fontFamily, // fontFamily is now on the baseElement, inherited unless overridden
+    gridTemplateColumns: hideCivs
+      ? 'auto' // If civs are hidden, map column takes its own width, centered by grid container
+      : (element.pivotInternalOffset && element.pivotInternalOffset > 0)
+        ? `1fr ${element.pivotInternalOffset}px auto ${element.pivotInternalOffset}px 1fr`
+        : '1fr auto 1fr',
+    // fontFamily is inherited
   };
 
   // Dynamic styles for images, setting their unscaled width and height.
@@ -169,6 +172,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
             </div>
            <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
               {/* Left civilization display. */}
+              {!hideCivs && (
               <div className={`${styles.civCell} ${styles.leftCivCell}`}>
             <div
               key={hostCivKey + '-container'}
@@ -183,9 +187,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               )}
             </div>
           </div>
+          )}
 
           {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+          {!hideCivs && (pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
           {/* Map display. */}
           <div className={styles.mapCell}>
@@ -204,9 +209,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
           </div>
 
           {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {(pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+          {!hideCivs && (pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
           {/* Right civilization display. */}
+          {!hideCivs && (
           <div className={`${styles.civCell} ${styles.rightCivCell}`}>
             <div
               key={guestCivKey + '-container'}
@@ -221,6 +227,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               )}
             </div>
           </div>
+          )}
            </div> {/* End of gameImageRow */}
         </div>
       )})}
