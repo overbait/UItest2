@@ -1175,37 +1175,51 @@ const useDraftStore = create<DraftStore>()(
         },
 
         _resetCurrentSessionState: () => {
-          const newDefaultCanvasId = `default-rst-${Date.now()}`;
-          const defaultCanvases: StudioCanvas[] = [{ id: newDefaultCanvasId, name: 'Default', layout: [] }];
-          const currentSavedPresets = get().savedPresets;
-          const currentSavedStudioLayouts = get().savedStudioLayouts;
+          // Preserving layout related state:
+          // currentCanvases, activeCanvasId, savedStudioLayouts, activeStudioLayoutId
+          // are preserved by not including them in the `set` call's payload,
+          // as `set` performs a shallow merge.
+          // The get() calls for currentSavedPresets and currentSavedStudioLayouts are removed
+          // as these properties are intended to be preserved by not being part of the reset payload.
 
-          set({
-            civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
-            scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+          set(state => ({
+            // Reset draft-specific parts
+            civDraftId: null,
+            mapDraftId: null,
+            hostName: initialPlayerNameHost,
+            guestName: initialPlayerNameGuest,
+            scores: { ...initialScores },
+            civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
             mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
-            civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
-            mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
-            socketStatus: 'disconnected',
+            civDraftStatus: 'disconnected' as ConnectionStatus, civDraftError: null, isLoadingCivDraft: false,
+            mapDraftStatus: 'disconnected' as ConnectionStatus, mapDraftError: null, isLoadingMapDraft: false,
+            socketStatus: 'disconnected' as ConnectionStatus,
             socketError: null,
             socketDraftType: null,
             draftIsLikelyFinished: false,
             aoe2cmRawDraftOptions: undefined,
-            activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
+            activePresetId: null, // Explicitly reset activePresetId
+            boxSeriesFormat: null,
+            boxSeriesGames: [],
             hostFlag: null,
             guestFlag: null,
             hostColor: null,
             guestColor: null,
-            currentCanvases: defaultCanvases,
-            activeCanvasId: newDefaultCanvasId,
+            isNewSessionAwaitingFirstDraft: true,
+
+            // Reset UI selection state but not the layout structure itself
             selectedElementId: null,
-            activeStudioLayoutId: null, // Reset active layout ID
             layoutLastUpdated: null,
-            savedPresets: currentSavedPresets, // Keep existing presets
-            savedStudioLayouts: currentSavedStudioLayouts, // Keep existing layouts
-            isNewSessionAwaitingFirstDraft: true, // Set flag to true
-            activePresetId: null, // Ensure activePresetId is reset
-          });
+
+            // Properties to preserve (by not mentioning them, they remain as per current state):
+            // currentCanvases: state.currentCanvases,
+            // activeCanvasId: state.activeCanvasId,
+            // savedStudioLayouts: state.savedStudioLayouts, // These are already preserved by not being in the partial state to reset
+            // activeStudioLayoutId: state.activeStudioLayoutId,
+
+            // Ensure activePresetId is reset as per original logic for resetting session state
+            activePresetId: null,
+          }));
         },
 
         // _updateBoxSeriesGamesFromPicks is now removed and replaced by the local helper _calculateUpdatedBoxSeriesGames
@@ -1236,17 +1250,18 @@ const useDraftStore = create<DraftStore>()(
 
           if (draftType === 'civ') set({ civDraftId: extractedId }); else set({ mapDraftId: extractedId });
 
-          const currentActivePresetId = get().activePresetId;
-          const savedPresetsArray = get().savedPresets;
-          const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
-          if (activePreset) {
-            if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
-                (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
-              set({ activePresetId: null });
-            }
-          } else {
-            set({ activePresetId: null });
-          }
+          // Removing/commenting out the block that nullifies activePresetId prematurely.
+          // const currentActivePresetId = get().activePresetId;
+          // const savedPresetsArray = get().savedPresets;
+          // const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
+          // if (activePreset) {
+          //   if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
+          //       (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
+          //     // set({ activePresetId: null }); // Problematic line - REMOVED
+          //   }
+          // } else {
+          //   // set({ activePresetId: null }); // Also potentially problematic - REMOVED
+          // }
 
           console.log(`[ConnectToDraft] Attempting to fetch ${draftType} draft ${extractedId} via HTTP.`);
           const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
@@ -1266,7 +1281,7 @@ const useDraftStore = create<DraftStore>()(
               const hostNameForPreset = processedData.hostName || (draftType === 'civ' && rawDraftData.nameHost) || initialPlayerNameHost;
               const guestNameForPreset = processedData.guestName || (draftType === 'civ' && rawDraftData.nameGuest) || initialPlayerNameGuest;
 
-              const presetName = `${hostNameForPreset} vs ${guestNameForPreset} - ${new Date().toLocaleString()}`;
+              const presetName = `${hostNameForPreset} vs ${guestNameForPreset} - ${new Date().toLocaleTimeString()}`; // Changed to toLocaleTimeString
 
               // Temporarily update store with current draft ID and names before saving preset
               set(state => ({
@@ -1939,3 +1954,5 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
+
+[end of src/store/draftStore.ts]
