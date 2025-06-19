@@ -1571,6 +1571,20 @@ const useDraftStore = create<DraftStore>()(
                 player1MapPool: [],
                 player2MapPool: [],
               };
+            } else if (elementType === "CivPoolElement") {
+              newElement = {
+                id: Date.now().toString(),
+                type: "CivPoolElement", // Ensure this type matches what's passed from StudioInterface
+                position: { x: initialX_px, y: initialY_px },
+                size: { width: 500, height: 180 }, // Adjusted height
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                scale: 1,
+                isPivotLocked: false,
+                horizontalSplitOffset: 0,
+                // player1CivPool and player2CivPool are derived from store, not needed here
+              };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.

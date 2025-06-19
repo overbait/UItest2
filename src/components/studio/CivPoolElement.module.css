@@ -1,0 +1,108 @@
+/* src/components/studio/CivPoolElement.module.css */
+.civPoolElement {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  overflow: visible;
+  padding: 5px;
+  background-color: transparent;
+}
+
+.playerCivGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 120px); /* Updated for 6 columns of 120px width */
+  grid-template-rows: repeat(3, auto); /* Updated for 3 rows, height can be auto or fixed */
+  grid-auto-flow: column;
+  grid-gap: 8px;
+  box-sizing: border-box;
+  padding: 5px; /* Overall padding for the grid itself */
+  transition: transform 0.2s ease-out;
+}
+
+.player1CivGrid {
+  /* Specific styles for player 1 grid if needed */
+}
+
+.player2CivGrid {
+  direction: rtl;
+}
+
+.civItemGridCell {
+  padding: 0; /* grid-gap on parent now handles spacing */
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.civItemVisualContent {
+  box-sizing: border-box;
+  border: 1px solid #c19a49; /* --aoe-gold-accent, from BoXSeriesOverview */
+  border-radius: 3px; /* from BoXSeriesOverview */
+  background-color: #4a3b2a; /* --aoe-button-bg, from BoXSeriesOverview */
+  background-size: cover; /* Changed from contain */
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative; /* For text overlay */
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black; /* from BoXSeriesOverview */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Align civ name to the bottom */
+  align-items: center; /* Center civ name horizontally */
+  padding: 4px; /* Reduced padding to make civs more rectangular - this is for INSIDE the card */
+  overflow: hidden;
+}
+
+.civName {
+  font-family: 'Cinzel', serif; /* from BoXSeriesOverview */
+  font-size: 1.76em; /* Changed from 1.6em */
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.placeholderText {
+  color: #555;
+  font-size: 0.8em;
+  text-align: center;
+  width: 100%; /* Spans full width of flex container */
+  margin-bottom: 10px;
+}
+
+.noCivsMessage {
+  color: #777;
+  font-size: 0.9em;
+  text-align: center;
+  width: 100%; /* Spans full width of flex container */
+  padding: 10px; /* Padding for the message box itself */
+}
+
+.civItemVisualContent.picked {
+  border-color: #00ff00; /* Green */
+  box-shadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset;
+}
+
+.civItemVisualContent.banned {
+  border-color: #ff0000; /* Red */
+  box-shadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+}
+
+.civItemVisualContent.affected {
+  filter: grayscale(100%);
+  border-color: #555;
+}
+
+.civItemVisualContent.adminPicked {
+  border-color: #ffd700; /* Gold */
+  box-shadow: 0 0 8px 3px #ffd700, 0 0 5px 2px #ffd700 inset;
+}

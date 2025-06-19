@@ -158,7 +158,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
          </div>
        </>
      )}
-      {selectedElement.type === 'MapPoolElement' && (
+      {(selectedElement.type === 'MapPoolElement' || selectedElement.type === 'CivPoolElement') && (
         <>
           <div className={styles.settingItem}>
             <label htmlFor="scale" className={styles.settingLabel}>Scale:</label>
