@@ -1380,7 +1380,7 @@ const useDraftStore = create<DraftStore>()(
 
             // Single, consolidated set call
             set(state => {
-                console.log('[connectToDraft] Updating aoe2cmRawDraftOptions from HTTP for draft ID:', extractedId, 'Options:', rawDraftData.preset?.draftOptions);
+                console.log(`[connectToDraft] Updating aoe2cmRawDraftOptions. DraftType: ${draftType}. Current options length: ${state.aoe2cmRawDraftOptions?.length || 0}. New options length: ${rawDraftData.preset?.draftOptions?.length || 0}.`);
                 // Determine final pick/ban arrays: use HTTP data if current draftType matches, else keep existing state
                 const finalCivPicksHost = draftType === 'civ' ? httpCivPicksHost : state.civPicksHost;
                 const finalCivBansHost = draftType === 'civ' ? httpCivBansHost : state.civBansHost;
@@ -1412,7 +1412,10 @@ const useDraftStore = create<DraftStore>()(
                     ...state, // Start with current state
                     hostName: newHostName,
                     guestName: newGuestName,
-                    aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions,
+                    // Ensure the correct log is present before the conditional assignment
+                    aoe2cmRawDraftOptions: draftType === 'map'
+                                           ? (rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions)
+                                           : state.aoe2cmRawDraftOptions,
 
                     civPicksHost: finalCivPicksHost, civBansHost: finalCivBansHost,
                     civPicksGuest: finalCivPicksGuest, civBansGuest: finalCivBansGuest,
