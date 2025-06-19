@@ -1229,6 +1229,8 @@ const useDraftStore = create<DraftStore>()(
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
+          const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl); // Moved up to be available for early log
+          console.log('[connectToDraft] Called for draft ID:', extractedId, 'Type:', draftType, 'Initiated by loadPreset for preset ID:', get().activePresetId);
           const wasNewSessionAwaitingFirstDraft = get().isNewSessionAwaitingFirstDraft; // Get before async
 
           if (draftType === 'civ') {
@@ -1281,7 +1283,7 @@ const useDraftStore = create<DraftStore>()(
               const hostNameForPreset = processedData.hostName || (draftType === 'civ' && rawDraftData.nameHost) || initialPlayerNameHost;
               const guestNameForPreset = processedData.guestName || (draftType === 'civ' && rawDraftData.nameGuest) || initialPlayerNameGuest;
 
-              const presetName = `${hostNameForPreset} vs ${guestNameForPreset} - ${new Date().toLocaleTimeString()}`; // Changed to toLocaleTimeString
+              const presetName = `${hostNameForPreset} vs ${guestNameForPreset} - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`; // Changed to toLocaleTimeString
 
               // Temporarily update store with current draft ID and names before saving preset
               set(state => ({
@@ -1352,6 +1354,7 @@ const useDraftStore = create<DraftStore>()(
 
             // Single, consolidated set call
             set(state => {
+                console.log('[connectToDraft] Updating aoe2cmRawDraftOptions from HTTP for draft ID:', extractedId, 'Options:', rawDraftData.preset?.draftOptions);
                 // Determine final pick/ban arrays: use HTTP data if current draftType matches, else keep existing state
                 const finalCivPicksHost = draftType === 'civ' ? httpCivPicksHost : state.civPicksHost;
                 const finalCivBansHost = draftType === 'civ' ? httpCivBansHost : state.civBansHost;
@@ -1512,8 +1515,36 @@ const useDraftStore = create<DraftStore>()(
         },
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
-        saveCurrentAsPreset: (name?: string) => { const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`; const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName); const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString(); const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; if (existingPresetIndex !== -1) { const updatedPresets = [...savedPresets]; updatedPresets[existingPresetIndex] = presetData; set({ savedPresets: updatedPresets, activePresetId: presetData.id }); } else set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id }); },
-        loadPreset: async (presetId: string) => { const preset = get().savedPresets.find(p => p.id === presetId); if (preset) { set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] }); if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ'); if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map'); set({ activePresetId: preset.id }); } },
+        saveCurrentAsPreset: (name?: string) => {
+          console.log('[saveCurrentAsPreset] Attempting to save preset. Provided name:', name, 'Current state context:', { hostName: get().hostName, guestName: get().guestName, civDraftId: get().civDraftId, mapDraftId: get().mapDraftId });
+          const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get();
+          const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
+          const existingPresetIndex = savedPresets.findIndex(p => p.name === presetName);
+          const presetIdToUse = existingPresetIndex !== -1 ? savedPresets[existingPresetIndex].id : Date.now().toString();
+          const presetData: SavedPreset = { id: presetIdToUse, name: presetName, civDraftId, mapDraftId, hostName, guestName, scores: { ...scores }, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor };
+          if (existingPresetIndex !== -1) {
+            console.log('[saveCurrentAsPreset] Updating existing preset. Name:', presetName, 'ID:', presetIdToUse, 'Updated data:', presetData);
+            const updatedPresets = [...savedPresets];
+            updatedPresets[existingPresetIndex] = presetData;
+            set({ savedPresets: updatedPresets, activePresetId: presetData.id });
+          } else {
+            console.log('[saveCurrentAsPreset] Creating new preset. Name:', presetName, 'ID:', presetIdToUse, 'Data:', presetData);
+            set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id });
+          }
+        },
+        loadPreset: async (presetId: string) => {
+          console.log('[loadPreset] Starting to load preset ID:', presetId);
+          const preset = get().savedPresets.find(p => p.id === presetId);
+          if (preset) {
+            set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] });
+            set({ aoe2cmRawDraftOptions: undefined });
+            console.log('[loadPreset] Cleared aoe2cmRawDraftOptions for preset ID:', presetId);
+            if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ');
+            if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map');
+            set({ activePresetId: preset.id }); // Ensure activePresetId is set after connections
+            console.log('[loadPreset] Finished processing preset ID:', presetId, 'Current aoe2cmRawDraftOptions:', get().aoe2cmRawDraftOptions);
+          }
+        },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
         setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
