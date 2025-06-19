@@ -1229,8 +1229,8 @@ const useDraftStore = create<DraftStore>()(
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
-          const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl); // Moved up to be available for early log
-          console.log('[connectToDraft] Called for draft ID:', extractedId, 'Type:', draftType, 'Initiated by loadPreset for preset ID:', get().activePresetId);
+          // Initial logging for function call, before extractedId is defined for this scope
+          console.log(`[connectToDraft] Entry. draftIdOrUrl: ${draftIdOrUrl}, draftType: ${draftType}, activePresetId: ${get().activePresetId}`);
           const wasNewSessionAwaitingFirstDraft = get().isNewSessionAwaitingFirstDraft; // Get before async
 
           if (draftType === 'civ') {
@@ -1238,9 +1238,13 @@ const useDraftStore = create<DraftStore>()(
           } else {
             set({ isLoadingMapDraft: true, mapDraftStatus: 'connecting', mapDraftError: null });
           }
-          const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl);
+          const extractedId = get().extractDraftIdFromUrl(draftIdOrUrl); // Main declaration
+
+          // Now log the extractedId
+          console.log('[connectToDraft] Called for draft ID:', extractedId, 'Type:', draftType, 'Initiated by loadPreset for preset ID:', get().activePresetId);
 
           if (!extractedId) {
+            // ... rest of the logic for !extractedId
             const errorMsg = 'Invalid Draft ID or URL provided.';
             if (draftType === 'civ') {
               set({ isLoadingCivDraft: false, civDraftStatus: 'error', civDraftError: errorMsg });
