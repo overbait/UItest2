@@ -14,9 +14,15 @@ import {
   StudioCanvas, // <-- Add this
   MapItem,
   // CombinedDraftState as CombinedDraftStateType, // This line is no longer needed
+  CombinedDraftState as OriginalCombinedDraftState, // Import original for augmentation
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
+
+// Augment CombinedDraftState locally
+export interface CombinedDraftState extends OriginalCombinedDraftState {
+  forceMapPoolUpdate: number;
+}
 
 // The local CombinedDraftState interface that extended CombinedDraftStateType is no longer needed.
 // The imported CombinedDraftState from ../types/draft now includes isNewSessionAwaitingFirstDraft.
@@ -36,7 +42,7 @@ interface DraftStore extends CombinedDraftState {
   incrementScore: (player: 'host' | 'guest') => void;
   decrementScore: (player: 'host' | 'guest') => void;
   
-  saveCurrentAsPreset: (name?: string) => Promise<void>; // Changed to Promise<void>
+  saveCurrentAsPreset: (name?: string) => void; // Reverted to void
   loadPreset: (presetId: string) => Promise<void>;
   deletePreset: (presetId: string) => void;
   updatePresetName: (presetId: string, newName: string) => void;
@@ -119,6 +125,7 @@ const initialCombinedState: CombinedDraftState = {
   socketDraftType: null, // Added for socket draft type tracking
   draftIsLikelyFinished: false,
   isNewSessionAwaitingFirstDraft: false, // Initial value
+  forceMapPoolUpdate: 0,
 };
 
 // Helper function _calculateUpdatedBoxSeriesGames is removed as per previous subtask to refactor _updateBoxSeriesGamesFromPicks directly.
@@ -1298,16 +1305,11 @@ const useDraftStore = create<DraftStore>()(
                 // Ensure other relevant fields for saveCurrentAsPreset are up-to-date if needed
               }));
 
-              get().saveCurrentAsPreset(presetName); // This action should set the new preset as active
+              get().saveCurrentAsPreset(presetName); // Reverted: No await
 
-              set({ isNewSessionAwaitingFirstDraft: false }); // This is important
-
-              // !!! ADD NEW LOGIC HERE !!!
-              const currentActivePresetId = get().activePresetId;
-              if (currentActivePresetId) {
-                console.log(`[connectToDraft] Automatically created preset ${currentActivePresetId} is now active. Triggering loadPreset to ensure UI consistency.`);
-                await get().loadPreset(currentActivePresetId); // Ensure loadPreset is awaited
-              }
+              set({ isNewSessionAwaitingFirstDraft: false });
+              set(state => ({ forceMapPoolUpdate: state.forceMapPoolUpdate + 1 }));
+              console.log('[connectToDraft] Incremented forceMapPoolUpdate to trigger UI refresh.');
             }
 
             // Determine hostName, guestName, respecting existing if not default
@@ -1335,9 +1337,11 @@ const useDraftStore = create<DraftStore>()(
             const currentBoxSeriesFormat = get().boxSeriesFormat; // Get current format from state
 
             const parseNameForBoX = (nameString: string | undefined): CombinedDraftState['boxSeriesFormat'] | null => {
+              console.log(`[parseNameForBoX] Checking nameString: "${nameString}"`);
               if (!nameString) return null;
               let format: CombinedDraftState['boxSeriesFormat'] | null = null;
-              const bestOfMatch = nameString.match(/best of (\d+)/i);
+              const bestOfMatch = nameString.match(/best of (\d+)(?:[^a-zA-Z0-9]|$)/i);
+              console.log(`[parseNameForBoX] bestOfMatch result:`, bestOfMatch);
               if (bestOfMatch && bestOfMatch[1]) {
                 const number = parseInt(bestOfMatch[1]);
                 if ([1, 3, 5, 7].includes(number)) {
@@ -1345,7 +1349,8 @@ const useDraftStore = create<DraftStore>()(
                 }
               }
               if (!format) {
-                const boMatch = nameString.match(/bo\s?(\d+)/i);
+                const boMatch = nameString.match(/bo\s*(\d+)/i);
+                console.log(`[parseNameForBoX] boMatch result:`, boMatch);
                 if (boMatch && boMatch[1]) {
                   const number = parseInt(boMatch[1]);
                   if ([1, 3, 5, 7].includes(number)) {
@@ -1353,6 +1358,7 @@ const useDraftStore = create<DraftStore>()(
                   }
                 }
               }
+              console.log(`[parseNameForBoX] Determined format: ${format} for nameString: "${nameString}"`);
               return format;
             };
 
@@ -1533,7 +1539,7 @@ const useDraftStore = create<DraftStore>()(
         },
         incrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: state.scores[player] + 1 }})); get()._updateActivePresetIfNeeded(); },
         decrementScore: (player: 'host' | 'guest') => { set(state => ({ scores: { ...state.scores, [player]: Math.max(0, state.scores[player] - 1) }})); get()._updateActivePresetIfNeeded(); },
-        saveCurrentAsPreset: async (name?: string) => {
+        saveCurrentAsPreset: (name?: string) => { // Reverted to sync
           console.log('[saveCurrentAsPreset] Attempting to save preset. Provided name:', name, 'Current state context:', { hostName: get().hostName, guestName: get().guestName, civDraftId: get().civDraftId, mapDraftId: get().mapDraftId });
           const { civDraftId, mapDraftId, hostName, guestName, scores, savedPresets, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get();
           const presetName = name || `${hostName} vs ${guestName} - ${new Date().toLocaleDateString()}`;
@@ -1550,27 +1556,7 @@ const useDraftStore = create<DraftStore>()(
             console.log('[saveCurrentAsPreset] Creating new preset. Name:', presetName, 'ID:', presetIdToUse, 'Data:', presetData);
             set({ savedPresets: [...savedPresets, presetData], activePresetId: presetData.id });
           }
-
-          // After saving and activating, reload draft data
-          const newlyActivePreset = get().savedPresets.find(p => p.id === get().activePresetId);
-          if (newlyActivePreset) {
-            console.log('[saveCurrentAsPreset] Preset activated/updated. ID:', newlyActivePreset.id, 'CivDraftID:', newlyActivePreset.civDraftId, 'MapDraftID:', newlyActivePreset.mapDraftId);
-            set({
-              aoe2cmRawDraftOptions: undefined,
-              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
-              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
-            });
-            console.log('[saveCurrentAsPreset] Cleared draft options and picks before connecting for preset ID:', newlyActivePreset.id);
-
-            if (newlyActivePreset.civDraftId) {
-              await get().connectToDraft(newlyActivePreset.civDraftId, 'civ');
-            }
-            if (newlyActivePreset.mapDraftId) {
-              await get().connectToDraft(newlyActivePreset.mapDraftId, 'map');
-            }
-            set({ activePresetId: newlyActivePreset.id });
-            console.log('[saveCurrentAsPreset] Finished connectToDraft calls for preset ID:', newlyActivePreset.id);
-          }
+          // Removed the data reloading logic that called connectToDraft
         },
         loadPreset: async (presetId: string) => {
           console.log('[loadPreset] Starting to load preset ID:', presetId);
