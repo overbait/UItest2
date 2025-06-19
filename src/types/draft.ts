@@ -122,6 +122,7 @@ export interface CombinedDraftState {
   activeStudioLayoutId: string | null;
   layoutLastUpdated?: number;
   draftIsLikelyFinished?: boolean;
+  isNewSessionAwaitingFirstDraft: boolean;
 }
 
 // Define StudioCanvas type

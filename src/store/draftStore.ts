@@ -13,9 +13,13 @@ import {
   SavedStudioLayout,
   StudioCanvas, // <-- Add this
   MapItem,
+  // CombinedDraftState as CombinedDraftStateType, // This line is no longer needed
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
+
+// The local CombinedDraftState interface that extended CombinedDraftStateType is no longer needed.
+// The imported CombinedDraftState from ../types/draft now includes isNewSessionAwaitingFirstDraft.
 
 const DRAFT_DATA_API_BASE_URL = 'https://aoe2cm.net/api';
 const DRAFT_WEBSOCKET_URL_PLACEHOLDER = 'wss://aoe2cm.net'; // Base domain
@@ -114,6 +118,7 @@ const initialCombinedState: CombinedDraftState = {
   // aoe2cmRawDraftOptions is added above
   socketDraftType: null, // Added for socket draft type tracking
   draftIsLikelyFinished: false,
+  isNewSessionAwaitingFirstDraft: false, // Initial value
 };
 
 // Helper function _calculateUpdatedBoxSeriesGames is removed as per previous subtask to refactor _updateBoxSeriesGamesFromPicks directly.
@@ -1170,35 +1175,51 @@ const useDraftStore = create<DraftStore>()(
         },
 
         _resetCurrentSessionState: () => {
-          const newDefaultCanvasId = `default-rst-${Date.now()}`;
-          const defaultCanvases: StudioCanvas[] = [{ id: newDefaultCanvasId, name: 'Default', layout: [] }];
-          const currentSavedPresets = get().savedPresets;
-          const currentSavedStudioLayouts = get().savedStudioLayouts;
+          // Preserving layout related state:
+          // currentCanvases, activeCanvasId, savedStudioLayouts, activeStudioLayoutId
+          // are preserved by not including them in the `set` call's payload,
+          // as `set` performs a shallow merge.
+          // The get() calls for currentSavedPresets and currentSavedStudioLayouts are removed
+          // as these properties are intended to be preserved by not being part of the reset payload.
 
-          set({
-            civDraftId: null, mapDraftId: null, hostName: initialPlayerNameHost, guestName: initialPlayerNameGuest,
-            scores: { ...initialScores }, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+          set(state => ({
+            // Reset draft-specific parts
+            civDraftId: null,
+            mapDraftId: null,
+            hostName: initialPlayerNameHost,
+            guestName: initialPlayerNameGuest,
+            scores: { ...initialScores },
+            civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
             mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [],
-            civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
-            mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
-            socketStatus: 'disconnected',
+            civDraftStatus: 'disconnected' as ConnectionStatus, civDraftError: null, isLoadingCivDraft: false,
+            mapDraftStatus: 'disconnected' as ConnectionStatus, mapDraftError: null, isLoadingMapDraft: false,
+            socketStatus: 'disconnected' as ConnectionStatus,
             socketError: null,
             socketDraftType: null,
             draftIsLikelyFinished: false,
             aoe2cmRawDraftOptions: undefined,
-            activePresetId: null, boxSeriesFormat: null, boxSeriesGames: [],
+            activePresetId: null, // Explicitly reset activePresetId
+            boxSeriesFormat: null,
+            boxSeriesGames: [],
             hostFlag: null,
             guestFlag: null,
             hostColor: null,
             guestColor: null,
-            currentCanvases: defaultCanvases,
-            activeCanvasId: newDefaultCanvasId,
+            isNewSessionAwaitingFirstDraft: true,
+
+            // Reset UI selection state but not the layout structure itself
             selectedElementId: null,
-            activeStudioLayoutId: null,
             layoutLastUpdated: null,
-            savedPresets: currentSavedPresets,
-            savedStudioLayouts: currentSavedStudioLayouts,
-          });
+
+            // Properties to preserve (by not mentioning them, they remain as per current state):
+            // currentCanvases: state.currentCanvases,
+            // activeCanvasId: state.activeCanvasId,
+            // savedStudioLayouts: state.savedStudioLayouts, // These are already preserved by not being in the partial state to reset
+            // activeStudioLayoutId: state.activeStudioLayoutId,
+
+            // Ensure activePresetId is reset as per original logic for resetting session state
+            // activePresetId: null, // This was already set above, removed duplicate
+          }));
         },
 
         // _updateBoxSeriesGamesFromPicks is now removed and replaced by the local helper _calculateUpdatedBoxSeriesGames
@@ -1208,6 +1229,8 @@ const useDraftStore = create<DraftStore>()(
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
+          const wasNewSessionAwaitingFirstDraft = get().isNewSessionAwaitingFirstDraft; // Get before async
+
           if (draftType === 'civ') {
             set({ isLoadingCivDraft: true, civDraftStatus: 'connecting', civDraftError: null });
           } else {
@@ -1227,17 +1250,18 @@ const useDraftStore = create<DraftStore>()(
 
           if (draftType === 'civ') set({ civDraftId: extractedId }); else set({ mapDraftId: extractedId });
 
-          const currentActivePresetId = get().activePresetId;
-          const savedPresetsArray = get().savedPresets;
-          const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
-          if (activePreset) {
-            if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
-                (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
-              set({ activePresetId: null });
-            }
-          } else {
-            set({ activePresetId: null });
-          }
+          // Removing/commenting out the block that nullifies activePresetId prematurely.
+          // const currentActivePresetId = get().activePresetId;
+          // const savedPresetsArray = get().savedPresets;
+          // const activePreset = currentActivePresetId ? savedPresetsArray.find(p => p.id === currentActivePresetId) : null;
+          // if (activePreset) {
+          //   if ((draftType === 'civ' && activePreset.civDraftId !== extractedId) ||
+          //       (draftType === 'map' && activePreset.mapDraftId !== extractedId)) {
+          //     // set({ activePresetId: null }); // Problematic line - REMOVED
+          //   }
+          // } else {
+          //   // set({ activePresetId: null }); // Also potentially problematic - REMOVED
+          // }
 
           console.log(`[ConnectToDraft] Attempting to fetch ${draftType} draft ${extractedId} via HTTP.`);
           const apiUrl = `${DRAFT_DATA_API_BASE_URL}/draft/${extractedId}`;
@@ -1252,6 +1276,26 @@ const useDraftStore = create<DraftStore>()(
             const rawDraftData = response.data;
 
             const processedData = transformRawDataToSingleDraft(rawDraftData, draftType);
+
+            if (wasNewSessionAwaitingFirstDraft) {
+              const hostNameForPreset = processedData.hostName || (draftType === 'civ' && rawDraftData.nameHost) || initialPlayerNameHost;
+              const guestNameForPreset = processedData.guestName || (draftType === 'civ' && rawDraftData.nameGuest) || initialPlayerNameGuest;
+
+              const presetName = `${hostNameForPreset} vs ${guestNameForPreset} - ${new Date().toLocaleTimeString()}`; // Changed to toLocaleTimeString
+
+              // Temporarily update store with current draft ID and names before saving preset
+              set(state => ({
+                ...state,
+                [draftType === 'civ' ? 'civDraftId' : 'mapDraftId']: extractedId,
+                hostName: hostNameForPreset,
+                guestName: guestNameForPreset,
+                // Ensure other relevant fields for saveCurrentAsPreset are up-to-date if needed
+              }));
+
+              get().saveCurrentAsPreset(presetName); // This action should set the new preset as active
+
+              set({ isNewSessionAwaitingFirstDraft: false });
+            }
 
             // Determine hostName, guestName, respecting existing if not default
             let newHostName = get().hostName;
@@ -1684,8 +1728,19 @@ const useDraftStore = create<DraftStore>()(
         },
         loadStudioLayout: (layoutId: string) => {
           set(state => {
+            const currentLayoutCanvases = get().currentCanvases; // Use get() for current state outside of map
+            const currentActiveCanvasId = get().activeCanvasId;
             const layoutToLoad = state.savedStudioLayouts.find(l => l.id === layoutId);
+
             if (layoutToLoad) {
+              // Basic check for idempotency: if the target layout seems already loaded, do nothing.
+              // This compares the activeCanvasId and a stringified version of the canvases array.
+              if (currentActiveCanvasId === layoutToLoad.activeCanvasId &&
+                  JSON.stringify(currentLayoutCanvases) === JSON.stringify(layoutToLoad.canvases)) {
+                // console.log(`[loadStudioLayout] Layout ${layoutId} is already active and matches current state. Skipping load.`);
+                return state; // Return current state, no changes needed
+              }
+
               const canvasesToLoad = Array.isArray(layoutToLoad.canvases) && layoutToLoad.canvases.length > 0
                 ? layoutToLoad.canvases
                 : [{ id: `default-load-${Date.now()}`, name: 'Default', layout: [] }];
@@ -1694,9 +1749,10 @@ const useDraftStore = create<DraftStore>()(
               if (!newActiveCanvasId || !canvasesToLoad.find(c => c.id === newActiveCanvasId)) {
                 newActiveCanvasId = canvasesToLoad[0].id;
               }
+              // If we are here, it means the layout is different or not loaded, so apply it.
               return { ...state, currentCanvases: JSON.parse(JSON.stringify(canvasesToLoad)), activeCanvasId: newActiveCanvasId, selectedElementId: null, activeStudioLayoutId: layoutId };
             }
-            return state;
+            return state; // Return current state if layoutToLoad is not found
           });
         },
         deleteStudioLayout: (layoutId: string) => {
@@ -1898,3 +1954,4 @@ useDraftStore.subscribe(
 
 
 export default useDraftStore;
+// [end of src/store/draftStore.ts] // This marker was removed in the actual modification

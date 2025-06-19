@@ -222,6 +222,49 @@ const StudioInterface: React.FC = () => {
     }
   }, []); // Empty dependency array ensures this runs once on mount
 
+  useEffect(() => {
+    const {
+      activeStudioLayoutId,
+      savedStudioLayouts,
+      loadStudioLayout,
+      currentCanvases, // Get currentCanvases to potentially check if layout is already loaded
+      activeCanvasId // Get activeCanvasId for the same reason
+    } = useDraftStore.getState();
+
+    console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] activeStudioLayoutId:', activeStudioLayoutId);
+
+    if (activeStudioLayoutId) {
+      const layoutToLoad = savedStudioLayouts.find(l => l.id === activeStudioLayoutId);
+      if (layoutToLoad) {
+        // Basic check: Only load if the activeCanvasId doesn't match the one in the layout to load,
+        // or if the number of elements is different. This is a heuristic to prevent redundant loads
+        // if the rehydration already set things up.
+        // A more robust check might involve comparing a snapshot or version of the loaded layout.
+        const activeCanvasInLayoutToLoad = layoutToLoad.canvases.find(c => c.id === layoutToLoad.activeCanvasId);
+        const currentActiveCanvasInState = currentCanvases.find(c => c.id === activeCanvasId);
+
+        const isLayoutPotentiallyAlreadyLoaded =
+          activeCanvasId === layoutToLoad.activeCanvasId &&
+          activeCanvasInLayoutToLoad?.layout.length === currentActiveCanvasInState?.layout.length &&
+          JSON.stringify(activeCanvasInLayoutToLoad?.layout) === JSON.stringify(currentActiveCanvasInState?.layout);
+
+
+        if (!isLayoutPotentiallyAlreadyLoaded) {
+          console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] Attempting to load layout:', activeStudioLayoutId);
+          loadStudioLayout(activeStudioLayoutId);
+        } else {
+          console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] Layout already seems to be loaded or matches state. Skipping redundant load of layout:', activeStudioLayoutId);
+        }
+      } else {
+        console.warn('LOGAOEINFO: [StudioInterface Mount Layout Effect] activeStudioLayoutId found, but corresponding layout not in savedStudioLayouts. ID:', activeStudioLayoutId);
+        // Optionally, clear the invalid activeStudioLayoutId here if this state is problematic
+        // useDraftStore.setState({ activeStudioLayoutId: null });
+      }
+    } else {
+      console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] No activeStudioLayoutId found. Skipping auto-load.');
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
       <aside style={{ width: '250px', borderRight: '1px solid #333', padding: '1rem', backgroundColor: '#1a1a1a', overflowY: 'auto', display: 'flex', flexDirection: 'column', zIndex: 1 }}>
