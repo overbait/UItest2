@@ -117,16 +117,16 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
       const imageUrl = `/assets/civflags_normal/${formatCivNameForImagePath(civData.id)}.png`;
 
       // Use displayName (without prefix) for pick/ban checks
-      if (civPicksGlobal.includes(displayName)) {
+      if ((civPicksGlobal || []).includes(displayName)) {
         status = 'adminPicked';
       } else if (playerType === 'host') {
-        if (civPicksHost.includes(displayName)) status = 'picked';
-        else if (civBansHost.includes(displayName)) status = 'banned';
-        else if (civPicksGuest.includes(displayName) || civBansGuest.includes(displayName)) status = 'affected';
+        if ((civPicksHost || []).includes(displayName)) status = 'picked';
+        else if ((civBansHost || []).includes(displayName)) status = 'banned';
+        else if ((civPicksGuest || []).includes(displayName) || (civBansGuest || []).includes(displayName)) status = 'affected';
       } else { // playerType === 'guest'
-        if (civPicksGuest.includes(displayName)) status = 'picked';
-        else if (civBansGuest.includes(displayName)) status = 'banned';
-        else if (civPicksHost.includes(displayName) || civBansHost.includes(displayName)) status = 'affected';
+        if ((civPicksGuest || []).includes(displayName)) status = 'picked';
+        else if ((civBansGuest || []).includes(displayName)) status = 'banned';
+        else if ((civPicksHost || []).includes(displayName) || (civBansHost || []).includes(displayName)) status = 'affected';
       }
       return { name: displayName, status, imageUrl };
     });
