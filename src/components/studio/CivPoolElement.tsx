@@ -66,7 +66,7 @@ const PREDEFINED_CIV_POOL: string[] = [
   'aoe4.DelhiSultanate', 'aoe4.English', 'aoe4.French', 'aoe4.HolyRomanEmpire',
   'aoe4.HouseOfLancaster', 'aoe4.Japanese', 'aoe4.JeanneDArc', 'aoe4.KnightsTemplar',
   'aoe4.Malians', 'aoe4.Mongols', 'aoe4.OrderOfTheDragon', 'aoe4.Ottomans',
-  'aoe4.Rus', 'aoe4.ZhuXisLegacy'
+  'aoe4.Rus', 'aoe4.ZhuXiLegacy'
 ];
 
 const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast }) => {
