@@ -1300,7 +1300,14 @@ const useDraftStore = create<DraftStore>()(
 
               get().saveCurrentAsPreset(presetName); // This action should set the new preset as active
 
-              set({ isNewSessionAwaitingFirstDraft: false });
+              set({ isNewSessionAwaitingFirstDraft: false }); // This is important
+
+              // !!! ADD NEW LOGIC HERE !!!
+              const currentActivePresetId = get().activePresetId;
+              if (currentActivePresetId) {
+                console.log(`[connectToDraft] Automatically created preset ${currentActivePresetId} is now active. Triggering loadPreset to ensure UI consistency.`);
+                await get().loadPreset(currentActivePresetId); // Ensure loadPreset is awaited
+              }
             }
 
             // Determine hostName, guestName, respecting existing if not default
@@ -1327,33 +1334,37 @@ const useDraftStore = create<DraftStore>()(
             let detectedFormatDuringLoad: CombinedDraftState['boxSeriesFormat'] = null;
             const currentBoxSeriesFormat = get().boxSeriesFormat; // Get current format from state
 
-            if (rawDraftData.preset?.name) {
-              // Only auto-detect if no active preset is loaded and no format is currently set by the user
-              if (get().activePresetId === null && !currentBoxSeriesFormat) {
-                const nameForRegex = rawDraftData.preset.name; // Use original casing for regex if needed, or .toLowerCase() if regex is case insensitive
-
-                // Regex for "Best of X"
-                const bestOfMatch = nameForRegex.match(/best of (\d+)/i);
-                if (bestOfMatch && bestOfMatch[1]) {
-                  const number = parseInt(bestOfMatch[1]);
+            const parseNameForBoX = (nameString: string | undefined): CombinedDraftState['boxSeriesFormat'] | null => {
+              if (!nameString) return null;
+              let format: CombinedDraftState['boxSeriesFormat'] | null = null;
+              const bestOfMatch = nameString.match(/best of (\d+)/i);
+              if (bestOfMatch && bestOfMatch[1]) {
+                const number = parseInt(bestOfMatch[1]);
+                if ([1, 3, 5, 7].includes(number)) {
+                  format = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
+                }
+              }
+              if (!format) {
+                const boMatch = nameString.match(/bo\s?(\d+)/i);
+                if (boMatch && boMatch[1]) {
+                  const number = parseInt(boMatch[1]);
                   if ([1, 3, 5, 7].includes(number)) {
-                    detectedFormatDuringLoad = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
+                    format = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
                   }
                 }
+              }
+              return format;
+            };
 
-                // Regex for "BO X" (e.g., BO3, BO 3), only if not already found by "Best of X"
-                if (!detectedFormatDuringLoad) {
-                  const boMatch = nameForRegex.match(/bo\s?(\d+)/i);
-                  if (boMatch && boMatch[1]) {
-                    const number = parseInt(boMatch[1]);
-                    if ([1, 3, 5, 7].includes(number)) {
-                      detectedFormatDuringLoad = `bo${number}` as CombinedDraftState['boxSeriesFormat'];
-                    }
-                  }
-                }
-
+            // Only auto-detect if no active preset is loaded and no format is currently set by the user
+            if (get().activePresetId === null && !currentBoxSeriesFormat) {
+              detectedFormatDuringLoad = parseNameForBoX(rawDraftData.preset?.name);
+              if (detectedFormatDuringLoad) {
+                console.log(`[ConnectToDraft] Auto-detected BoX format (from preset name): ${detectedFormatDuringLoad} for draft ID ${extractedId} from preset name: "${rawDraftData.preset?.name}"`);
+              } else if (rawDraftData.name) { // Fallback to draft name
+                detectedFormatDuringLoad = parseNameForBoX(rawDraftData.name);
                 if (detectedFormatDuringLoad) {
-                  console.log(`[ConnectToDraft] Auto-detected BoX format: ${detectedFormatDuringLoad} for draft ID ${extractedId} from preset name: "${rawDraftData.preset.name}"`);
+                  console.log(`[ConnectToDraft] Auto-detected BoX format (from draft name): ${detectedFormatDuringLoad} for draft ID ${extractedId} from draft name: "${rawDraftData.name}"`);
                 }
               }
             }
