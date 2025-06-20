@@ -128,6 +128,20 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
   // Updated conditional rendering logic
   const noMapsAvailableInOptions = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter(opt => opt.id && !opt.id.startsWith('aoe4.')).length === 0;
 
+console.log('[MapPoolElement] Debugging conditional null return:');
+console.log('[MapPoolElement] isBroadcast:', isBroadcast);
+console.log('[MapPoolElement] player1MapPool.length:', player1MapPool.length);
+console.log('[MapPoolElement] player1MapPool (contents):', JSON.parse(JSON.stringify(player1MapPool)));
+console.log('[MapPoolElement] player2MapPool.length:', player2MapPool.length);
+console.log('[MapPoolElement] player2MapPool (contents):', JSON.parse(JSON.stringify(player2MapPool)));
+console.log('[MapPoolElement] noMapsAvailableInOptions:', noMapsAvailableInOptions);
+// Also log the source of noMapsAvailableInOptions and pools
+console.log('[MapPoolElement] aoe2cmRawDraftOptions:', JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)));
+console.log('[MapPoolElement] mapPicksGlobal:', JSON.parse(JSON.stringify(mapPicksGlobal)));
+console.log('[MapPoolElement] mapPicksHost:', JSON.parse(JSON.stringify(mapPicksHost)));
+console.log('[MapPoolElement] mapBansHost:', JSON.parse(JSON.stringify(mapBansHost)));
+console.log('[MapPoolElement] mapPicksGuest:', JSON.parse(JSON.stringify(mapPicksGuest)));
+console.log('[MapPoolElement] mapBansGuest:', JSON.parse(JSON.stringify(mapBansGuest)));
   if (isBroadcast && player1MapPool.length === 0 && player2MapPool.length === 0 && noMapsAvailableInOptions) {
     return null;
   }
