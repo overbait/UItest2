@@ -78,12 +78,14 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           boxSizing: 'border-box',
         };
 
+        const currentOverflow = (element.type === "MapPoolElement" || element.type === "CivPoolElement") ? 'visible' : 'hidden';
+
         const innerDivStyle = {
           width: `${element.size.width}px`,
           height: `${element.size.height}px`,
           transform: `scale(${currentScale})`,
           transformOrigin: 'top left',
-          overflow: 'hidden',
+          overflow: currentOverflow, // Use the conditional overflow
           boxSizing: 'border-box',
         };
 
