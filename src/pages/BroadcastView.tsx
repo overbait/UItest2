@@ -65,6 +65,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       }}
     >
       {canvasToRender.layout.map((element: StudioElement) => {
+        console.log('BroadcastView - Rendering element.type:', element.type);
+        console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
         const outerDivStyle = {
