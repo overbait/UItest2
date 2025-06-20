@@ -1917,6 +1917,13 @@ const useDraftStore = create<DraftStore>()(
 
         _autoSaveOrUpdateActiveStudioLayout: () => {
           const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
+          const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId);
+          console.log(
+            '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
+            'ActiveCanvasID:', activeCanvasId,
+            'Total Canvases:', currentCanvases.length,
+            'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
+          );
           const autoSavePresetName = "(auto)";
 
           console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId);
@@ -1931,6 +1938,11 @@ const useDraftStore = create<DraftStore>()(
               }
               return layout;
             });
+            if (updatedLayoutObject) { // Ensure it's not null before logging
+              console.log('[Autosave Debug] Updating existing active layout. ID:', activeStudioLayoutId, 'Layout being saved:', JSON.parse(JSON.stringify(updatedLayoutObject)));
+            } else {
+              console.log('[Autosave Debug] activeStudioLayoutId was present, but updatedLayoutObject was not formed. This might indicate an issue.');
+            }
             set({ savedStudioLayouts: updatedLayouts });
             if (updatedLayoutObject) {
               console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Layout updated in savedStudioLayouts (activeStudioLayoutId case):', JSON.parse(JSON.stringify(updatedLayoutObject)));
@@ -1940,11 +1952,13 @@ const useDraftStore = create<DraftStore>()(
             if (autoPreset) {
               const updatedAutoPreset = { ...autoPreset, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId };
               const updatedLayouts = savedStudioLayouts.map(layout => layout.id === autoPreset!.id ? updatedAutoPreset : layout);
+              console.log('[Autosave Debug] Updating (auto) layout. ID:', autoPreset.id, 'Layout being saved:', JSON.parse(JSON.stringify(updatedAutoPreset)));
               set({ savedStudioLayouts: updatedLayouts, activeStudioLayoutId: autoPreset.id });
               console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Layout updated in savedStudioLayouts (autoPreset found case):', JSON.parse(JSON.stringify(updatedAutoPreset)));
             } else {
               const newAutoLayoutId = `studiolayout-auto-${Date.now()}`;
               const newAutoLayoutPreset: SavedStudioLayout = { id: newAutoLayoutId, name: autoSavePresetName, canvases: JSON.parse(JSON.stringify(currentCanvases)), activeCanvasId: activeCanvasId };
+              console.log('[Autosave Debug] Creating new (auto) layout. ID:', newAutoLayoutId, 'Layout being saved:', JSON.parse(JSON.stringify(newAutoLayoutPreset)));
               set({ savedStudioLayouts: [...savedStudioLayouts, newAutoLayoutPreset], activeStudioLayoutId: newAutoLayoutId });
               console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] New layout added to savedStudioLayouts (autoPreset not found case):', JSON.parse(JSON.stringify(newAutoLayoutPreset)));
             }
