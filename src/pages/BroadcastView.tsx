@@ -22,8 +22,12 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
 
   useEffect(() => {
     (window as any).IS_BROADCAST_VIEW = true;
+    const originalBackgroundColor = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = 'transparent';
+
     return () => {
       (window as any).IS_BROADCAST_VIEW = false;
+      document.body.style.backgroundColor = originalBackgroundColor;
     };
   }, []);
 
@@ -55,6 +59,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
   }
   return (
     <div
+      className="broadcast-view" // Added className
       style={{
         width: '1920px',
         height: '1080px',
@@ -133,7 +138,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           top: '0px',
           width: '1920px',
           height: '1080px',
-          border: '2px dashed rgba(255, 255, 255, 0.1)',
+          border: '2px solid rgba(255, 255, 255, 0.1)',
           boxSizing: 'border-box',
           pointerEvents: 'none',
           zIndex: 9999,
