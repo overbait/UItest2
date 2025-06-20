@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react'; // Removed useState, useEffect
+import { Routes, Route, Link, Navigate, useLocation, useParams } from 'react-router-dom';
 
 // Lazy load page components for code splitting
 const TechnicalInterface = lazy(() => import('./pages/TechnicalInterface'));
@@ -80,38 +80,46 @@ const Navigation = () => {
   );
 };
 
-const App: React.FC = () => {
-  const queryParams = new URLSearchParams(window.location.search);
-  const viewType = queryParams.get('view');
-  const canvasId = queryParams.get('canvasId');
-
-  if (viewType === 'broadcast' && canvasId) {
-    // For Suspense to work with BroadcastView if it were lazy-loaded (it's not currently, but good practice)
-    // Or if BroadcastView itself uses Suspense internally.
-    return (
-      <Suspense fallback={<LoadingScreen />}>
-        <BroadcastView targetCanvasId={canvasId} />
-      </Suspense>
-    );
+// Wrapper component for BroadcastView to use useParams
+const BroadcastViewPageWrapper = () => {
+  const { targetCanvasId } = useParams<{ targetCanvasId: string }>();
+  if (!targetCanvasId) {
+    // Handle case where targetCanvasId is not present, though route should ensure it
+    return <Navigate to="/technical" replace />;
   }
+  return <BroadcastView targetCanvasId={targetCanvasId} />;
+};
 
+const App: React.FC = () => {
   return (
-    <ErrorBoundary>
-      <div className="flex flex-col min-h-screen">
-        <Navigation />
-        <main className="flex-grow">
-          <Suspense fallback={<LoadingScreen />}>
-            {/* Updated Routes */}
-            <Routes>
-              <Route path="/technical" element={<TechnicalInterface />} />
-              <Route path="/studio" element={<StudioInterface />} />
-              <Route path="/" element={<Navigate to="/technical" replace />} /> {/* Default to technical */}
-              <Route path="*" element={<Navigate to="/technical" replace />} /> {/* Catch all to technical */}
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
-    </ErrorBoundary>
+    <Routes>
+      {/* Standalone BroadcastView Route */}
+      <Route path="/broadcast/:targetCanvasId" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <BroadcastViewPageWrapper />
+        </Suspense>
+      } />
+
+      {/* Routes with Navigation */}
+      <Route path="/*" element={
+        <ErrorBoundary>
+          <div className="flex flex-col min-h-screen">
+            <Navigation />
+            <main className="flex-grow">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/technical" element={<TechnicalInterface />} />
+                  <Route path="/studio" element={<StudioInterface />} />
+                  <Route path="/" element={<Navigate to="/technical" replace />} />
+                  {/* Catch-all for paths under Navigation, ensure it's within this nested Routes */}
+                  <Route path="*" element={<Navigate to="/technical" replace />} />
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
+        </ErrorBoundary>
+      } />
+    </Routes>
   );
 };
 

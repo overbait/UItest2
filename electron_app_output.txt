@@ -1,0 +1,11 @@
+[5911:0620/165228.376974:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.377456:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.461969:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.475952:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.522186:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.542425:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.542776:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5911:0620/165228.585419:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[5867:0620/165229.254707:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[5867:0620/165229.254799:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+/app/node_modules/electron/dist/electron exited with signal SIGTERM

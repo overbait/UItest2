@@ -1,0 +1,29 @@
+
+> aoe2-draft-overlay@0.1.0 dev
+> vite
+
+
+  VITE v6.3.5  ready in 225 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+4:52:09 PM [vite] (client) warning: Duplicate key "socketDraftType" in object literal
+123|    guestFlag: null, // Initialize to null
+124|    // aoe2cmRawDraftOptions is added above
+125|    socketDraftType: null, // Added for socket draft type tracking
+   |    ^
+126|    draftIsLikelyFinished: false,
+127|    isNewSessionAwaitingFirstDraft: false, // Initial value
+
+  Plugin: vite:esbuild
+  File: /app/src/store/draftStore.ts
+4:52:28 PM [vite] (client) warning: Duplicate "className" attribute in JSX element
+703|            <div
+704|            className="flag-dropdown-item"
+705|            className="flag-dropdown-item"
+   |            ^
+706|            onClick={() => handleFlagSelection(null)}>
+707|
+
+  Plugin: vite:esbuild
+  File: /app/src/pages/TechnicalInterface.tsx

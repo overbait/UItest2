@@ -2,9 +2,15 @@
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "module": "CommonJS", // Electron main process uses CommonJS
+    "moduleResolution": "node", // Or "node16", "nodenext" depending on Electron's Node version
+    "target": "ES2020", // Adjust based on Electron's Node version
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true, // Recommended for CommonJS/ESM interop
+    "outDir": "dist-electron", // Output directory for compiled main process
+    "sourceMap": true // Optional: for debugging
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "electron/**/*.ts"], // Include Electron main process files
+  "exclude": ["node_modules", "dist"] // Exclude unnecessary directories
 }

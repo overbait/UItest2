@@ -4,6 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './', // Ensure correct asset loading for Electron
   plugins: [react()],
   resolve: {
     alias: {
@@ -29,4 +30,12 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: 'dist', // Ensure output is in the 'dist' folder
+    rollupOptions: {
+      // Externalize Electron-specific modules if any are imported in renderer code
+      external: ['electron'],
+    },
+  },
+  // Exclude the electron directory from being processed by Vite
 })
