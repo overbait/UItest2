@@ -1681,7 +1681,7 @@ const useDraftStore = create<DraftStore>()(
                 id: Date.now().toString(),
                 type: "CivPoolElement", // Ensure this type matches what's passed from StudioInterface
                 position: { x: initialX_px, y: initialY_px },
-                size: { width: 500, height: 180 }, // Adjusted height
+                size: { width: 730, height: 310 },
                 fontFamily: 'Arial, sans-serif',
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
