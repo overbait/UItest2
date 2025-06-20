@@ -1413,9 +1413,7 @@ const useDraftStore = create<DraftStore>()(
                     hostName: newHostName,
                     guestName: newGuestName,
                     // Ensure the correct log is present before the conditional assignment
-                    aoe2cmRawDraftOptions: draftType === 'map'
-                                           ? (rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions)
-                                           : state.aoe2cmRawDraftOptions,
+                    aoe2cmRawDraftOptions: rawDraftData.preset?.draftOptions || state.aoe2cmRawDraftOptions,
 
                     civPicksHost: finalCivPicksHost, civBansHost: finalCivBansHost,
                     civPicksGuest: finalCivPicksGuest, civBansGuest: finalCivBansGuest,
