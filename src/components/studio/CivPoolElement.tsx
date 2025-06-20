@@ -167,6 +167,22 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
   // Overall condition for returning null if in broadcast mode and no civs to show from any source.
   // This means if draft is empty AND predefined list also results in empty (which shouldn't happen with current predefined list).
   // More accurately, if both player display pools are empty.
+
+console.log('[CivPoolElement] Debugging conditional null return:');
+console.log('[CivPoolElement] isBroadcast:', isBroadcast);
+console.log('[CivPoolElement] player1DisplayPoolIsEmpty:', player1DisplayPoolIsEmpty);
+console.log('[CivPoolElement] player1CivPool.length:', player1CivPool.length);
+console.log('[CivPoolElement] player1CivPool (contents):', player1CivPool ? JSON.parse(JSON.stringify(player1CivPool)) : undefined);
+console.log('[CivPoolElement] player2DisplayPoolIsEmpty:', player2DisplayPoolIsEmpty);
+console.log('[CivPoolElement] player2CivPool.length:', player2CivPool.length);
+console.log('[CivPoolElement] player2CivPool (contents):', player2CivPool ? JSON.parse(JSON.stringify(player2CivPool)) : undefined);
+console.log('[CivPoolElement] noCivsAvailableFromDraft:', noCivsAvailableFromDraft); // existing variable
+console.log('[CivPoolElement] aoe2cmRawDraftOptions:', aoe2cmRawDraftOptions ? JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)) : undefined);
+console.log('[CivPoolElement] civPicksGlobal:', civPicksGlobal ? JSON.parse(JSON.stringify(civPicksGlobal)) : undefined);
+console.log('[CivPoolElement] civPicksHost:', civPicksHost ? JSON.parse(JSON.stringify(civPicksHost)) : undefined);
+console.log('[CivPoolElement] civBansHost:', civBansHost ? JSON.parse(JSON.stringify(civBansHost)) : undefined);
+console.log('[CivPoolElement] civPicksGuest:', civPicksGuest ? JSON.parse(JSON.stringify(civPicksGuest)) : undefined);
+console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.stringify(civBansGuest)) : undefined);
   if (isBroadcast && player1DisplayPoolIsEmpty && player2DisplayPoolIsEmpty) {
     // If there were no civs from draft, and we assume predefined list would always show something unless filtered to empty
     // this implies a more fundamental issue or an empty state desired.
