@@ -19,6 +19,10 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSe
     size // Used for dynamic font size if we had text, and for main div dimensions
   } = element;
 
+console.log('[CountryFlagsElement] Rendering in context:');
+console.log('[CountryFlagsElement] isBroadcast prop:', isBroadcast);
+console.log('[CountryFlagsElement] element prop:', element ? JSON.parse(JSON.stringify(element)) : undefined);
+
   // const REFERENCE_PIXEL_HEIGHT_FOR_FONT = 40; // Example if text was primary
   // const BASELINE_FONT_SIZE_PX = 18;
   // const dynamicFontSize = Math.max(8, (size.height / REFERENCE_PIXEL_HEIGHT_FOR_FONT) * BASELINE_FONT_SIZE_PX);
@@ -43,6 +47,11 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSe
 
   const hostFlagPath = liveHostFlag ? `/assets/countryflags/${liveHostFlag.toLowerCase()}.png` : null;
   const guestFlagPath = liveGuestFlag ? `/assets/countryflags/${liveGuestFlag.toLowerCase()}.png` : null;
+
+console.log('[CountryFlagsElement] liveHostFlag from store:', liveHostFlag);
+console.log('[CountryFlagsElement] liveGuestFlag from store:', liveGuestFlag);
+console.log('[CountryFlagsElement] hostFlagPath:', hostFlagPath);
+console.log('[CountryFlagsElement] guestFlagPath:', guestFlagPath);
 
   const hostFlagDisplay = hostFlagPath ? <img src={hostFlagPath} alt={liveHostFlag || 'Host Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag
   const guestFlagDisplay = guestFlagPath ? <img src={guestFlagPath} alt={liveGuestFlag || 'Guest Flag'} style={flagBaseStyle} draggable="false" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div style={{width: '100%', height: '100%'}} />; // Placeholder if no flag

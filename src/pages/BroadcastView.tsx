@@ -65,6 +65,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       }}
     >
       {canvasToRender.layout.map((element: StudioElement) => {
+        console.log('BroadcastView - Rendering element.type:', element.type);
+        console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
         const outerDivStyle = {
@@ -76,12 +78,14 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           boxSizing: 'border-box',
         };
 
+        const currentOverflow = (element.type === "MapPoolElement" || element.type === "CivPoolElement") ? 'visible' : 'hidden';
+
         const innerDivStyle = {
           width: `${element.size.width}px`,
           height: `${element.size.height}px`,
           transform: `scale(${currentScale})`,
           transformOrigin: 'top left',
-          overflow: 'hidden',
+          overflow: currentOverflow, // Use the conditional overflow
           boxSizing: 'border-box',
         };
 

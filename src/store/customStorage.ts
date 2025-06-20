@@ -114,6 +114,36 @@ export const customLocalStorageWithBroadcast: StateStorage = {
 
     // console.debug('[CustomStorage] Studio tab saving state:', { name, /*loggedValue: valueForLogging,*/ rawValueToStore: valueToStore, timestamp: new Date().toISOString() });
 
+    console.log(
+      '[CustomStorage setItem] Attempting to write to localStorage. Key:', name,
+      // Log a summary of the value, especially focusing on the part that should change
+      // For example, try to find the active layout and its number of canvases/elements
+      // This requires parsing valueToStore if it's a stringified object.
+      'Value being written (summary - check for layout changes):', valueToStore.substring(0, 500) + "..." // Log a snippet first
+    );
+
+    try {
+      const parsedValueForLog = JSON.parse(valueToStore);
+      if (parsedValueForLog && parsedValueForLog.state && parsedValueForLog.state.savedStudioLayouts && parsedValueForLog.state.activeStudioLayoutId) {
+        const activeLayout = parsedValueForLog.state.savedStudioLayouts.find(l => l.id === parsedValueForLog.state.activeStudioLayoutId);
+        if (activeLayout && activeLayout.canvases) {
+          const activeCanvasInLayout = activeLayout.canvases.find(c => c.id === activeLayout.activeCanvasId);
+          console.log(
+            '[CustomStorage setItem] Parsed value details: ActiveLayoutID:', parsedValueForLog.state.activeStudioLayoutId,
+            'ActiveCanvasID in Layout:', activeLayout.activeCanvasId,
+            'Total Canvases in Active Layout:', activeLayout.canvases.length,
+            'Elements in Active Canvas of Layout:', activeCanvasInLayout ? activeCanvasInLayout.layout.length : 'N/A'
+          );
+        } else {
+          console.log('[CustomStorage setItem] Parsed value, but active layout or its canvases not found as expected.');
+        }
+      } else {
+         console.log('[CustomStorage setItem] Parsed value does not have expected structure (state.savedStudioLayouts or state.activeStudioLayoutId).');
+      }
+    } catch (e) {
+      console.warn('[CustomStorage setItem] Could not parse valueToStore for detailed logging:', e);
+    }
+
     localStorageWriteInProgressByThisTab = true;
     localStorage.setItem(name, valueToStore);
     setTimeout(() => { localStorageWriteInProgressByThisTab = false; }, 0); // Reset for storage event
