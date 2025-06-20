@@ -136,12 +136,12 @@ console.log('[MapPoolElement] player2MapPool.length:', player2MapPool.length);
 console.log('[MapPoolElement] player2MapPool (contents):', JSON.parse(JSON.stringify(player2MapPool)));
 console.log('[MapPoolElement] noMapsAvailableInOptions:', noMapsAvailableInOptions);
 // Also log the source of noMapsAvailableInOptions and pools
-console.log('[MapPoolElement] aoe2cmRawDraftOptions:', JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)));
-console.log('[MapPoolElement] mapPicksGlobal:', JSON.parse(JSON.stringify(mapPicksGlobal)));
-console.log('[MapPoolElement] mapPicksHost:', JSON.parse(JSON.stringify(mapPicksHost)));
-console.log('[MapPoolElement] mapBansHost:', JSON.parse(JSON.stringify(mapBansHost)));
-console.log('[MapPoolElement] mapPicksGuest:', JSON.parse(JSON.stringify(mapPicksGuest)));
-console.log('[MapPoolElement] mapBansGuest:', JSON.parse(JSON.stringify(mapBansGuest)));
+console.log('[MapPoolElement] aoe2cmRawDraftOptions:', aoe2cmRawDraftOptions ? JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)) : undefined);
+console.log('[MapPoolElement] mapPicksGlobal:', mapPicksGlobal ? JSON.parse(JSON.stringify(mapPicksGlobal)) : undefined);
+console.log('[MapPoolElement] mapPicksHost:', mapPicksHost ? JSON.parse(JSON.stringify(mapPicksHost)) : undefined);
+console.log('[MapPoolElement] mapBansHost:', mapBansHost ? JSON.parse(JSON.stringify(mapBansHost)) : undefined);
+console.log('[MapPoolElement] mapPicksGuest:', mapPicksGuest ? JSON.parse(JSON.stringify(mapPicksGuest)) : undefined);
+console.log('[MapPoolElement] mapBansGuest:', mapBansGuest ? JSON.parse(JSON.stringify(mapBansGuest)) : undefined);
   if (isBroadcast && player1MapPool.length === 0 && player2MapPool.length === 0 && noMapsAvailableInOptions) {
     return null;
   }
