@@ -1,5 +1,14 @@
+// Note on Zustand persist deprecation:
+// The deprecation warning for `getStorage`, `serialize`, and `deserialize` likely
+// originates from how the `persist` middleware is *called* in `draftStore.ts`
+// when using this custom storage engine. This `customLocalStorageWithBroadcast`
+// object correctly implements the `StateStorage` interface. The `persist` call
+// in `draftStore.ts` should be checked to ensure it's not redundantly passing
+// these deprecated options if it's already using this complete storage engine.
+
 import { StateStorage } from 'zustand/middleware';
 import useDraftStore from './draftStore';
+import { SavedStudioLayout, StudioCanvas } from '../types/draft'; // Import types
 
 const STORE_NAME = 'aoe2-draft-overlay-combined-storage-v1';
 const BROADCAST_CHANNEL_NAME = 'zustand_store_sync_channel';
@@ -125,9 +134,9 @@ export const customLocalStorageWithBroadcast: StateStorage = {
     try {
       const parsedValueForLog = JSON.parse(valueToStore);
       if (parsedValueForLog && parsedValueForLog.state && parsedValueForLog.state.savedStudioLayouts && parsedValueForLog.state.activeStudioLayoutId) {
-        const activeLayout = parsedValueForLog.state.savedStudioLayouts.find(l => l.id === parsedValueForLog.state.activeStudioLayoutId);
+        const activeLayout = parsedValueForLog.state.savedStudioLayouts.find((l: SavedStudioLayout) => l.id === parsedValueForLog.state.activeStudioLayoutId);
         if (activeLayout && activeLayout.canvases) {
-          const activeCanvasInLayout = activeLayout.canvases.find(c => c.id === activeLayout.activeCanvasId);
+          const activeCanvasInLayout = activeLayout.canvases.find((c: StudioCanvas) => c.id === activeLayout.activeCanvasId);
           console.log(
             '[CustomStorage setItem] Parsed value details: ActiveLayoutID:', parsedValueForLog.state.activeStudioLayoutId,
             'ActiveCanvasID in Layout:', activeLayout.activeCanvasId,

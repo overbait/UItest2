@@ -48,6 +48,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@types/react-resizable": "^3.0.8",

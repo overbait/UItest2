@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Removed useCallback
 import useDraftStore from '../store/draftStore';
-import { ConnectionStatus, SavedPreset, CombinedDraftState } from '../types/draft';
+import { ConnectionStatus, SavedPreset/*, CombinedDraftState*/ } from '../types/draft'; // Commented out CombinedDraftState
 import '../styles/TechnicalInterface.css';
 
 const DraftListDisplay: React.FC<{ title: string; items: string[]; type: 'pick' | 'ban' }> = ({ title, items, type }) => (
@@ -682,7 +682,6 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
             autoFocus
           />
           <div
-            className="flag-dropdown-item"
             className="flag-dropdown-item"
             onClick={() => handleFlagSelection(null)}
           >

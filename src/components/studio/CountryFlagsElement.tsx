@@ -16,7 +16,7 @@ const CountryFlagsElement: React.FC<CountryFlagsElementProps> = ({ element, isSe
     // textColor, // Not directly used for images
     isPivotLocked,
     pivotInternalOffset,
-    size // Used for dynamic font size if we had text, and for main div dimensions
+    // size // Used for dynamic font size if we had text, and for main div dimensions // Commented out as unused
   } = element;
 
 console.log('[CountryFlagsElement] Rendering in context:');

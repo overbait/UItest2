@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react'; // Import useMemo
 import useDraftStore from '../../store/draftStore';
-import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft'; // Added Aoe2cmRawDraftData
+import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft'; // Restored Aoe2cmRawDraftData
 
 // Define a basic CivItem interface if it doesn't exist elsewhere
 interface CivItem {
@@ -31,20 +31,12 @@ const reorderCivsForDisplay = (civs: CivItem[], numRows: number): (CivItem | nul
     const columnForDisplay: (CivItem | null)[] = Array(numRows).fill(null);
 
     // Place the reversed items at the end of this conceptual column
-    // Example: if numRows=4 and reversedCivItemsInSegment=[C1, C2] (C2 was "above" C1 visually in source)
-    // C1 (first in reversed, last in original column segment) goes to columnForDisplay[3] (bottom-most)
-    // C2 (second in reversed, second-to-last in original) goes to columnForDisplay[2]
-    // Resulting in [null, null, C2, C1] for this column in the final flat list
     for (let itemIdx = 0; itemIdx < reversedCivItemsInSegment.length; itemIdx++) {
       columnForDisplay[numRows - 1 - itemIdx] = reversedCivItemsInSegment[itemIdx];
     }
 
     finalDisplayList.push(...columnForDisplay);
   }
-  // Ensure the list is exactly NUM_COLUMNS * numRows long, truncating or padding if necessary
-  // Though the loop structure above should guarantee this if NUM_COLUMNS is fixed.
-  // If civs array is shorter than NUM_COLUMNS * numRows, later columns will be all nulls.
-  // If civs array is somehow longer (shouldn't happen with upstream logic), it's implicitly truncated by slice.
   return finalDisplayList.slice(0, NUM_COLUMNS * numRows);
 };
 
@@ -56,7 +48,6 @@ interface CivPoolElementProps {
 // Helper function (similar to BoXSeriesOverviewElement)
 const formatCivNameForImagePath = (civNameWithPrefix: string): string => {
   if (!civNameWithPrefix) return 'random'; // Or a placeholder image name
-  // Remove 'aoe4.' prefix if present
   const civName = civNameWithPrefix.startsWith('aoe4.') ? civNameWithPrefix.substring(5) : civNameWithPrefix;
   return civName.toLowerCase().replace(/\s+/g, '-').replace(/'/g, '');
 };
@@ -69,14 +60,16 @@ const PREDEFINED_CIV_POOL: string[] = [
   'aoe4.Rus', 'aoe4.ZhuXiLegacy'
 ];
 
+// Define a more specific type for draft options from Aoe2cmRawDraftData
+type DraftOption = NonNullable<NonNullable<Aoe2cmRawDraftData['preset']>['draftOptions']>[number];
+
 const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast }) => {
   const {
     fontFamily = 'Arial, sans-serif',
-    isPivotLocked = false,
+    // isPivotLocked = false, // Commented out as unused
     horizontalSplitOffset = 0,
   } = element;
 
-  // Get data from the store
   const {
     aoe2cmRawDraftOptions,
     civPicksHost,
@@ -95,35 +88,34 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
 
   const deriveCivPool = useCallback((playerType: 'host' | 'guest'): CivItem[] => {
     let availableCivsData: { id: string; name: string }[];
-    const draftHasCivs = aoe2cmRawDraftOptions && aoe2cmRawDraftOptions.some(opt => opt.id && opt.id.startsWith('aoe4.'));
+    const draftHasCivs = aoe2cmRawDraftOptions && aoe2cmRawDraftOptions.some((opt: DraftOption) => opt.id && opt.id.startsWith('aoe4.'));
 
     if (draftHasCivs) {
       availableCivsData = aoe2cmRawDraftOptions!
-        .filter(opt => opt.id && opt.id.startsWith('aoe4.'))
-        .map(opt => ({
-          id: opt.id!, // id is guaranteed by filter
+        .filter((opt: DraftOption) => opt.id && opt.id.startsWith('aoe4.'))
+        .map((opt: DraftOption) => ({
+          id: opt.id!,
           name: (opt.name || opt.id!).startsWith('aoe4.') ? (opt.name || opt.id!).substring(5) : (opt.name || opt.id!)
         }));
     } else {
       availableCivsData = PREDEFINED_CIV_POOL.map(id => ({
         id: id,
-        name: id.substring(5) // Remove 'aoe4.' prefix
+        name: id.substring(5)
       }));
     }
 
     return availableCivsData.map(civData => {
-      const displayName = civData.name; // Name without 'aoe4.' prefix
+      const displayName = civData.name;
       let status: CivItem['status'] = 'default';
       const imageUrl = `/assets/civflags_normal/${formatCivNameForImagePath(civData.id)}.png`;
 
-      // Use displayName (without prefix) for pick/ban checks
       if ((civPicksGlobal || []).includes(displayName)) {
         status = 'adminPicked';
       } else if (playerType === 'host') {
         if ((civPicksHost || []).includes(displayName)) status = 'picked';
         else if ((civBansHost || []).includes(displayName)) status = 'banned';
         else if ((civPicksGuest || []).includes(displayName) || (civBansGuest || []).includes(displayName)) status = 'affected';
-      } else { // playerType === 'guest'
+      } else {
         if ((civPicksGuest || []).includes(displayName)) status = 'picked';
         else if ((civBansGuest || []).includes(displayName)) status = 'banned';
         else if ((civPicksHost || []).includes(displayName) || (civBansHost || []).includes(displayName)) status = 'affected';
@@ -134,61 +126,45 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
 
   const player1CivPool = useMemo(() => {
     const pool = deriveCivPool('host');
-    // NUM_ROWS is passed as the second argument (previously columnSize)
     return reorderCivsForDisplay(pool, NUM_ROWS);
   }, [deriveCivPool]);
 
   const player2CivPool = useMemo(() => {
     const pool = deriveCivPool('guest');
-    // NUM_ROWS is passed as the second argument
     return reorderCivsForDisplay(pool, NUM_ROWS);
   }, [deriveCivPool]);
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
 
-  const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 30;
+  // const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 30; // Commented out as unused
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
 
-  const civItemWidth = 120; // Adjust as needed
-  const civItemHeight = 100; // Adjust as needed
+  const civItemWidth = 120;
+  const civItemHeight = 100;
 
-  // Condition for when to show "No Civs Available" message.
-  // This is true if the draft options specifically lack 'aoe4.' items,
-  // AND we are not falling back to the predefined list (though deriveCivPool handles fallback).
-  // The primary check for rendering the message will be if the processed pool for a player is empty.
-  const noCivsAvailableFromDraft = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter(opt => opt.id && opt.id.startsWith('aoe4.')).length === 0;
+  const noCivsAvailableFromDraft = !aoe2cmRawDraftOptions || aoe2cmRawDraftOptions.filter((opt: DraftOption) => opt.id && opt.id.startsWith('aoe4.')).length === 0;
 
-  // Determine if the final displayed pools are empty.
   const player1DisplayPoolIsEmpty = player1CivPool.filter(Boolean).length === 0;
   const player2DisplayPoolIsEmpty = player2CivPool.filter(Boolean).length === 0;
 
-  // Overall condition for returning null if in broadcast mode and no civs to show from any source.
-  // This means if draft is empty AND predefined list also results in empty (which shouldn't happen with current predefined list).
-  // More accurately, if both player display pools are empty.
-
-console.log('[CivPoolElement] Debugging conditional null return:');
-console.log('[CivPoolElement] isBroadcast:', isBroadcast);
-console.log('[CivPoolElement] player1DisplayPoolIsEmpty:', player1DisplayPoolIsEmpty);
-console.log('[CivPoolElement] player1CivPool.length:', player1CivPool.length);
-console.log('[CivPoolElement] player1CivPool (contents):', player1CivPool ? JSON.parse(JSON.stringify(player1CivPool)) : undefined);
-console.log('[CivPoolElement] player2DisplayPoolIsEmpty:', player2DisplayPoolIsEmpty);
-console.log('[CivPoolElement] player2CivPool.length:', player2CivPool.length);
-console.log('[CivPoolElement] player2CivPool (contents):', player2CivPool ? JSON.parse(JSON.stringify(player2CivPool)) : undefined);
-console.log('[CivPoolElement] noCivsAvailableFromDraft:', noCivsAvailableFromDraft); // existing variable
-console.log('[CivPoolElement] aoe2cmRawDraftOptions:', aoe2cmRawDraftOptions ? JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)) : undefined);
-console.log('[CivPoolElement] civPicksGlobal:', civPicksGlobal ? JSON.parse(JSON.stringify(civPicksGlobal)) : undefined);
-console.log('[CivPoolElement] civPicksHost:', civPicksHost ? JSON.parse(JSON.stringify(civPicksHost)) : undefined);
-console.log('[CivPoolElement] civBansHost:', civBansHost ? JSON.parse(JSON.stringify(civBansHost)) : undefined);
-console.log('[CivPoolElement] civPicksGuest:', civPicksGuest ? JSON.parse(JSON.stringify(civPicksGuest)) : undefined);
-console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.stringify(civBansGuest)) : undefined);
+  // console.log('[CivPoolElement] Debugging conditional null return:');
+  // console.log('[CivPoolElement] isBroadcast:', isBroadcast);
+  // console.log('[CivPoolElement] player1DisplayPoolIsEmpty:', player1DisplayPoolIsEmpty);
+  // console.log('[CivPoolElement] player1CivPool.length:', player1CivPool.length);
+  // console.log('[CivPoolElement] player1CivPool (contents):', player1CivPool ? JSON.parse(JSON.stringify(player1CivPool)) : undefined);
+  // console.log('[CivPoolElement] player2DisplayPoolIsEmpty:', player2DisplayPoolIsEmpty);
+  // console.log('[CivPoolElement] player2CivPool.length:', player2CivPool.length);
+  // console.log('[CivPoolElement] player2CivPool (contents):', player2CivPool ? JSON.parse(JSON.stringify(player2CivPool)) : undefined);
+  // console.log('[CivPoolElement] noCivsAvailableFromDraft:', noCivsAvailableFromDraft);
+  // console.log('[CivPoolElement] aoe2cmRawDraftOptions:', aoe2cmRawDraftOptions ? JSON.parse(JSON.stringify(aoe2cmRawDraftOptions)) : undefined);
+  // console.log('[CivPoolElement] civPicksGlobal:', civPicksGlobal ? JSON.parse(JSON.stringify(civPicksGlobal)) : undefined);
+  // console.log('[CivPoolElement] civPicksHost:', civPicksHost ? JSON.parse(JSON.stringify(civPicksHost)) : undefined);
+  // console.log('[CivPoolElement] civBansHost:', civBansHost ? JSON.parse(JSON.stringify(civBansHost)) : undefined);
+  // console.log('[CivPoolElement] civPicksGuest:', civPicksGuest ? JSON.parse(JSON.stringify(civPicksGuest)) : undefined);
+  // console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.stringify(civBansGuest)) : undefined);
   if (isBroadcast && player1DisplayPoolIsEmpty && player2DisplayPoolIsEmpty) {
-    // If there were no civs from draft, and we assume predefined list would always show something unless filtered to empty
-    // this implies a more fundamental issue or an empty state desired.
-    // If PREDEFINED_CIV_POOL was empty, this would be the primary trigger.
-    // Given PREDEFINED_CIV_POOL is not empty, this condition implies all civs were banned/picked resulting in empty display for both.
-    // Or if deriveCivPool somehow returned empty for both players.
     return null;
   }
 
@@ -216,11 +192,9 @@ console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.str
           transform: `translateX(${p1TranslateX}px)`,
         }}
       >
-        {/* Updated conditional message for P1 */}
         {!isBroadcast && player1DisplayPoolIsEmpty && <div className={styles.noCivsMessage}>(P1: No Civs Available)</div>}
         {player1CivPool.map((civItem, index) => {
           if (!civItem) {
-            // Render a placeholder or nothing for null items to maintain grid structure
             return <div key={`p1-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
           return (
@@ -246,11 +220,9 @@ console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.str
           transform: `translateX(${p2TranslateX}px)`,
         }}
       >
-        {/* Updated conditional message for P2 */}
         {!isBroadcast && player2DisplayPoolIsEmpty && <div className={styles.noCivsMessage}>(P2: No Civs Available)</div>}
         {player2CivPool.map((civItem, index) => {
           if (!civItem) {
-            // Render a placeholder or nothing for null items
             return <div key={`p2-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
           return (

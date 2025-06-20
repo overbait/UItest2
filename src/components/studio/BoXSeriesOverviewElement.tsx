@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Import useState
+import React from 'react'; // Import useState // Removed useState
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
 import styles from './BoXSeriesOverviewElement.module.css'; // IMPORT CSS MODULE
@@ -20,10 +20,10 @@ interface BoXSeriesOverviewElementProps {
 
 const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ element, isBroadcast }) => {
   const {
-    scale = 1, // scale is part of element but not directly used for internal calculations here
-    isPivotLocked = false,
+    // scale = 1, // scale is part of element but not directly used for internal calculations here
+    // isPivotLocked = false,
     pivotInternalOffset = 0,
-    size, // size is part of element but not directly used for internal calculations here
+    // size, // size is part of element but not directly used for internal calculations here
     fontFamily = 'Arial, sans-serif',
     showCivNames = true,  // Default from element prop
     showMapNames = true,  // Default from element prop
@@ -33,9 +33,9 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
   // const [failedImageFallbacks, setFailedImageFallbacks] = useState<Set<string>>(new Set()); // Removed
 
-  const { hostName, guestName, boxSeriesGames } = useDraftStore(state => ({
-    hostName: state.hostName,
-    guestName: state.guestName,
+  const { /* hostName, guestName, */ boxSeriesGames } = useDraftStore(state => ({ // Commented out unused hostName, guestName
+    // hostName: state.hostName, // Commented out as unused
+    // guestName: state.guestName, // Commented out as unused
     boxSeriesGames: state.boxSeriesGames,
   }));
 
@@ -46,11 +46,11 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
 
   // numGames is used for adjusting layout or scaling if needed, though not heavily used in current static sizing.
-  const numGames = boxSeriesGames.length > 0 ? boxSeriesGames.length : 1;
+  // const numGames = boxSeriesGames.length > 0 ? boxSeriesGames.length : 1; // Commented out as unused
 
   // Calculate dimensions and font sizes for internal elements.
   // These are "unscaled" values. The actual on-screen size will be affected by element.scale applied in StudioInterface.
-  const gameRowHeight = REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX; // This is the target height for images within a row.
+  // const gameRowHeight = REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX; // Commented out as unused
 
   // Base font size for text within the element, relative to its unscaled dimensions.
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
@@ -73,7 +73,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   const gameTitleFontSize = dynamicFontSize * 0.9; // Slightly smaller than base text.
   // Adjust top offset for "Game X" title to position it above the images.
   // This might need fine-tuning based on actual font rendering and line height.
-  const gameTitleTopOffset = -(dynamicFontSize * 1.2); // This might be less relevant or need adjustment
+  // const gameTitleTopOffset = -(dynamicFontSize * 1.2); // Commented out as unused // This might be less relevant or need adjustment
 
   // Dynamic style for the game image row, primarily for grid layout and applying custom font.
   // The fontFamily for the overall element is set on styles.baseElement,

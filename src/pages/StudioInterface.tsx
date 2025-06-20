@@ -422,7 +422,9 @@ const StudioInterface: React.FC = () => {
                      onClick={(e) => e.stopPropagation()}
                      style={{ padding: '2px 4px', border: '1px solid #777', backgroundColor: '#1a1a1a', color: 'white', maxWidth: '80px' }}
                    />
-                   <button
+                   <span
+                     role="button"
+                     tabIndex={0}
                      title="Confirm rename"
                      onClick={(e) => {
                        e.stopPropagation();
@@ -432,20 +434,24 @@ const StudioInterface: React.FC = () => {
                        }
                        setEditingCanvasId(null);
                      }}
+                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); const trimmedName = editingCanvasName.trim(); if (trimmedName !== "" && trimmedName !== canvas.name) { updateCanvasName(canvas.id, trimmedName); } setEditingCanvasId(null); }}}
                      style={{ background: 'transparent', border: 'none', color: '#4CAF50', padding: '0 5px', cursor: 'pointer', fontSize: '1.2em', marginLeft: '4px' }}
                    >
                      ✔️
-                   </button>
-                   <button
+                   </span>
+                   <span
+                     role="button"
+                     tabIndex={0}
                      title="Cancel rename"
                      onClick={(e) => {
                        e.stopPropagation();
                        setEditingCanvasId(null);
                      }}
+                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setEditingCanvasId(null); }}}
                      style={{ background: 'transparent', border: 'none', color: '#F44336', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em' }}
                    >
                      ❌
-                   </button>
+                   </span>
                  </>
                ) : (
                  <> {/* Fragment for display mode */}
@@ -455,47 +461,48 @@ const StudioInterface: React.FC = () => {
                    >
                      {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name}
                    </span>
-                   <button
+                   <span
+                     role="button"
+                     tabIndex={0}
                      title="Rename canvas"
                      onClick={(e) => {
                        e.stopPropagation();
                        setEditingCanvasId(canvas.id);
                        setEditingCanvasName(canvas.name);
                      }}
+                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setEditingCanvasId(canvas.id); setEditingCanvasName(canvas.name); }}}
                      style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1em' }}
                    >
                      ✏️
-                   </button>
-                   {/* Open in new window button */}
+                   </span>
+                   {/* Open in new window button - functionality removed for Electron */}
                    <span
-                     title="Open canvas in new window (placeholder)"
-                     onClick={(e) => {
-                    e.stopPropagation();
-                    const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`;
-                    window.open(broadcastUrl, '_blank');
-                    console.log('Attempting to open broadcast view in new tab for canvas ID:', canvas.id, 'at URL:', broadcastUrl);
-                  }}
-                  style={{
-                    width: '10px', height: '10px', backgroundColor: 'white',
-                    border: '1px solid #666', marginLeft: '8px', cursor: 'pointer',
-                    display: 'inline-block'
-                  }}
-                ></span>
-                {currentCanvases.length > 1 && (
-                  <button
-                    title="Remove canvas"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id);
-                    }}
-                    style={{
-                      background: 'transparent', border: 'none', color: '#aaa',
-                      marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em',
-                      padding: '0 3px', lineHeight: '1', fontWeight: 'bold'
-                    }}
-                  >
-                    &times;
-                  </button>
+                     title="Open canvas in new window (disabled in Electron)"
+                     onClick={(e) => e.stopPropagation()} // No-op or just remove onClick if purely decorative
+                     style={{
+                       width: '10px', height: '10px', backgroundColor: '#666', // Changed color to indicate disabled
+                       border: '1px solid #444', marginLeft: '8px', cursor: 'default', // Changed cursor
+                       display: 'inline-block', opacity: 0.5 // Indicate disabled
+                     }}
+                   ></span>
+                   {currentCanvases.length > 1 && (
+                     <span
+                       role="button"
+                       tabIndex={0}
+                       title="Remove canvas"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id);
+                       }}
+                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id); }}}
+                       style={{
+                         background: 'transparent', border: 'none', color: '#aaa',
+                         marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em',
+                         padding: '0 3px', lineHeight: '1', fontWeight: 'bold'
+                       }}
+                     >
+                       &times;
+                     </span>
                 )}
                 </>
               )}
@@ -568,6 +575,12 @@ const StudioInterface: React.FC = () => {
             }}
             aria-hidden="true" // Decorative element
           />
+          {/*
+            Note: findDOMNode warnings appearing in StrictMode for Draggable/ResizableBox
+            likely originate from react-draggable and react-resizable themselves.
+            A full fix may require library updates or refactoring how these components are used
+            with refs, if supported by newer versions of the libraries.
+          */}
           {activeLayout.map((element: StudioElement, index: number) => { // Added index here
             const isSelected = element.id === selectedElementId;
             const currentScale = element.scale || 1;

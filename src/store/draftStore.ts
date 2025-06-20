@@ -12,7 +12,7 @@ import {
   StudioElement,
   SavedStudioLayout,
   StudioCanvas, // <-- Add this
-  MapItem,
+  // MapItem, // Commented out as unused
   // CombinedDraftState as CombinedDraftStateType, // This line is no longer needed
   CombinedDraftState as OriginalCombinedDraftState, // Import original for augmentation
 } from '../types/draft';
@@ -87,6 +87,7 @@ interface DraftStore extends CombinedDraftState {
   disconnectWebSocket: () => void;
   // handleWebSocketMessage: (messageData: any) => void; // Removed
   resetActiveCanvasLayout: () => void; // New action
+  // currentSocketDraftType: string | null; // This was an error, it's part of state, not an action
 }
 
 const initialScores = { host: 0, guest: 0 };
@@ -374,8 +375,7 @@ const useDraftStore = create<DraftStore>()(
                       let eventsProcessedCausingChange = false;
                       if (data.events && Array.isArray(data.events)) {
                         console.log('[draftStore] Socket.IO "draft_state": Processing historical events count:', data.events.length);
-                        const currentSocketDraftType = state.socketDraftType; // Consistent draft type for event processing
-
+                        // let currentSocketDraftType = state.socketDraftType; // Commented out as unused in this specific block
                         data.events.forEach(event => {
                           if (!event || typeof event !== 'object' || !event.actionType || !event.hasOwnProperty('chosenOptionId')) {
                             console.warn('[draftStore] Socket.IO "draft_state": Skipping invalid event in historical event array:', event);
