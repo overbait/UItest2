@@ -125,6 +125,21 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           </div>
         );
       })}
+      {/* Visual Border Start */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '0px',
+          top: '0px',
+          width: '1920px',
+          height: '1080px',
+          border: '2px dashed rgba(255, 255, 255, 0.1)',
+          boxSizing: 'border-box',
+          pointerEvents: 'none',
+          zIndex: 9999,
+        }}
+      ></div>
+      {/* Visual Border End */}
       {/* Debug Overlay Start */}
       {/*
       <div
