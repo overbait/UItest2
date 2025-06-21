@@ -61,11 +61,23 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         position: 'relative',
         overflow: 'hidden',
         backgroundColor: 'transparent', // Crucial for OBS
-        border: '1px dashed rgba(68, 68, 68, 1)', // Modified border
+        // border has been removed from this outer div
       }}
     >
-      {canvasToRender.layout.map((element: StudioElement) => {
-        console.log('BroadcastView - Rendering element.type:', element.type);
+      <div // Inner bordered canvas (inset by 16px)
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          right: '16px',
+          bottom: '16px',
+          border: '1px dashed rgba(68, 68, 68, 1)',
+          overflow: 'hidden',
+          backgroundColor: 'transparent', // Optional, parent is transparent
+        }}
+      >
+        {canvasToRender.layout.map((element: StudioElement) => {
+          console.log('BroadcastView - Rendering element.type:', element.type);
         console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
@@ -165,6 +177,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       ></div>
       */}
       {/* Debug Overlay End */}
+      </div> {/* Closing tag for the new inner div */}
     </div>
   );
 };
