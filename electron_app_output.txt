@@ -1,11 +1,23 @@
-[5911:0620/165228.376974:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.377456:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.461969:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.475952:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.522186:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.542425:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.542776:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5911:0620/165228.585419:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
-[5867:0620/165229.254707:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
-[5867:0620/165229.254799:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[7374:0620/234348.897008:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234348.989065:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234349.211103:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234349.267782:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234349.283943:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234349.285933:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234349.287960:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7331:0620/234350.451900:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[7331:0620/234350.452075:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[TEST_SIM] Simulating IPC: open-broadcast-window for default
+Broadcast window for canvasId default created.
+[7374:0620/234353.985511:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[TEST_SIM] Simulating IPC: open-broadcast-window for default (again to test focus)
+[TEST_SIM] Simulating IPC: open-broadcast-window for canvas-2
+Broadcast window for canvasId canvas-2 created.
+[7374:0620/234403.708076:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234403.768053:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234403.824937:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234403.855440:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234403.870692:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234501.829734:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
+[7374:0620/234501.840407:ERROR:net/socket/socket_posix.cc:93] CreatePlatformSocket() failed: Address family not supported by protocol (97)
 /app/node_modules/electron/dist/electron exited with signal SIGTERM

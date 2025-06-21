@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMessage: (channel, func) => {
         ipcRenderer.on(channel, (event, ...args) => func(...args));
     },
+    openBroadcastWindow: (canvasId) => ipcRenderer.send('open-broadcast-window', canvasId),
 });
 console.log('Preload script loaded.');
 //# sourceMappingURL=preload.js.map

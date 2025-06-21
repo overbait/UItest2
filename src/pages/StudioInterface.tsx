@@ -475,14 +475,21 @@ const StudioInterface: React.FC = () => {
                    >
                      ✏️
                    </span>
-                   {/* Open in new window button - functionality removed for Electron */}
+                   {/* Open in new window button - Updated to use electronAPI */}
                    <span
-                     title="Open canvas in new window (disabled in Electron)"
-                     onClick={(e) => e.stopPropagation()} // No-op or just remove onClick if purely decorative
+                     title="Open broadcast window for this canvas"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       if (window.electronAPI && typeof window.electronAPI.openBroadcastWindow === 'function') {
+                         window.electronAPI.openBroadcastWindow(canvas.id);
+                       } else {
+                         console.warn('electronAPI.openBroadcastWindow is not available. Ensure preload script is loaded.');
+                       }
+                     }}
                      style={{
-                       width: '10px', height: '10px', backgroundColor: '#666', // Changed color to indicate disabled
-                       border: '1px solid #444', marginLeft: '8px', cursor: 'default', // Changed cursor
-                       display: 'inline-block', opacity: 0.5 // Indicate disabled
+                       width: '10px', height: '10px', backgroundColor: 'white', // Make it look active
+                       border: '1px solid #666', marginLeft: '8px', cursor: 'pointer',
+                       display: 'inline-block', opacity: 1 // Ensure full opacity
                      }}
                    ></span>
                    {currentCanvases.length > 1 && (
