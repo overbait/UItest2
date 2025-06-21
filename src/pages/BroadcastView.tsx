@@ -54,30 +54,31 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
   }
   return (
-    <div
+    <div // viewportDiv: 1920x1080, flex centering
       style={{
         width: '1920px',
         height: '1080px',
-        position: 'relative',
+        backgroundColor: 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         overflow: 'hidden',
-        backgroundColor: 'transparent', // Crucial for OBS
-        // border has been removed from this outer div
       }}
     >
-      <div // Inner bordered canvas (inset by 16px)
+      <div // scalableContentDiv: 1920x1080 content, but scaled down
         style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          right: '16px',
-          bottom: '16px',
-          border: '1px dashed rgba(68, 68, 68, 1)',
+          width: '1920px',
+          height: '1080px',
+          position: 'relative',
           overflow: 'hidden',
-          backgroundColor: 'transparent', // Optional, parent is transparent
+          backgroundColor: 'transparent', // Important for elements to show correctly
+          border: '1px dashed rgba(68, 68, 68, 1)',
+          transform: 'scale(0.75)',
+          transformOrigin: 'center center',
         }}
       >
         {canvasToRender.layout.map((element: StudioElement) => {
-          console.log('BroadcastView - Rendering element.type:', element.type);
+        console.log('BroadcastView - Rendering element.type:', element.type);
         console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
@@ -177,8 +178,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       ></div>
       */}
       {/* Debug Overlay End */}
-      </div> {/* Closing tag for the new inner div */}
-    </div>
+      </div> {/* End of scalableContentDiv */}
+    </div> /* End of viewportDiv */
   );
 };
 
