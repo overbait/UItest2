@@ -61,7 +61,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         position: 'relative',
         overflow: 'hidden',
         backgroundColor: 'transparent', // Crucial for OBS
-        border: '1px dashed rgba(68, 68, 68, 0.1)', // Added border with 90% transparency
+        border: '1px dashed rgba(68, 68, 68, 1)', // Modified border
       }}
     >
       {canvasToRender.layout.map((element: StudioElement) => {
