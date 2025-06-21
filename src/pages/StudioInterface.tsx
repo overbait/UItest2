@@ -16,6 +16,7 @@ import SettingsPanel from '../components/studio/SettingsPanel';
 const MIN_ELEMENT_WIDTH = 50;
 
 const StudioInterface: React.FC = () => {
+  const globalCanvasScale = 0.75;
   const {
     currentCanvases,
     activeCanvasId,
@@ -69,7 +70,7 @@ const StudioInterface: React.FC = () => {
 
     if (element.isPivotLocked) {
     // Vertical drag part (screen coordinates)
-    let newY_screen = element.position.y + data.deltaY;
+    let newY_screen = element.position.y + (data.deltaY / globalCanvasScale);
 
     // element, data, newY_screen, currentX_screen, currentScale, dragStartContext are available from the outer scope or calculated just before this
     if (element.type === "MapPoolElement" || element.type === "CivPoolElement") { // Extended condition
@@ -78,7 +79,7 @@ const StudioInterface: React.FC = () => {
         const currentScale = element.scale || 1; // Added for clarity
 
         if (data.deltaX !== 0 && dragStartContext && dragStartContext.elementId === elementId) {
-            let changeInOffsetFactor = data.deltaX / currentScale; // currentScale is element.scale || 1
+            let changeInOffsetFactor = (data.deltaX / globalCanvasScale) / currentScale; // currentScale is element.scale || 1
 
             if (dragStartContext.initialMouseX < dragStartContext.elementCenterX) { // Drag started on left half
                 newHorizontalSplitOffset = Math.max(0, (element.horizontalSplitOffset || 0) - changeInOffsetFactor);
@@ -114,7 +115,7 @@ const StudioInterface: React.FC = () => {
         const pivotScreenX_fixed = currentX_screen + (currentUnscaledWidth / 2) * currentScale;
 
         // Convert screen drag delta to an equivalent unscaled drag for one edge
-        const effectiveUnscaledDrag = data.deltaX / currentScale;
+        const effectiveUnscaledDrag = (data.deltaX / globalCanvasScale) / currentScale;
         let actualEffectiveUnscaledDrag = effectiveUnscaledDrag;
 
         if (dragStartContext && dragStartContext.elementId === elementId) {
@@ -161,14 +162,16 @@ const StudioInterface: React.FC = () => {
 
     } else { // Pivot not locked - normal drag
       // data.x and data.y are the new absolute positions of the top-left corner from Draggable's perspective
-      updateStudioElementPosition(elementId, { x: data.x, y: data.y });
+      updateStudioElementPosition(elementId, { x: data.x / globalCanvasScale, y: data.y / globalCanvasScale });
     }
   };
 
   const handleResizeStop = (elementId: string, data: ResizeCallbackData) => {
     const currentElement = activeLayout.find(el => el.id === elementId);
-    const currentScale = currentElement?.scale || 1;
-    updateStudioElementSize(elementId, { width: data.size.width / currentScale, height: data.size.height / currentScale });
+    const currentElementIndividualScale = currentElement?.scale || 1; // Renamed for clarity
+    const scaledWidth = data.size.width / globalCanvasScale;
+    const scaledHeight = data.size.height / globalCanvasScale;
+    updateStudioElementSize(elementId, { width: scaledWidth / currentElementIndividualScale, height: scaledHeight / currentElementIndividualScale });
   };
 
   const handleSaveLayout = () => { if (newLayoutName.trim() === "") { alert("Please enter a name."); return; } saveCurrentStudioLayout(newLayoutName.trim()); setNewLayoutName(""); };
@@ -384,7 +387,7 @@ const StudioInterface: React.FC = () => {
           <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
         </div>
       </aside>
-      <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
+    <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0px', marginBottom: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflowX: 'auto', paddingBottom: '5px' }}>
@@ -551,6 +554,8 @@ const StudioInterface: React.FC = () => {
             aspectRatio: '16 / 9',
             maxHeight: 'calc(100vh - 60px - 2rem - 30px - 50px)',
             margin: 'auto',
+            transform: `scale(${globalCanvasScale})`,
+            transformOrigin: 'center center',
           }}
         >
           {/* Visual Center Guide Line */}

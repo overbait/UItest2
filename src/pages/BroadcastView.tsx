@@ -54,30 +54,17 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
   }
   return (
-    <div // viewportDiv: 1920x1080, flex centering
+    <div
       style={{
         width: '1920px',
         height: '1080px',
-        backgroundColor: 'transparent',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position: 'relative',
         overflow: 'hidden',
+        backgroundColor: 'transparent', // Crucial for OBS
+        border: '1px dashed rgba(68, 68, 68, 1)', // Border is on this div
       }}
     >
-      <div // scalableContentDiv: 1920x1080 content, but scaled down
-        style={{
-          width: '1920px',
-          height: '1080px',
-          position: 'relative',
-          overflow: 'hidden',
-          backgroundColor: 'transparent', // Important for elements to show correctly
-          border: '1px dashed rgba(68, 68, 68, 1)',
-          transform: 'scale(0.75)',
-          transformOrigin: 'center center',
-        }}
-      >
-        {canvasToRender.layout.map((element: StudioElement) => {
+      {canvasToRender.layout.map((element: StudioElement) => {
         console.log('BroadcastView - Rendering element.type:', element.type);
         console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
@@ -178,8 +165,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       ></div>
       */}
       {/* Debug Overlay End */}
-      </div> {/* End of scalableContentDiv */}
-    </div> /* End of viewportDiv */
+    </div>
   );
 };
 
