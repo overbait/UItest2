@@ -53,6 +53,17 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     console.log('BroadcastView - canvasToRender:', JSON.parse(JSON.stringify(canvasToRender))); // Log a deep clone for cleaner inspection
     console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
   }
+
+  const backgroundImageStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    zIndex: -1,
+  };
+
   return (
     <div
       style={{
@@ -68,26 +79,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         <img
           src={canvasToRender.backgroundImage}
           alt="Canvas Background"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: -1,
-          }}
-        />
-      )}
-      {canvasToRender.layout.map((element: StudioElement) => {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: -1, // Ensure it's behind all other elements
-          }}
+          style={backgroundImageStyle} // Use the constant here
         />
       )}
       {canvasToRender.layout.map((element: StudioElement) => {
