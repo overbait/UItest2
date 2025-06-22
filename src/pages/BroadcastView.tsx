@@ -75,6 +75,9 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         // border: '1px dotted rgba(255,255,255,0.1)', // Optional: for dev/setup
       }}
     >
+  {canvasToRender.backgroundImage &&
+    console.log(`[BROADCAST DEBUG] Canvas ${canvasToRender.id} rendering background image: ${canvasToRender.backgroundImage}`)
+  }
       {canvasToRender.backgroundImage && (
         <img
           src={canvasToRender.backgroundImage}

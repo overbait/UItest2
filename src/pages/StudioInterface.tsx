@@ -505,7 +505,7 @@ const StudioInterface: React.FC = () => {
                   <button
                     onClick={() => {
                       if (activeCanvasId && selectedImageForPreview) {
-                        const imageUrl = `assets/backgrounds/${selectedImageForPreview}`;
+                        const imageUrl = `/assets/backgrounds/${selectedImageForPreview}`; // Added leading slash
                         console.log(`[DEBUG] Confirm Background Image button clicked. activeCanvasId: ${activeCanvasId}, selectedImageForPreview: ${selectedImageForPreview}`);
                         console.log(`[DEBUG] Calling setCanvasBackgroundImage with ID: ${activeCanvasId} and URL: ${imageUrl}`);
                         setCanvasBackgroundImage(activeCanvasId, imageUrl);
