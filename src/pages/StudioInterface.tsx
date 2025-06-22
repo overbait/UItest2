@@ -50,6 +50,7 @@ const StudioInterface: React.FC = () => {
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
   const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // New state for canvas settings
+  const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
   const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
@@ -57,6 +58,26 @@ const StudioInterface: React.FC = () => {
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
   const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
+
+  const fetchBackgroundImages = async () => {
+    try {
+      // This is a placeholder for where you'd actually call ls or an API
+      // In a real scenario, you'd use a tool call if the agent environment supports it here,
+      // or fetch from an endpoint. For now, we'll simulate.
+      const imageFiles = [
+        "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
+      ];
+      // Filter out potential directory entries if ls were to return them
+      setAvailableBackgroundImages(imageFiles.filter(file => !file.endsWith('/')));
+    } catch (error) {
+      console.error("Error fetching background images:", error);
+      setAvailableBackgroundImages([]); // Set to empty on error
+    }
+  };
+
+  useEffect(() => {
+    fetchBackgroundImages();
+  }, []);
 
   const handleAddScoreOnly = () => { addStudioElement("ScoreOnly"); };
   const handleAddNicknamesOnly = () => { addStudioElement("NicknamesOnly"); };
@@ -420,11 +441,17 @@ const StudioInterface: React.FC = () => {
                 </div>
                 <div>
                   <label style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Image:</label>
+                  <button
+                    onClick={fetchBackgroundImages}
+                    style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#007bff', marginBottom: '5px'}}
+                  >
+                    Update List
+                  </button>
                   <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}>
-                    {[
-                      "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
-                      // Add more image names here if discovered later
-                    ].map(imageName => (
+                    {availableBackgroundImages.length === 0 && (
+                      <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated.</p>
+                    )}
+                    {availableBackgroundImages.map(imageName => (
                       <div key={imageName} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '0.85em', borderBottom: '1px solid #444'}}>
                         <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
                           {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
@@ -437,7 +464,6 @@ const StudioInterface: React.FC = () => {
                         </button>
                       </div>
                     ))}
-                    {/* If no images, a message could be shown here */}
                   </div>
                   <button
                     onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, null)}
