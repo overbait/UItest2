@@ -51,6 +51,7 @@ const StudioInterface: React.FC = () => {
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
   const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // This was the original state, let's keep it.
   const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]);
+  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
   const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
@@ -466,36 +467,70 @@ const StudioInterface: React.FC = () => {
                     )}
                     {availableBackgroundImages.map(imageName => {
                       console.log('[DEBUG] Rendering image in list:', imageName);
+                      const isSelected = selectedImageForPreview === imageName;
                       return (
-                        <div key={imageName} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '0.85em', borderBottom: '1px solid #444'}}>
+                        <div
+                          key={imageName}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '5px', fontSize: '0.85em',
+                            borderBottom: '1px solid #444',
+                            backgroundColor: isSelected ? '#007bff' : 'transparent', // Highlight if selected
+                            color: isSelected ? 'white' : '#ccc',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setSelectedImageForPreview(imageName)}
+                        >
                           <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
                             {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
                           </span>
+                          {/* "Select" button can be removed if the whole item is clickable, or kept for clarity */}
                           <button
-                            onClick={() => {
-                              console.log(`[DEBUG] Apply button clicked for image: ${imageName}, activeCanvasId: ${activeCanvasId}`);
-                              if (activeCanvasId) {
-                                const imageUrl = `assets/backgrounds/${imageName}`;
-                                console.log(`[DEBUG] Calling setCanvasBackgroundImage with ID: ${activeCanvasId} and URL: ${imageUrl}`);
-                                setCanvasBackgroundImage(activeCanvasId, imageUrl);
-                              } else {
-                                console.warn('[DEBUG] No activeCanvasId, cannot apply background image.');
-                              }
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click if button is clicked
+                              setSelectedImageForPreview(imageName);
                             }}
-                            style={{...actionButtonStyle, backgroundColor: '#007bff', color: 'white', flexShrink: 0}}
+                            style={{
+                              ...actionButtonStyle,
+                              backgroundColor: isSelected ? '#28a745' : '#007bff',
+                              color: 'white', flexShrink: 0
+                            }}
                           >
-                            Apply
+                            {isSelected ? 'Selected' : 'Select'}
                           </button>
                         </div>
                       );
                     })}
                   </div>
                   <button
-                    onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, null)}
-                    style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#555'}}
+                    onClick={() => {
+                      if (activeCanvasId && selectedImageForPreview) {
+                        const imageUrl = `assets/backgrounds/${selectedImageForPreview}`;
+                        console.log(`[DEBUG] Confirm Background Image button clicked. activeCanvasId: ${activeCanvasId}, selectedImageForPreview: ${selectedImageForPreview}`);
+                        console.log(`[DEBUG] Calling setCanvasBackgroundImage with ID: ${activeCanvasId} and URL: ${imageUrl}`);
+                        setCanvasBackgroundImage(activeCanvasId, imageUrl);
+                      } else {
+                        console.warn('[DEBUG] Confirm Background Image: No activeCanvasId or no image selected for preview.');
+                      }
+                    }}
+                    style={{...buttonStyle, width: '100%', marginTop: '10px', backgroundColor: '#28a745', fontSize: '0.9em'}}
+                    disabled={!selectedImageForPreview || !activeCanvasId}
+                    title="Apply selected image as background"
+                  >
+                    Confirm Background Image
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (activeCanvasId) {
+                        console.log(`[DEBUG] Clear Background Image button clicked. activeCanvasId: ${activeCanvasId}`);
+                        setCanvasBackgroundImage(activeCanvasId, null);
+                      }
+                      setSelectedImageForPreview(null); // Also clear selection
+                    }}
+                    style={{...buttonStyle, width: '100%', marginTop: '5px', backgroundColor: '#dc3545', fontSize: '0.9em'}}
                     title="Clear background image"
                   >
-                    Clear Image
+                    Clear Background Image
                   </button>
                 </div>
               </>
