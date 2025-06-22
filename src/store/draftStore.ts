@@ -80,6 +80,8 @@ interface DraftStore extends CombinedDraftState {
   addCanvas: (name?: string) => void;
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
+  setCanvasBackgroundColor: (canvasId: string, color: string | null) => void;
+  setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void;
   setActiveStudioLayoutId: (layoutId: string | null) => void;
 
   // WebSocket Actions
@@ -94,7 +96,13 @@ const initialPlayerNameHost = 'Player 1';
 const initialPlayerNameGuest = 'Player 2';
 
 const initialDefaultCanvasId = `default-${Date.now()}`;
-const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
+const initialCanvases: StudioCanvas[] = [{
+  id: initialDefaultCanvasId,
+  name: 'Default',
+  layout: [],
+  backgroundColor: null,
+  backgroundImage: null,
+}];
 
 // Initial flags are now derived in TechnicalInterface.tsx based on playerFlagMappings in localStorage.
 // The store's hostFlag/guestFlag will be null initially, then populated.
@@ -1839,7 +1847,13 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const newCanvasId = `canvas-${Date.now()}`;
             const newCanvasName = name || `Canvas ${state.currentCanvases.length + 1}`;
-            const newCanvas: StudioCanvas = { id: newCanvasId, name: newCanvasName, layout: [] };
+            const newCanvas: StudioCanvas = {
+              id: newCanvasId,
+              name: newCanvasName,
+              layout: [],
+              backgroundColor: null,
+              backgroundImage: null,
+            };
             return { ...state, currentCanvases: [...state.currentCanvases, newCanvas], activeCanvasId: newCanvasId, selectedElementId: null };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
@@ -1854,6 +1868,26 @@ const useDraftStore = create<DraftStore>()(
             }
             return { ...state, currentCanvases: newCanvases, activeCanvasId: newActiveCanvasId, selectedElementId: null };
           });
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        setCanvasBackgroundColor: (canvasId: string, color: string | null) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas =>
+              canvas.id === canvasId ? { ...canvas, backgroundColor: color } : canvas
+            ),
+            layoutLastUpdated: Date.now(),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+        setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas =>
+              canvas.id === canvasId ? { ...canvas, backgroundImage: imageUrl } : canvas
+            ),
+            layoutLastUpdated: Date.now(),
+          }));
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
       updateCanvasName: (canvasId: string, newName: string) => {

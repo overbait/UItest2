@@ -30,7 +30,9 @@ const StudioInterface: React.FC = () => {
     setActiveCanvas,
     removeCanvas,
     updateCanvasName, // Added updateCanvasName
-    resetActiveCanvasLayout
+    resetActiveCanvasLayout,
+    setCanvasBackgroundColor,
+    setCanvasBackgroundImage,
   } = useDraftStore(state => state);
 
   // Logging for savedStudioLayouts and activeStudioLayoutId
@@ -47,6 +49,7 @@ const StudioInterface: React.FC = () => {
   const [isElementsOpen, setIsElementsOpen] = useState<boolean>(true);
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
+  const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // New state for canvas settings
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
   const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
@@ -383,6 +386,71 @@ const StudioInterface: React.FC = () => {
           {/* The SettingsPanel will only render its content if selectedElement is not null */}
           <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
         </div>
+
+        {/* Canvas Settings Section */}
+        {activeCanvas && (
+          <div style={toolboxSectionStyle}>
+            <h3
+              style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
+              onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)}
+            >
+              <span>Canvas: {activeCanvas.name}</span>
+              <span>{isCanvasSettingsOpen ? '▼' : '▶'}</span>
+            </h3>
+            {isCanvasSettingsOpen && (
+              <>
+                <div>
+                  <label htmlFor="canvasBgColorPicker" style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Color:</label>
+                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
+                    <input
+                      type="color"
+                      id="canvasBgColorPicker"
+                      value={activeCanvas.backgroundColor || '#000000'}
+                      onChange={(e) => activeCanvasId && setCanvasBackgroundColor(activeCanvasId, e.target.value)}
+                      style={{marginRight: '10px', height: '30px', width: '50px', padding: '2px', border: '1px solid #555', backgroundColor: '#2c2c2c'}}
+                    />
+                    <button
+                      onClick={() => activeCanvasId && setCanvasBackgroundColor(activeCanvasId, null)}
+                      style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#555'}}
+                      title="Clear background color"
+                    >
+                      Clear Color
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Image:</label>
+                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}>
+                    {[
+                      "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
+                      // Add more image names here if discovered later
+                    ].map(imageName => (
+                      <div key={imageName} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '0.85em', borderBottom: '1px solid #444'}}>
+                        <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
+                          {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
+                        </span>
+                        <button
+                          onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, `assets/backgrounds/${imageName}`)}
+                          style={{...actionButtonStyle, backgroundColor: '#007bff', color: 'white', flexShrink: 0}}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    ))}
+                    {/* If no images, a message could be shown here */}
+                  </div>
+                  <button
+                    onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, null)}
+                    style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#555'}}
+                    title="Clear background image"
+                  >
+                    Clear Image
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </aside>
       <main style={{ flexGrow: 1, padding: '1rem', position: 'relative', overflow: 'hidden' }} onClick={(e) => { if (e.target === e.currentTarget) { setSelectedElementId(null); } }}>
         {/* Tab Bar Start */}

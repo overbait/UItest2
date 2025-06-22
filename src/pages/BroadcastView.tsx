@@ -60,10 +60,25 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         height: '1080px',
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: 'transparent', // Crucial for OBS
+        backgroundColor: canvasToRender.backgroundColor || 'transparent', // Apply background color or default to transparent
         // border: '1px dotted rgba(255,255,255,0.1)', // Optional: for dev/setup
       }}
     >
+      {canvasToRender.backgroundImage && (
+        <img
+          src={canvasToRender.backgroundImage}
+          alt="Canvas Background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: -1, // Ensure it's behind all other elements
+          }}
+        />
+      )}
       {canvasToRender.layout.map((element: StudioElement) => {
         console.log('BroadcastView - Rendering element.type:', element.type);
         console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
