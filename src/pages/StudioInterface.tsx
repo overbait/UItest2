@@ -49,7 +49,7 @@ const StudioInterface: React.FC = () => {
   const [isElementsOpen, setIsElementsOpen] = useState<boolean>(true);
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
-  const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // New state for canvas settings - Defaulting to true for debug
+  const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // This was the original state, let's keep it.
   const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
@@ -65,11 +65,12 @@ const StudioInterface: React.FC = () => {
       // This is a placeholder for where you'd actually call ls or an API
       // In a real scenario, you'd use a tool call if the agent environment supports it here,
       // or fetch from an endpoint. For now, we'll simulate.
-      const imageFiles = [
+      // Ensure imageFiles is always an array.
+      const imageFiles = [ // Explicitly an array
         "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
       ];
-      console.log('[DEBUG] Simulated imageFiles:', imageFiles);
-      const filteredImages = imageFiles.filter(file => !file.endsWith('/'));
+      console.log('[DEBUG] Simulated imageFiles (ensured as array):', imageFiles);
+      const filteredImages = imageFiles.filter(file => typeof file === 'string' && !file.endsWith('/'));
       console.log('[DEBUG] Setting availableBackgroundImages to:', filteredImages);
       setAvailableBackgroundImages(filteredImages);
     } catch (error) {
@@ -417,15 +418,15 @@ const StudioInterface: React.FC = () => {
 
         {/* Canvas Settings Section */}
         {activeCanvas && (
-          <div style={{...toolboxSectionStyle, border: '2px solid red', padding: '10px', margin: '5px'}}> {/* DEBUG BORDER */}
+          <div style={toolboxSectionStyle}>
             <h3
-              style={{...toolboxHeaderStyle, cursor: 'default', display: 'flex', justifyContent: 'space-between'}}
-              // onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)} // DEBUG: Force open
+              style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
+              onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)}
             >
-              <span>Canvas: {activeCanvas.name} (Settings DEBUG - Forced Open)</span>
-              {/* <span>{isCanvasSettingsOpen ? '▼' : '▶'}</span> */}
+              <span>Canvas: {activeCanvas.name}</span>
+              <span>{isCanvasSettingsOpen ? '▼' : '▶'}</span>
             </h3>
-            {/* {isCanvasSettingsOpen && ( // DEBUG: Force open contents */}
+            {isCanvasSettingsOpen && (
               <>
                 <div>
                   <label htmlFor="canvasBgColorPicker" style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Color:</label>
@@ -454,7 +455,7 @@ const StudioInterface: React.FC = () => {
                   >
                     Update List
                   </button>
-                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '2px solid blue', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}> {/* DEBUG BORDER */}
+                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}>
                     {availableBackgroundImages.length === 0 && (
                       <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated. [DEBUG]</p>
                     )}
@@ -491,7 +492,7 @@ const StudioInterface: React.FC = () => {
                   </button>
                 </div>
               </>
-            {/* )} // DEBUG: End force open contents */}
+            )}
           </div>
         )}
       </aside>
