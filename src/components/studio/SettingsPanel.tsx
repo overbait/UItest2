@@ -342,6 +342,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
                   const reader = new FileReader();
                   reader.onloadend = () => {
                     handleSettingChange('imageUrl', reader.result as string);
+                    // Log selectedElementId from store AFTER setting image to see if it changed
+                    console.log(`[SETTINGS DEBUG] Image URL updated for ${selectedElement?.id}. Current selectedElementId from store: ${useDraftStore.getState().selectedElementId}`);
                   };
                   reader.readAsDataURL(file);
                 } else {
@@ -356,7 +358,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               <label style={{...labelStyle, marginBottom: '5px'}}>Current Image:</label>
               <img src={selectedElement.imageUrl} alt="Selected background" style={{maxWidth: '100%', maxHeight: '100px', border: '1px solid #555', objectFit: 'contain'}}/>
               <button
-                onClick={() => handleSettingChange('imageUrl', null)}
+                onClick={() => {
+                  console.log(`[SETTINGS DEBUG] Clearing image for element: ${selectedElement?.id}`);
+                  handleSettingChange('imageUrl', null);
+                }}
                 style={{...buttonStyle, backgroundColor: '#dc3545', color: 'white', width: 'auto', padding: '3px 8px', fontSize: '0.8em', marginTop: '5px'}}
               >
                 Clear Selected Image

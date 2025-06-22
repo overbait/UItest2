@@ -1767,23 +1767,34 @@ const useDraftStore = create<DraftStore>()(
         },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
         updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
+          console.log(`[STORE DEBUG] updateStudioElementSettings called. Element ID: ${elementId}, Settings: `, JSON.stringify(settings));
           set(state => {
+            let updatedElementForLog: StudioElement | undefined;
             const updatedCanvases = state.currentCanvases.map(canvas => {
               if (canvas.id === state.activeCanvasId) {
+                const newLayout = canvas.layout.map(el => {
+                  if (el.id === elementId) {
+                    updatedElementForLog = { ...el, ...settings };
+                    return updatedElementForLog;
+                  }
+                  return el;
+                });
+                if (updatedElementForLog) {
+                  console.log(`[STORE DEBUG] Element ${elementId} after update (within set): `, JSON.stringify(updatedElementForLog));
+                }
                 return {
                   ...canvas,
-                  layout: canvas.layout.map(el => {
-                    if (el.id === elementId) {
-                      return { ...el, ...settings };
-                    }
-                    return el;
-                  }),
+                  layout: newLayout,
                 };
               }
               return canvas;
             });
             return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
           });
+          // Log after state is set (though the above log inside map is more immediate for the change)
+          // const activeCanvas = get().currentCanvases.find(c => c.id === get().activeCanvasId);
+          // const finalUpdatedElement = activeCanvas?.layout.find(el => el.id === elementId);
+          // console.log(`[STORE DEBUG] Element ${elementId} imageUrl after update (from get): `, finalUpdatedElement?.imageUrl);
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         removeStudioElement: (elementId: string) => {
@@ -1962,17 +1973,34 @@ const useDraftStore = create<DraftStore>()(
 
         _autoSaveOrUpdateActiveStudioLayout: () => {
           const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
-          const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId);
-          console.log(
-            '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
-            'ActiveCanvasID:', activeCanvasId,
-            'Total Canvases:', currentCanvases.length,
-            'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
-          );
+          // const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId); // Replaced by more detailed log below
+          // console.log(
+          //   '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
+          //   'ActiveCanvasID:', activeCanvasId,
+          //   'Total Canvases:', currentCanvases.length,
+          //   'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
+          // );
           const autoSavePresetName = "(auto)";
 
-          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId);
-          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] currentCanvases being processed:', JSON.parse(JSON.stringify(currentCanvases)));
+          console.log(`[STORE DEBUG] _autoSaveOrUpdateActiveStudioLayout called. Active Layout ID: ${activeStudioLayoutId}`);
+          const canvasesToLog = currentCanvases.map(c => ({
+            id: c.id,
+            name: c.name,
+            backgroundColor: c.backgroundColor, // Also log canvas background color
+            layout: c.layout.map(el => ({
+              id: el.id,
+              type: el.type,
+              // Log only a snippet of imageUrl if it's a long Data URL
+              imageUrl: el.imageUrl ? (el.imageUrl.length > 100 ? el.imageUrl.substring(0, 100) + '...' : el.imageUrl) : null,
+              opacity: el.opacity,
+              stretch: el.stretch
+            }))
+          }));
+          console.log('[STORE DEBUG] Data being processed by _autoSaveOrUpdateActiveStudioLayout:', JSON.stringify(canvasesToLog, null, 2));
+
+
+          // console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId); // Covered by new log
+          // console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] currentCanvases being processed:', JSON.parse(JSON.stringify(currentCanvases))); // Covered by new log
 
           if (activeStudioLayoutId) {
             let updatedLayoutObject: SavedStudioLayout | null = null;

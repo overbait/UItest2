@@ -8,6 +8,8 @@ interface BackgroundImageElementProps {
 }
 
 const BackgroundImageElement: React.FC<BackgroundImageElementProps> = ({ element, isBroadcast, isSelected }) => {
+  console.log(`[COMPONENT DEBUG] BackgroundImageElement rendering. Element ID: ${element.id}, Image URL: ${element.imageUrl}`);
+
   if (element.type !== 'BackgroundImage') {
     // This component should only render BackgroundImage elements.
     // Or, you could make it more generic if it shares logic with other image-like elements.
