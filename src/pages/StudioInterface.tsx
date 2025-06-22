@@ -50,8 +50,8 @@ const StudioInterface: React.FC = () => {
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
   const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // This was the original state, let's keep it.
-  const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]);
-  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null);
+  // const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]); // Old: To be removed
+  // const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null); // Old: To be removed
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
   const [dragStartContext, setDragStartContext] = useState<{ elementId: string, initialMouseX: number, elementCenterX: number } | null>(null);
@@ -60,35 +60,31 @@ const StudioInterface: React.FC = () => {
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
   const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
 
-  const fetchBackgroundImages = async () => {
-    console.log('[DEBUG] fetchBackgroundImages called');
-    try {
-      // This is a placeholder for where you'd actually call ls or an API
-      // In a real scenario, you'd use a tool call if the agent environment supports it here,
-      // or fetch from an endpoint. For now, we'll simulate.
-      // Ensure imageFiles is always an array.
-      const imageFiles = [ // Explicitly an array with multiple items for testing list rendering
-        "simulated_image1.png",
-        "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png",
-        "simulated_image2.jpg"
-      ];
-      console.log('[DEBUG] Simulated imageFiles (ensured as array):', imageFiles);
-      const filteredImages = imageFiles.filter(file => typeof file === 'string' && !file.endsWith('/'));
-      console.log('[DEBUG] Setting availableBackgroundImages to:', filteredImages);
-      setAvailableBackgroundImages(filteredImages);
-    } catch (error) {
-      console.error("Error fetching background images:", error);
-      setAvailableBackgroundImages([]); // Set to empty on error
-    }
-  };
+  // const fetchBackgroundImages = async () => { // Old: To be removed
+  //   console.log('[DEBUG] fetchBackgroundImages called');
+  //   try {
+  //     const imageFiles = [
+  //       "simulated_image1.png",
+  //       "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png",
+  //       "simulated_image2.jpg"
+  //     ];
+  //     console.log('[DEBUG] Simulated imageFiles (ensured as array):', imageFiles);
+  //     const filteredImages = imageFiles.filter(file => typeof file === 'string' && !file.endsWith('/'));
+  //     console.log('[DEBUG] Setting availableBackgroundImages to:', filteredImages);
+  //     // setAvailableBackgroundImages(filteredImages); // State variable removed
+  //   } catch (error) {
+  //     console.error("Error fetching background images:", error);
+  //     // setAvailableBackgroundImages([]); // State variable removed
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchBackgroundImages();
-  }, []);
+  // useEffect(() => { // Old: To be removed
+  //   // fetchBackgroundImages();
+  // }, []);
 
-  useEffect(() => {
-    console.log('[DEBUG] availableBackgroundImages state updated:', availableBackgroundImages);
-  }, [availableBackgroundImages]);
+  // useEffect(() => { // Old: To be removed
+  //   // console.log('[DEBUG] availableBackgroundImages state updated:', availableBackgroundImages);
+  // }, [availableBackgroundImages]);
 
   const handleAddScoreOnly = () => { addStudioElement("ScoreOnly"); };
   const handleAddNicknamesOnly = () => { addStudioElement("NicknamesOnly"); };
@@ -322,6 +318,7 @@ const StudioInterface: React.FC = () => {
              <button onClick={handleAddColorGlowElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Color Glow</button>
              <button onClick={handleAddMapPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Map Pool</button>
              <button onClick={handleAddCivPoolElement} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Civ Pool</button> {/* Added Civ Pool button */}
+             <button onClick={() => addStudioElement("BackgroundImage")} style={{ ...buttonStyle, width: 'calc(50% - 5px)' }}>Add Background Element</button>
            </div>
          )}
         </div>
@@ -450,89 +447,7 @@ const StudioInterface: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Image:</label>
-                  {/* Sub-header for clarity */}
-                  <h4 style={{fontSize: '0.9em', color: '#c0c0c0', marginTop: '10px', marginBottom: '5px', borderTop: '1px solid #333', paddingTop: '10px'}}>Available Background Images:</h4>
-                  <button
-                    onClick={fetchBackgroundImages}
-                    style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#007bff', marginBottom: '5px'}}
-                  >
-                    Update List
-                  </button>
-                  {/* Container for the list with clearer styling */}
-                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #444', padding: '8px', marginBottom: '10px', backgroundColor: '#1e1e1e', borderRadius: '3px'}}>
-                    {availableBackgroundImages.length === 0 && (
-                      <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated. [DEBUG]</p>
-                    )}
-                    {availableBackgroundImages.map(imageName => {
-                      console.log('[DEBUG] Rendering image in list:', imageName);
-                      const isSelected = selectedImageForPreview === imageName;
-                      return (
-                        <div
-                          key={imageName}
-                          style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '5px', fontSize: '0.85em',
-                            borderBottom: '1px solid #444',
-                            backgroundColor: isSelected ? '#007bff' : 'transparent', // Highlight if selected
-                            color: isSelected ? 'white' : '#ccc',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setSelectedImageForPreview(imageName)}
-                        >
-                          <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
-                            {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
-                          </span>
-                          {/* "Select" button can be removed if the whole item is clickable, or kept for clarity */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent row click if button is clicked
-                              setSelectedImageForPreview(imageName);
-                            }}
-                            style={{
-                              ...actionButtonStyle,
-                              backgroundColor: isSelected ? '#28a745' : '#007bff',
-                              color: 'white', flexShrink: 0
-                            }}
-                          >
-                            {isSelected ? 'Selected' : 'Select'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (activeCanvasId && selectedImageForPreview) {
-                        const imageUrl = `/assets/backgrounds/${selectedImageForPreview}`; // Added leading slash
-                        console.log(`[DEBUG] Confirm Background Image button clicked. activeCanvasId: ${activeCanvasId}, selectedImageForPreview: ${selectedImageForPreview}`);
-                        console.log(`[DEBUG] Calling setCanvasBackgroundImage with ID: ${activeCanvasId} and URL: ${imageUrl}`);
-                        setCanvasBackgroundImage(activeCanvasId, imageUrl);
-                      } else {
-                        console.warn('[DEBUG] Confirm Background Image: No activeCanvasId or no image selected for preview.');
-                      }
-                    }}
-                    style={{...buttonStyle, width: '100%', marginTop: '10px', backgroundColor: '#28a745', fontSize: '0.9em'}}
-                    disabled={!selectedImageForPreview || !activeCanvasId}
-                    title="Apply selected image as background"
-                  >
-                    Confirm Background Image
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (activeCanvasId) {
-                        console.log(`[DEBUG] Clear Background Image button clicked. activeCanvasId: ${activeCanvasId}`);
-                        setCanvasBackgroundImage(activeCanvasId, null);
-                      }
-                      setSelectedImageForPreview(null); // Also clear selection
-                    }}
-                    style={{...buttonStyle, width: '100%', marginTop: '5px', backgroundColor: '#dc3545', fontSize: '0.9em'}}
-                    title="Clear background image"
-                  >
-                    Clear Background Image
-                  </button>
-                </div>
+                {/* Old background image selection UI removed. Canvas background color picker remains. */}
               </>
             )}
           </div>

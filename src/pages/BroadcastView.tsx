@@ -8,6 +8,7 @@ import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement';
 import CivPoolElement from '../components/studio/CivPoolElement';
+import BackgroundImageElement from '../components/studio/BackgroundImageElement'; // Import new component
 // All elements are now imported.
 
 interface BroadcastViewProps {
@@ -54,15 +55,15 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
   }
 
-  const backgroundImageStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    zIndex: -1,
-  };
+  // const backgroundImageStyle: React.CSSProperties = { // Old style, no longer needed here
+  //   position: 'absolute',
+  //   top: 0,
+  //   left: 0,
+  //   width: '100%',
+  //   height: '100%',
+  //   objectFit: 'cover',
+  //   zIndex: -1,
+  // };
 
   return (
     <div
@@ -71,20 +72,11 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         height: '1080px',
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: canvasToRender.backgroundColor || 'transparent', // Apply background color or default to transparent
+        backgroundColor: canvasToRender.backgroundColor || 'transparent', // Canvas background color remains
         // border: '1px dotted rgba(255,255,255,0.1)', // Optional: for dev/setup
       }}
     >
-  {canvasToRender.backgroundImage &&
-    console.log(`[BROADCAST DEBUG] Canvas ${canvasToRender.id} rendering background image: ${canvasToRender.backgroundImage}`)
-  }
-      {canvasToRender.backgroundImage && (
-        <img
-          src={canvasToRender.backgroundImage}
-          alt="Canvas Background"
-          style={backgroundImageStyle} // Use the constant here
-        />
-      )}
+      {/* Old direct background image rendering removed */}
       {canvasToRender.layout.map((element: StudioElement) => {
         console.log('BroadcastView - Rendering element.type:', element.type);
         console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
@@ -125,6 +117,8 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
           content = <MapPoolElement element={element} isBroadcast={true} />;
         } else if (element.type === "CivPoolElement") {
           content = <CivPoolElement element={element} isBroadcast={true} />;
+        } else if (element.type === "BackgroundImage") {
+          content = <BackgroundImageElement element={element} isBroadcast={true} />;
         } else {
           content = (
             <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555', color: '#ccc' }}>

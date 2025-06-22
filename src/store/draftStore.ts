@@ -81,7 +81,7 @@ interface DraftStore extends CombinedDraftState {
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
   setCanvasBackgroundColor: (canvasId: string, color: string | null) => void;
-  setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void;
+  // setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void; // To be removed
   setActiveStudioLayoutId: (layoutId: string | null) => void;
 
   // WebSocket Actions
@@ -101,7 +101,7 @@ const initialCanvases: StudioCanvas[] = [{
   name: 'Default',
   layout: [],
   backgroundColor: null,
-  backgroundImage: null,
+  // backgroundImage: null, // Removed
 }];
 
 // Initial flags are now derived in TechnicalInterface.tsx based on playerFlagMappings in localStorage.
@@ -1698,6 +1698,27 @@ const useDraftStore = create<DraftStore>()(
                 horizontalSplitOffset: 0,
                 // player1CivPool and player2CivPool are derived from store, not needed here
               };
+            } else if (elementType === "BackgroundImage") {
+              newElement = {
+                id: Date.now().toString(),
+                type: "BackgroundImage",
+                position: { x: 0, y: 0 }, // Default to top-left
+                size: { width: 1920, height: 1080 }, // Default to full canvas size
+                imageUrl: null,
+                opacity: 1,
+                stretch: 'cover',
+                // Other common properties if needed, like scale, isPivotLocked, etc.
+                // For a background, these might often be 1 and false respectively.
+                scale: 1,
+                isPivotLocked: false, // Usually not relevant for a full background
+              };
+              // Prepend BackgroundImageElement to ensure it's rendered first (bottom layer)
+              const updatedCanvases = state.currentCanvases.map(canvas =>
+                canvas.id === state.activeCanvasId
+                  ? { ...canvas, layout: [newElement, ...canvas.layout] } // Prepend
+                  : canvas
+              );
+              return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now(), selectedElementId: newElement.id };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.
@@ -1851,8 +1872,7 @@ const useDraftStore = create<DraftStore>()(
               id: newCanvasId,
               name: newCanvasName,
               layout: [],
-              backgroundColor: null,
-              backgroundImage: null,
+              backgroundColor: null, // backgroundImage was already removed here, this is correct
             };
             return { ...state, currentCanvases: [...state.currentCanvases, newCanvas], activeCanvasId: newCanvasId, selectedElementId: null };
           });
@@ -1880,19 +1900,7 @@ const useDraftStore = create<DraftStore>()(
           }));
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
-        setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => {
-          console.log(`[STORE DEBUG] setCanvasBackgroundImage called with canvasId: ${canvasId}, imageUrl: ${imageUrl}`);
-          set(state => ({
-            ...state,
-            currentCanvases: state.currentCanvases.map(canvas =>
-              canvas.id === canvasId ? { ...canvas, backgroundImage: imageUrl } : canvas
-            ),
-            layoutLastUpdated: Date.now(),
-          }));
-          const updatedCanvas = get().currentCanvases.find(c => c.id === canvasId);
-          console.log(`[STORE DEBUG] Canvas ${canvasId} background image after update: `, updatedCanvas?.backgroundImage);
-          get()._autoSaveOrUpdateActiveStudioLayout();
-        },
+      // Removed setCanvasBackgroundImage action
       updateCanvasName: (canvasId: string, newName: string) => {
         set(state => {
           const newTrimmedName = newName.trim();

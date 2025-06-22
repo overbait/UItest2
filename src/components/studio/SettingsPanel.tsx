@@ -326,6 +326,53 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
        </>
      )}
 
+      {selectedElement.type === 'BackgroundImage' && (
+        <>
+          <h4 style={sectionHeaderStyle}>Background Image Options</h4>
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageUrlInput" style={labelStyle}>Image URL:</label>
+            <input
+              type="text"
+              id="bgImageUrlInput"
+              style={inputStyle}
+              value={selectedElement.imageUrl || ''}
+              onChange={(e) => handleSettingChange('imageUrl', e.target.value)}
+              placeholder="https://example.com/image.png"
+            />
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageOpacitySlider" style={labelStyle}>Opacity:</label>
+            <input
+              type="range"
+              id="bgImageOpacitySlider"
+              style={rangeInputStyle}
+              min="0"
+              max="1"
+              step="0.01"
+              value={selectedElement.opacity === undefined ? 1 : selectedElement.opacity}
+              onChange={(e) => handleSettingChange('opacity', parseFloat(e.target.value))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.opacity === undefined ? 1 : selectedElement.opacity).toFixed(2)}</span>
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageStretchSelect" style={labelStyle}>Stretch Mode:</label>
+            <select
+              id="bgImageStretchSelect"
+              style={inputStyle} // Reuse inputStyle for select
+              value={selectedElement.stretch || 'cover'}
+              onChange={(e) => handleSettingChange('stretch', e.target.value as 'cover' | 'contain' | 'fill')}
+            >
+              <option value="cover">Cover</option>
+              <option value="contain">Contain</option>
+              <option value="fill">Fill</option>
+            </select>
+          </div>
+          {/* Add other BackgroundImage specific settings here if any in the future */}
+          {/* Common settings like scale, pivot lock might not be relevant for a background */}
+          {/* but could be added if desired. For now, keeping it simple. */}
+        </>
+      )}
+
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>
