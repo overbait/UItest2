@@ -75,7 +75,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            zIndex: -1, // Ensure it's behind all other elements
+            zIndex: -1,
           }}
         />
       )}
