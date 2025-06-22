@@ -49,7 +49,7 @@ const StudioInterface: React.FC = () => {
   const [isElementsOpen, setIsElementsOpen] = useState<boolean>(true);
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
-  const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // New state for canvas settings
+  const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true); // New state for canvas settings - Defaulting to true for debug
   const [availableBackgroundImages, setAvailableBackgroundImages] = useState<string[]>([]);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
@@ -60,6 +60,7 @@ const StudioInterface: React.FC = () => {
   const selectedElement = useMemo(() => activeLayout.find(el => el.id === selectedElementId) || null, [selectedElementId, activeLayout]);
 
   const fetchBackgroundImages = async () => {
+    console.log('[DEBUG] fetchBackgroundImages called');
     try {
       // This is a placeholder for where you'd actually call ls or an API
       // In a real scenario, you'd use a tool call if the agent environment supports it here,
@@ -67,8 +68,10 @@ const StudioInterface: React.FC = () => {
       const imageFiles = [
         "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
       ];
-      // Filter out potential directory entries if ls were to return them
-      setAvailableBackgroundImages(imageFiles.filter(file => !file.endsWith('/')));
+      console.log('[DEBUG] Simulated imageFiles:', imageFiles);
+      const filteredImages = imageFiles.filter(file => !file.endsWith('/'));
+      console.log('[DEBUG] Setting availableBackgroundImages to:', filteredImages);
+      setAvailableBackgroundImages(filteredImages);
     } catch (error) {
       console.error("Error fetching background images:", error);
       setAvailableBackgroundImages([]); // Set to empty on error
@@ -78,6 +81,10 @@ const StudioInterface: React.FC = () => {
   useEffect(() => {
     fetchBackgroundImages();
   }, []);
+
+  useEffect(() => {
+    console.log('[DEBUG] availableBackgroundImages state updated:', availableBackgroundImages);
+  }, [availableBackgroundImages]);
 
   const handleAddScoreOnly = () => { addStudioElement("ScoreOnly"); };
   const handleAddNicknamesOnly = () => { addStudioElement("NicknamesOnly"); };
@@ -410,15 +417,15 @@ const StudioInterface: React.FC = () => {
 
         {/* Canvas Settings Section */}
         {activeCanvas && (
-          <div style={toolboxSectionStyle}>
+          <div style={{...toolboxSectionStyle, border: '2px solid red', padding: '10px', margin: '5px'}}> {/* DEBUG BORDER */}
             <h3
-              style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}}
-              onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)}
+              style={{...toolboxHeaderStyle, cursor: 'default', display: 'flex', justifyContent: 'space-between'}}
+              // onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)} // DEBUG: Force open
             >
-              <span>Canvas: {activeCanvas.name}</span>
-              <span>{isCanvasSettingsOpen ? '▼' : '▶'}</span>
+              <span>Canvas: {activeCanvas.name} (Settings DEBUG - Forced Open)</span>
+              {/* <span>{isCanvasSettingsOpen ? '▼' : '▶'}</span> */}
             </h3>
-            {isCanvasSettingsOpen && (
+            {/* {isCanvasSettingsOpen && ( // DEBUG: Force open contents */}
               <>
                 <div>
                   <label htmlFor="canvasBgColorPicker" style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Color:</label>
@@ -447,23 +454,33 @@ const StudioInterface: React.FC = () => {
                   >
                     Update List
                   </button>
-                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}>
+                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '2px solid blue', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}> {/* DEBUG BORDER */}
                     {availableBackgroundImages.length === 0 && (
-                      <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated.</p>
+                      <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated. [DEBUG]</p>
                     )}
-                    {availableBackgroundImages.map(imageName => (
-                      <div key={imageName} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '0.85em', borderBottom: '1px solid #444'}}>
-                        <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
-                          {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
-                        </span>
-                        <button
-                          onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, `assets/backgrounds/${imageName}`)}
-                          style={{...actionButtonStyle, backgroundColor: '#007bff', color: 'white', flexShrink: 0}}
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    ))}
+                    {availableBackgroundImages.map(imageName => {
+                      console.log('[DEBUG] Rendering image in list:', imageName);
+                      return (
+                        <div key={imageName} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '0.85em', borderBottom: '1px solid #444'}}>
+                          <span title={imageName} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px'}}>
+                            {imageName.length > 25 ? imageName.substring(0,22) + '...' : imageName}
+                          </span>
+                          <button
+                            onClick={() => {
+                              console.log(`[DEBUG] Apply button clicked for image: ${imageName}, activeCanvasId: ${activeCanvasId}`);
+                              if (activeCanvasId) {
+                                setCanvasBackgroundImage(activeCanvasId, `assets/backgrounds/${imageName}`);
+                              } else {
+                                console.warn('[DEBUG] No activeCanvasId, cannot apply background image.');
+                              }
+                            }}
+                            style={{...actionButtonStyle, backgroundColor: '#007bff', color: 'white', flexShrink: 0}}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     onClick={() => activeCanvasId && setCanvasBackgroundImage(activeCanvasId, null)}
@@ -474,7 +491,7 @@ const StudioInterface: React.FC = () => {
                   </button>
                 </div>
               </>
-            )}
+            {/* )} // DEBUG: End force open contents */}
           </div>
         )}
       </aside>
