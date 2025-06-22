@@ -1881,6 +1881,7 @@ const useDraftStore = create<DraftStore>()(
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => {
+          console.log(`[STORE DEBUG] setCanvasBackgroundImage called with canvasId: ${canvasId}, imageUrl: ${imageUrl}`);
           set(state => ({
             ...state,
             currentCanvases: state.currentCanvases.map(canvas =>
@@ -1888,6 +1889,8 @@ const useDraftStore = create<DraftStore>()(
             ),
             layoutLastUpdated: Date.now(),
           }));
+          const updatedCanvas = get().currentCanvases.find(c => c.id === canvasId);
+          console.log(`[STORE DEBUG] Canvas ${canvasId} background image after update: `, updatedCanvas?.backgroundImage);
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
       updateCanvasName: (canvasId: string, newName: string) => {

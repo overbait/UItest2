@@ -65,10 +65,26 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
       }}
     >
       {canvasToRender.backgroundImage && (
-        <img
-          src={canvasToRender.backgroundImage}
-          alt="Canvas Background"
-          style={{
+        (() => {
+          console.log(`[BROADCAST DEBUG] Canvas ${canvasToRender.id} attempting to render background image: ${canvasToRender.backgroundImage}`);
+          return (
+            <img
+              src={canvasToRender.backgroundImage}
+              alt="Canvas Background"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                zIndex: -1, // Ensure it's behind all other elements
+              }}
+            />
+          );
+        })()
+      )}
+      {canvasToRender.layout.map((element: StudioElement) => {
             position: 'absolute',
             top: 0,
             left: 0,

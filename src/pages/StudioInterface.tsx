@@ -66,8 +66,10 @@ const StudioInterface: React.FC = () => {
       // In a real scenario, you'd use a tool call if the agent environment supports it here,
       // or fetch from an endpoint. For now, we'll simulate.
       // Ensure imageFiles is always an array.
-      const imageFiles = [ // Explicitly an array
-        "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png"
+      const imageFiles = [ // Explicitly an array with multiple items for testing list rendering
+        "simulated_image1.png",
+        "dynamic_scene_of_glowing_sparks_from_a_campfire_scattered_in_various_directions_against_a_black_bac_dkeqyamwxba0be003lv5_2.png",
+        "simulated_image2.jpg"
       ];
       console.log('[DEBUG] Simulated imageFiles (ensured as array):', imageFiles);
       const filteredImages = imageFiles.filter(file => typeof file === 'string' && !file.endsWith('/'));
@@ -449,13 +451,16 @@ const StudioInterface: React.FC = () => {
                 </div>
                 <div>
                   <label style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b0b0b0'}}>Background Image:</label>
+                  {/* Sub-header for clarity */}
+                  <h4 style={{fontSize: '0.9em', color: '#c0c0c0', marginTop: '10px', marginBottom: '5px', borderTop: '1px solid #333', paddingTop: '10px'}}>Available Background Images:</h4>
                   <button
                     onClick={fetchBackgroundImages}
                     style={{...buttonStyle, width: 'auto', padding: '5px 10px', fontSize: '0.8em', backgroundColor: '#007bff', marginBottom: '5px'}}
                   >
                     Update List
                   </button>
-                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px', marginBottom: '10px', backgroundColor: '#232323'}}>
+                  {/* Container for the list with clearer styling */}
+                  <div style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #444', padding: '8px', marginBottom: '10px', backgroundColor: '#1e1e1e', borderRadius: '3px'}}>
                     {availableBackgroundImages.length === 0 && (
                       <p style={{fontSize: '0.8em', color: '#777', textAlign: 'center'}}>No images found or list not updated. [DEBUG]</p>
                     )}
@@ -470,7 +475,9 @@ const StudioInterface: React.FC = () => {
                             onClick={() => {
                               console.log(`[DEBUG] Apply button clicked for image: ${imageName}, activeCanvasId: ${activeCanvasId}`);
                               if (activeCanvasId) {
-                                setCanvasBackgroundImage(activeCanvasId, `assets/backgrounds/${imageName}`);
+                                const imageUrl = `assets/backgrounds/${imageName}`;
+                                console.log(`[DEBUG] Calling setCanvasBackgroundImage with ID: ${activeCanvasId} and URL: ${imageUrl}`);
+                                setCanvasBackgroundImage(activeCanvasId, imageUrl);
                               } else {
                                 console.warn('[DEBUG] No activeCanvasId, cannot apply background image.');
                               }
