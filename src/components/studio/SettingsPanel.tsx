@@ -330,16 +330,39 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
         <>
           <h4 style={sectionHeaderStyle}>Background Image Options</h4>
           <div style={settingRowStyle}>
-            <label htmlFor="bgImageUrlInput" style={labelStyle}>Image URL:</label>
+            <label htmlFor="bgImageFileInput" style={labelStyle}>Import Image:</label>
             <input
-              type="text"
-              id="bgImageUrlInput"
-              style={inputStyle}
-              value={selectedElement.imageUrl || ''}
-              onChange={(e) => handleSettingChange('imageUrl', e.target.value)}
-              placeholder="https://example.com/image.png"
+              type="file"
+              id="bgImageFileInput"
+              accept="image/*"
+              style={{...inputStyle, padding: '3px'}} // Adjust padding for file input
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const file = e.target.files[0];
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    handleSettingChange('imageUrl', reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                } else {
+                  // Optionally handle case where no file is chosen or selection is cancelled
+                  // For now, if they cancel, imageUrl remains unchanged or they can clear it
+                }
+              }}
             />
           </div>
+          {selectedElement.imageUrl && (
+            <div style={{...settingRowStyle, flexDirection: 'column', alignItems: 'flex-start'}}>
+              <label style={{...labelStyle, marginBottom: '5px'}}>Current Image:</label>
+              <img src={selectedElement.imageUrl} alt="Selected background" style={{maxWidth: '100%', maxHeight: '100px', border: '1px solid #555', objectFit: 'contain'}}/>
+              <button
+                onClick={() => handleSettingChange('imageUrl', null)}
+                style={{...buttonStyle, backgroundColor: '#dc3545', color: 'white', width: 'auto', padding: '3px 8px', fontSize: '0.8em', marginTop: '5px'}}
+              >
+                Clear Selected Image
+              </button>
+            </div>
+          )}
           <div style={settingRowStyle}>
             <label htmlFor="bgImageOpacitySlider" style={labelStyle}>Opacity:</label>
             <input
