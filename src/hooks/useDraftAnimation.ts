@@ -23,6 +23,12 @@ const useDraftAnimation = (
   currentStatus: 'picked' | 'banned' | 'default' | 'affected' | 'adminPicked'
 ): AnimationOutput => {
   const lastDraftAction = useDraftStore(state => state.lastDraftAction);
+  const activeCivDraftId = useDraftStore(state => state.civDraftId);
+  const activeMapDraftId = useDraftStore(state => state.mapDraftId);
+  // We also need to know if the *socket* is connected for this specific itemType,
+  // or if the draft for this itemType is generally considered "active".
+  // For simplicity, checking if a draft ID exists for the itemType is a good start.
+  const isDraftContextActive = itemType === 'civ' ? !!activeCivDraftId : !!activeMapDraftId;
 
   const [animationClass, setAnimationClass] = useState('');
   const [imageOpacity, setImageOpacity] = useState(1); // Default to visible
@@ -35,14 +41,29 @@ const useDraftAnimation = (
   }, [itemName, itemType, lastDraftAction]);
 
   useEffect(() => {
+    // Guard: Only apply animations if the relevant draft context is active
+    if (!isDraftContextActive && lastDraftAction) {
+      // If a lastDraftAction exists from a *different* or *no longer active* context,
+      // ensure this item is not affected and shows default visibility.
+      // This also helps if lastDraftAction was persisted and is now stale.
+      if (animationClass !== '') setAnimationClass('');
+      if (imageOpacity !== 1) setImageOpacity(1);
+      // Potentially clear processedTimestamp if this item was the one with that timestamp
+      if (lastDraftAction.item === itemName && lastDraftAction.itemType === itemType && processedTimestamp === lastDraftAction.timestamp) {
+        setProcessedTimestamp(null);
+      }
+      return; // Early exit, no animation for items outside an active relevant draft context
+    }
+
     const shouldStartAnimation =
       itemIsTheLastAction &&
       lastDraftAction &&
-      lastDraftAction.timestamp !== processedTimestamp;
+      lastDraftAction.timestamp !== processedTimestamp &&
+      isDraftContextActive; // Only animate if context is active
 
     let targetOpacity = 1;
     if (currentStatus === 'affected') {
-      targetOpacity = 0.9; // Target for affected items
+      targetOpacity = 0.8; // Changed to 0.8 for 20% transparency
     }
 
     if (shouldStartAnimation) {

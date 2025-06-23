@@ -137,15 +137,17 @@
   /* No visual styling needed unless for debugging */
 }
 
+/* .pickedImageOverlay is no longer used by the reverted BoXSeriesOverviewElement.tsx */
+/*
 .pickedImageOverlay {
   position: absolute;
-  top: 5px;    /* Respect parent's padding */
-  left: 5px;   /* Respect parent's padding */
-  right: 5px;  /* Respect parent's padding */
-  bottom: 5px; /* Respect parent's padding */
-  /* Width and height are implicitly defined by top/left/right/bottom */
-  object-fit: contain; /* Changed to contain for better flag display */
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  object-fit: contain;
   transition: opacity 1.5s ease-in-out;
-  image-rendering: crisp-edges; /* Optional: if pixel art */
-  border-radius: 2px; /* Optional: if parent has border-radius and object-fit: cover might show sharp corners */
+  image-rendering: crisp-edges;
+  border-radius: 2px;
 }
+*/

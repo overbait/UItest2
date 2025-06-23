@@ -1262,6 +1262,7 @@ const useDraftStore = create<DraftStore>()(
             // Reset UI selection state but not the layout structure itself
             selectedElementId: null,
             layoutLastUpdated: null,
+            lastDraftAction: null, // Explicitly reset lastDraftAction
 
             // Properties to preserve (by not mentioning them, they remain as per current state):
             // currentCanvases: state.currentCanvases,
@@ -1515,8 +1516,45 @@ const useDraftStore = create<DraftStore>()(
           }
         },
         disconnectDraft: (draftType: 'civ' | 'map') => {
-          get().disconnectWebSocket();
-          if (draftType === 'civ') { set({ civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest, boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })), activePresetId: null, }); } else { set({ mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })), activePresetId: null, }); } if (!get().civDraftId && !get().mapDraftId) set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null }); },
+          get().disconnectWebSocket(); // Disconnects any active socket
+
+          let update: Partial<CombinedDraftState> = { lastDraftAction: null }; // Always reset lastDraftAction on any disconnect
+
+          if (draftType === 'civ') {
+            update = {
+              ...update,
+              civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
+              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+              // Only reset host/guest names if the other draft is also not active
+              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost,
+              guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
+              // activePresetId: null, // Keep active preset unless both drafts are disconnected
+            };
+          } else if (draftType === 'map') {
+            update = {
+              ...update,
+              mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
+              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
+              mapPicksGlobal: [], mapBansGlobal: [],
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
+              // activePresetId: null, // Keep active preset unless both drafts are disconnected
+            };
+          }
+
+          set(update);
+
+          // If both drafts are now disconnected, then also reset BoX format and activePresetId
+          if (!get().civDraftId && !get().mapDraftId) {
+            set({
+              boxSeriesFormat: null,
+              boxSeriesGames: [],
+              activePresetId: null, // Now clear active preset
+              aoe2cmRawDraftOptions: undefined, // Clear draft options
+              lastDraftAction: null // Ensure it's cleared here too
+            });
+          }
+        },
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
@@ -1610,9 +1648,35 @@ const useDraftStore = create<DraftStore>()(
           console.log('[loadPreset] Starting to load preset ID:', presetId);
           const preset = get().savedPresets.find(p => p.id === presetId);
           if (preset) {
-            set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] });
-            set({ aoe2cmRawDraftOptions: undefined });
-            console.log('[loadPreset] Cleared aoe2cmRawDraftOptions for preset ID:', presetId);
+            // Explicitly reset lastDraftAction and pick/ban lists before loading new preset data
+            set({
+              lastDraftAction: null,
+              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
+              mapPicksGlobal: [], mapBansGlobal: [],
+              aoe2cmRawDraftOptions: undefined, // Also clear draft options here
+              // Reset other relevant draft state before applying preset values
+              civDraftId: null, mapDraftId: null,
+              civDraftStatus: 'disconnected', mapDraftStatus: 'disconnected',
+              isLoadingCivDraft: false, isLoadingMapDraft: false,
+              civDraftError: null, mapDraftError: null,
+              boxSeriesGames: [] // Clear BoX games as they depend on picks
+            });
+
+            // Now set the preset specific data
+            set({
+              activePresetId: preset.id,
+              // civDraftId and mapDraftId will be set by connectToDraft if they exist in preset
+              hostName: preset.hostName,
+              guestName: preset.guestName,
+              scores: { ...preset.scores },
+              boxSeriesFormat: preset.boxSeriesFormat,
+              // boxSeriesGames will be repopulated by connectToDraft and _calculateUpdatedBoxSeriesGames
+              hostColor: preset.hostColor || null,
+              guestColor: preset.guestColor || null,
+            });
+
+            console.log('[loadPreset] Cleared transient draft states for preset ID:', presetId);
             if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ');
             if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map');
             set({ activePresetId: preset.id }); // Ensure activePresetId is set after connections
@@ -2112,7 +2176,7 @@ const useDraftStore = create<DraftStore>()(
             socketStatus: state.socketStatus,
             socketError: state.socketError,
             socketDraftType: state.socketDraftType,
-            lastDraftAction: state.lastDraftAction, // Persist lastDraftAction
+            // lastDraftAction: state.lastDraftAction, // DO NOT PERSIST lastDraftAction
           }));
 
           // Now, modify the copy
