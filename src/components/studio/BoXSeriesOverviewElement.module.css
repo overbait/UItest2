@@ -36,6 +36,7 @@
   box-sizing: border-box;
   color: white;
   text-shadow: 0 0 3px black, 0 0 3px black;
+  overflow: hidden; /* Added this */
   /* display: flex; */ /* Removed */
   /* justify-content: center; */ /* Removed */
   /* align-items: flex-end; */ /* Removed */
@@ -143,7 +144,7 @@
   right: 5px;  /* Respect parent's padding */
   bottom: 5px; /* Respect parent's padding */
   /* Width and height are implicitly defined by top/left/right/bottom */
-  object-fit: cover; /* Or contain, depending on desired look */
+  object-fit: contain; /* Changed to contain for better flag display */
   transition: opacity 1.5s ease-in-out;
   image-rendering: crisp-edges; /* Optional: if pixel art */
   border-radius: 2px; /* Optional: if parent has border-radius and object-fit: cover might show sharp corners */

@@ -42,10 +42,38 @@
 
 /* Ensure the visual content itself can transition opacity for the image fade-in */
 .mapItemVisualContent {
-  /* ... existing styles ... */
-  transition: opacity 0.5s ease-in-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out; /* Added opacity transition */
+  box-sizing: border-box;
+  border: 1px solid #c19a49;
+  border-radius: 3px;
+  background-color: #4a3b2a;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 4px;
+  overflow: hidden;
+  filter: grayscale(0%); /* Base state for filter */
+  /* Opacity will be set by inline style from hook, base is effectively 1 */
+  transition: opacity 0.5s ease-in-out, /* Default for hook-driven fade-ins */
+              box-shadow 0.3s ease-out, /* For existing glow behavior if any */
+              border-color 0.3s ease-out,
+              filter 2s ease-in-out; /* For affected state filter transition */
 }
 
+.mapItemVisualContent.affected {
+  filter: grayscale(100%);
+  /* Hook will set inline opacity to 0.9 */
+  /* Override transition duration for opacity specifically for the affected state change */
+  transition-property: filter, opacity;
+  transition-duration: 2s, 2s;
+  transition-timing-function: ease-in-out, ease-in-out;
+}
 
 .mapPoolElement {
   width: 100%;
@@ -107,6 +135,12 @@
   padding: 4px; /* Reduced padding to make maps more rectangular - this is for INSIDE the card */
   overflow: hidden;
   /* transition property is now at the top of this class definition for clarity */
+}
+
+.debugLastActionItem { /* For debugging disappearing items */
+  outline: 3px solid limegreen !important;
+  border-color: limegreen !important;
+  box-shadow: 0 0 10px 5px limegreen !important; /* Make it very obvious */
 }
 
 .mapName {
