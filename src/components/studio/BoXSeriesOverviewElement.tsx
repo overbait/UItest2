@@ -1,9 +1,9 @@
-import React, { useState } from 'react'; // Import useState
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
-import styles from './BoXSeriesOverviewElement.module.css'; // IMPORT CSS MODULE
+import styles from './BoXSeriesOverviewElement.module.css';
 
-// Helper functions (remain the same)
+// Helper functions
 const formatCivNameForImagePath = (civName: string): string => {
   if (!civName) return 'random';
   return civName.toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_').replace(/'/g, '');
@@ -145,27 +145,41 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     >
       {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
         const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
-        // gameRowDynamicStyle is now gameImageRowDynamicStyle
-        // const gameImageRowDynamicStyle: React.CSSProperties = { // Defined above
-        //   gridTemplateColumns: isPivotLocked
-        //     ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`
-        //     : '1fr auto 1fr',
-        // };
-        // dynamicGameTitleStyle remains for fontSize, potentially custom fontFamily later
-        // const gameTitleFont = element.fontFamilyGameTitle || undefined; // Defined above
-        // const dynamicGameTitleStyle: React.CSSProperties = { // Defined above
-        //   fontSize: `${gameTitleFontSize}px`,
-        //   fontFamily: gameTitleFont,
-        // };
+        // Opacity states for fade-in effect
+        const [hostCivOpacity, setHostCivOpacity] = useState(0);
+        const [guestCivOpacity, setGuestCivOpacity] = useState(0);
+        const [mapOpacity, setMapOpacity] = useState(0);
+
+        useEffect(() => {
+            setHostCivOpacity(0); // Reset opacity before fade-in
+            if (game.hostCiv) {
+                setTimeout(() => setHostCivOpacity(1), 50); // Start fade-in after a brief delay
+            }
+        }, [game.hostCiv]);
+
+        useEffect(() => {
+            setGuestCivOpacity(0);
+            if (game.guestCiv) {
+                setTimeout(() => setGuestCivOpacity(1), 50);
+            }
+        }, [game.guestCiv]);
+
+        useEffect(() => {
+            setMapOpacity(0);
+            if (game.map) {
+                setTimeout(() => setMapOpacity(1), 50);
+            }
+        }, [game.map]);
 
         return (
          <div
            key={index}
            className={styles.gameEntryContainer}
-           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }} // Apply spacing as paddingTop to subsequent entries
+           style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}
          >
             <div className={styles.gameTitle} style={dynamicGameTitleStyle}>
               Game {index + 1}
@@ -174,60 +188,84 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               {/* Left civilization display. */}
               {!hideCivs && (
               <div className={`${styles.civCell} ${styles.leftCivCell}`}>
-            <div
-              key={hostCivKey + '-container'}
-              className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-              style={{
-                ...civSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-              }}
-            >
-              {showCivNames && game.hostCiv && (
-                <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
+                <div
+                  key={hostCivKey + '-container'}
+                  className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+                  style={{ // Base placeholder image
+                    ...civSelectorStyle,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
+                  }}
+                >
+                  {game.hostCiv && (
+                    <img
+                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png`}
+                      alt={game.hostCiv}
+                      className={styles.boxPickedImage} // Use new class
+                      style={{ opacity: hostCivOpacity }}
+                    />
+                  )}
+                  {showCivNames && game.hostCiv && (
+                    <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
+                  )}
+                </div>
+              </div>
               )}
-            </div>
-          </div>
-          )}
 
-          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {!hideCivs && (pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+              {/* Spacer element */}
+              {!hideCivs && (pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
 
-          {/* Map display. */}
-          <div className={styles.mapCell}>
-            <div
-              key={mapKey + '-container'}
-              className={styles.selectorDisplay}
-              style={{
-                ...mapSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-              }}
-            >
-              {showMapNames && game.map && (
-                <div className={styles.selectorTextOverlay}>{game.map}</div>
+              {/* Map display. */}
+              <div className={styles.mapCell}>
+                <div
+                  key={mapKey + '-container'}
+                  className={styles.selectorDisplay} // No winnerGlow for maps
+                  style={{ // Base placeholder image
+                    ...mapSelectorStyle,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath('random')}.png')`, // Assuming a random map placeholder exists
+                  }}
+                >
+                  {game.map && (
+                    <img
+                      src={`/assets/maps/${formatMapNameForImagePath(game.map)}.png`}
+                      alt={game.map}
+                      className={styles.boxPickedImage} // Use new class
+                      style={{ opacity: mapOpacity }}
+                    />
+                  )}
+                  {showMapNames && game.map && (
+                    <div className={styles.selectorTextOverlay}>{game.map}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Spacer element */}
+              {!hideCivs && (pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
+
+              {/* Right civilization display. */}
+              {!hideCivs && (
+              <div className={`${styles.civCell} ${styles.rightCivCell}`}>
+                <div
+                  key={guestCivKey + '-container'}
+                  className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+                  style={{ // Base placeholder image
+                    ...civSelectorStyle,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
+                  }}
+                >
+                  {game.guestCiv && (
+                    <img
+                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png`}
+                      alt={game.guestCiv}
+                      className={styles.boxPickedImage} // Use new class
+                      style={{ opacity: guestCivOpacity }}
+                    />
+                  )}
+                  {showCivNames && game.guestCiv && (
+                    <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
+                  )}
+                </div>
+              </div>
               )}
-            </div>
-          </div>
-
-          {/* Spacer element, shown if pivotInternalOffset dictates a space. */}
-          {!hideCivs && (pivotInternalOffset && pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
-
-          {/* Right civilization display. */}
-          {!hideCivs && (
-          <div className={`${styles.civCell} ${styles.rightCivCell}`}>
-            <div
-              key={guestCivKey + '-container'}
-              className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-              style={{
-                ...civSelectorStyle,
-                backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7) 0%, rgba(74,59,42,0.1) 100%), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-              }}
-            >
-              {showCivNames && game.guestCiv && (
-                <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
-              )}
-            </div>
-          </div>
-          )}
            </div> {/* End of gameImageRow */}
         </div>
       )})}

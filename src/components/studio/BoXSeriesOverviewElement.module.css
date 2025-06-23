@@ -137,17 +137,18 @@
   /* No visual styling needed unless for debugging */
 }
 
-/* .pickedImageOverlay is no longer used by the reverted BoXSeriesOverviewElement.tsx */
-/*
-.pickedImageOverlay {
+/* New class for the overlay image in BoX series, replacing pickedImageOverlay */
+.boxPickedImage {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  right: 5px;
-  bottom: 5px;
+  top: 5px;    /* Respect parent's padding */
+  left: 5px;   /* Respect parent's padding */
+  right: 5px;  /* Respect parent's padding */
+  bottom: 5px; /* Respect parent's padding */
+  width: calc(100% - 10px); /* Fill content area within padding */
+  height: calc(100% - 10px);/* Fill content area within padding */
   object-fit: contain;
-  transition: opacity 1.5s ease-in-out;
+  transition: opacity 3s ease-in-out; /* 3-second fade-in */
   image-rendering: crisp-edges;
   border-radius: 2px;
+  background-color: transparent; /* Ensure no background interferes if image is transparent */
 }
-*/

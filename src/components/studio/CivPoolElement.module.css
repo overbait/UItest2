@@ -5,33 +5,30 @@
 @value banGlowColor: #dd0000;
 @value adminPickGlowColor: #ffd700;
 
-@keyframes glow-intensify-pick-civ {
-  from { box-shadow: none; }
-  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; }
+/* Normal X1 Glow values */
+@value normalPickBoxShadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset;
+@value normalBanBoxShadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+
+/* X2 Glow values */
+@value doublePickBoxShadow: 0 0 16px 6px #00dd00, 0 0 10px 4px #00dd00 inset;
+@value doubleBanBoxShadow: 0 0 16px 6px #dd0000, 0 0 10px 4px #dd0000 inset;
+
+/* Keyframes for spread animation */
+@keyframes increase-glow-spread-pick {
+  from { box-shadow: normalPickBoxShadow; }
+  to   { box-shadow: doublePickBoxShadow; }
 }
-@keyframes glow-intensify-ban-civ {
-  from { box-shadow: none; }
-  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; }
+@keyframes increase-glow-spread-ban {
+  from { box-shadow: normalBanBoxShadow; }
+  to   { box-shadow: doubleBanBoxShadow; }
 }
 
-.animatePickInitial {
-  animation: glow-intensify-pick-civ 1s ease-out forwards; /* Changed to 1s */
+/* Animation classes */
+.animate-spread-increase-pick {
+  animation: increase-glow-spread-pick 2s ease-in-out forwards;
 }
-.animateBanInitial {
-  animation: glow-intensify-ban-civ 1s ease-out forwards; /* Changed to 1s */
-}
-
-.animatePickSustain {
-  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset; /* 50% glow */
-  border-color: pickGlowColor;
-  /* opacity: 1; /* Opacity is controlled by inline style via hook */
-  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
-}
-.animateBanSustain {
-  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset; /* 50% glow */
-  border-color: banGlowColor;
-  /* opacity: 1; */
-  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
+.animate-spread-increase-ban {
+  animation: increase-glow-spread-ban 2s ease-in-out forwards;
 }
 
 .civItemVisualContent {
@@ -54,8 +51,8 @@
   filter: grayscale(0%); /* Base state for filter */
   /* Opacity will be set by inline style from hook, base is effectively 1 */
   transition: opacity 0.5s ease-in-out, /* Default for hook-driven fade-ins */
-              box-shadow 0.3s ease-out, /* For existing glow behavior if any */
-              border-color 0.3s ease-out,
+              box-shadow 2s ease-in-out, /* For RETURN to normal glow (was 0.3s) */
+              border-color 0.3s ease-out, /* Keep border transition short or sync with box-shadow */
               filter 2s ease-in-out; /* For affected state filter transition */
 }
 

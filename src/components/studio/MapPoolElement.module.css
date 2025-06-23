@@ -6,41 +6,36 @@
 @value banGlowColor: #dd0000; /* Red */
 @value adminPickGlowColor: #ffd700; /* Gold */
 
-/* Keyframes for animations (can be shared if identical, but defined here for explicitness) */
-@keyframes glow-intensify-pick-map {
-  from { box-shadow: none; }
-  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; }
+/* Normal X1 Glow values (ensure these match .picked and .banned if not using CSS vars there) */
+@value normalPickBoxShadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset;
+@value normalBanBoxShadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+
+/* X2 Glow values (doubled spread/blur, adjust as needed) */
+@value doublePickBoxShadow: 0 0 16px 6px #00dd00, 0 0 10px 4px #00dd00 inset;
+@value doubleBanBoxShadow: 0 0 16px 6px #dd0000, 0 0 10px 4px #dd0000 inset;
+
+
+/* Keyframes for spread animation */
+@keyframes increase-glow-spread-pick {
+  from { box-shadow: normalPickBoxShadow; }
+  to   { box-shadow: doublePickBoxShadow; }
 }
-@keyframes glow-intensify-ban-map {
-  from { box-shadow: none; }
-  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; }
+@keyframes increase-glow-spread-ban {
+  from { box-shadow: normalBanBoxShadow; }
+  to   { box-shadow: doubleBanBoxShadow; }
 }
 
 /* Animation classes to be applied by the hook */
-.animatePickInitial {
-  animation: glow-intensify-pick-map 1s ease-out forwards; /* Changed to 1s */
-  /* Image opacity will be handled by inline style from the hook */
+/* These replace animatePickInitial, animateBanInitial, animatePickSustain, animateBanSustain */
+.animate-spread-increase-pick {
+  animation: increase-glow-spread-pick 2s ease-in-out forwards;
 }
-.animateBanInitial {
-  animation: glow-intensify-ban-map 1s ease-out forwards; /* Changed to 1s */
-  /* Image opacity will be handled by inline style from the hook */
-}
-
-/* Classes for the sustained glow state (target of 1s transition to 50% glow) */
-.animatePickSustain {
-  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset; /* 50% glow */
-  border-color: pickGlowColor;
-  /* opacity: 1; /* Opacity is controlled by inline style via hook */
-  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
-}
-.animateBanSustain {
-  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset; /* 50% glow */
-  border-color: banGlowColor;
-  /* opacity: 1; */
-  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
+.animate-spread-increase-ban {
+  animation: increase-glow-spread-ban 2s ease-in-out forwards;
 }
 
-/* Ensure the visual content itself can transition opacity for the image fade-in */
+/* Ensure the visual content itself can transition opacity for the image fade-in,
+   and box-shadow for the return to normal glow */
 .mapItemVisualContent {
   box-sizing: border-box;
   border: 1px solid #c19a49;
@@ -61,8 +56,8 @@
   filter: grayscale(0%); /* Base state for filter */
   /* Opacity will be set by inline style from hook, base is effectively 1 */
   transition: opacity 0.5s ease-in-out, /* Default for hook-driven fade-ins */
-              box-shadow 0.3s ease-out, /* For existing glow behavior if any */
-              border-color 0.3s ease-out,
+              box-shadow 2s ease-in-out, /* For RETURN to normal glow (was 0.3s) */
+              border-color 0.3s ease-out, /* Keep border transition short or sync with box-shadow if needed */
               filter 2s ease-in-out; /* For affected state filter transition */
 }
 
