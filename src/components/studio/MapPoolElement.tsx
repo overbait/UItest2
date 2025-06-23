@@ -142,19 +142,17 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
     });
   }, [aoe2cmRawDraftOptions, mapPicksHost, mapBansHost, mapPicksGuest, mapBansGuest, mapPicksGlobal]);
 
-  const player1MapPool = useMemo(() => {
-    const pool = deriveMapPool('host');
-    // NUM_ROWS is passed as the second argument (previously columnSize)
-    return reorderMapsForDisplay(pool, NUM_ROWS);
-  }, [deriveMapPool, forceMapPoolUpdate]); // forceMapPoolUpdate might be from a previous attempt
+  // const player1MapPool = useMemo(() => { // Original useMemo declaration - REMOVED
+  //   const pool = deriveMapPool('host');
+  //   return reorderMapsForDisplay(pool, NUM_ROWS);
+  // }, [deriveMapPool, forceMapPoolUpdate]);
 
-  // Temporarily remove useMemo for debugging disappearing items
+  // Direct calculation (temporary for debugging, or permanent if useMemo was problematic)
   const hostMapPoolData = deriveMapPool('host');
   const player1MapPool = reorderMapsForDisplay(hostMapPoolData, NUM_ROWS);
 
   const guestMapPoolData = deriveMapPool('guest');
   const player2MapPool = reorderMapsForDisplay(guestMapPoolData, NUM_ROWS);
-  // }, [deriveMapPool, forceMapPoolUpdate]); // Old useMemo dependency
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
