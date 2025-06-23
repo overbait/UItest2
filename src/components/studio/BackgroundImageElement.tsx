@@ -59,7 +59,7 @@ const BackgroundImageElement: React.FC<BackgroundImageElementProps> = ({ element
     >
       <img
         src={imageUrl}
-        alt="Background"
+        alt="" // Changed from "Background" to an empty string
         style={imgStyle}
         // draggable="false" might be good if this element is wrapped in react-draggable
         // to prevent native image drag interference.

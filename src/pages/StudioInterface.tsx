@@ -368,7 +368,7 @@ const StudioInterface: React.FC = () => {
               position: 'relative',
               backgroundColor: activeCanvas?.backgroundColor || 'transparent',
               transform: `scale(${studioCanvasScaleFactor})`,
-              transformOrigin: 'top left',
+              transformOrigin: 'center center', // Changed from 'top left'
             }}
           >
             {/* Visual Center Guide Line - Vertical */}
