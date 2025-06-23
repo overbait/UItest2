@@ -62,9 +62,16 @@ const StudioInterface: React.FC = () => {
     const calculateScale = () => {
       if (responsiveWrapperRef.current) {
         const parentWidth = responsiveWrapperRef.current.offsetWidth;
-        // Ensure parentWidth is not 0 to avoid division by zero or NaN scale factor
-        if (parentWidth > 0) {
-          setStudioCanvasScaleFactor(parentWidth / 1920);
+        const parentHeight = responsiveWrapperRef.current.offsetHeight;
+
+        if (parentWidth > 0 && parentHeight > 0) {
+          const scaleBasedOnWidth = parentWidth / 1920;
+          const scaleBasedOnHeight = parentHeight / 1080;
+          // Use the minimum scale factor to ensure the entire 1920x1080 canvas fits
+          setStudioCanvasScaleFactor(Math.min(scaleBasedOnWidth, scaleBasedOnHeight));
+        } else {
+          // Fallback or default scale if dimensions are zero, though less likely if layout is stable
+          setStudioCanvasScaleFactor(1);
         }
       }
     };
@@ -72,8 +79,19 @@ const StudioInterface: React.FC = () => {
     calculateScale();
     window.addEventListener('resize', calculateScale);
 
-    return () => window.removeEventListener('resize', calculateScale);
-  }, []);
+    // Also observe changes to the ref itself, in case it's not immediately available
+    const resizeObserver = new ResizeObserver(calculateScale);
+    if (responsiveWrapperRef.current) {
+      resizeObserver.observe(responsiveWrapperRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', calculateScale);
+      if (responsiveWrapperRef.current) {
+        resizeObserver.unobserve(responsiveWrapperRef.current);
+      }
+    };
+  }, []); // Empty dependency to run once on mount and clean up on unmount
 
   const activeCanvas = useMemo(() => currentCanvases.find(c => c.id === activeCanvasId), [currentCanvases, activeCanvasId]);
   const activeLayout = useMemo(() => activeCanvas?.layout || [], [activeCanvas]);
