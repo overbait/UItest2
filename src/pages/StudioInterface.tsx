@@ -613,7 +613,7 @@ const StudioInterface: React.FC = () => {
         <div
           style={{
             position: 'relative',
-            border: '1px dashed #444',
+            border: '1px dashed #666', // Made border slightly more visible
             overflow: 'hidden',
             backgroundColor: '#0d0d0d',
             width: '100%',
@@ -622,20 +622,35 @@ const StudioInterface: React.FC = () => {
             margin: 'auto',
           }}
         >
-          {/* Visual Center Guide Line */}
+          {/* Visual Center Guide Line - Vertical */}
           <div
             style={{
               position: 'absolute',
               left: '50%',
               transform: 'translateX(-50%)',
-              top: '0px', // Starts from the top edge of the canvas container
+              top: '0px',
               width: '1px',
-              height: '20px', // A short line
-              backgroundColor: '#555', // A visible gray color
-              pointerEvents: 'none', // Non-interactive
-              zIndex: 0, // Ensure it's behind elements if they get higher z-index
+              height: '100%', // Span full height of container
+              backgroundColor: '#555',
+              pointerEvents: 'none',
+              zIndex: 0,
             }}
-            aria-hidden="true" // Decorative element
+            aria-hidden="true"
+          />
+          {/* Visual Center Guide Line - Horizontal */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              left: '0px',
+              width: '100%', // Span full width of container
+              height: '1px',
+              backgroundColor: '#555',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+            aria-hidden="true"
           />
           {activeLayout.map((element: StudioElement, index: number) => { // Added index here
             const isSelected = element.id === selectedElementId;
@@ -668,6 +683,7 @@ const StudioInterface: React.FC = () => {
               <Draggable
                   key={element.id}
                   handle=".drag-handle"
+                  disabled={element.type === "BackgroundImage" && element.size.width === 1920 && element.size.height === 1080 && element.position.x === 0 && element.position.y === 0}
                   position={{ x: element.position.x, y: element.position.y }}
                   onDrag={(e: DraggableEvent, data: DraggableData) => handleDrag(element.id, data)}
                   onStart={(e: DraggableEvent, data: DraggableData) => {

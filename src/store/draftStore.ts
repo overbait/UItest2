@@ -2040,7 +2040,9 @@ const useDraftStore = create<DraftStore>()(
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
-        partialize: (state) => ({
+        partialize: (state) => {
+          // Create a deep copy of the state to avoid mutating the original state
+          const stateToPersist = JSON.parse(JSON.stringify({
             hostName: state.hostName, guestName: state.guestName, scores: state.scores,
             savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,
@@ -2073,7 +2075,51 @@ const useDraftStore = create<DraftStore>()(
             socketStatus: state.socketStatus,
             socketError: state.socketError,
             socketDraftType: state.socketDraftType,
-        }),
+          }));
+
+          // Now, modify the copy
+          if (stateToPersist.currentCanvases && Array.isArray(stateToPersist.currentCanvases)) {
+            stateToPersist.currentCanvases = stateToPersist.currentCanvases.map(canvas => {
+              if (canvas.layout && Array.isArray(canvas.layout)) {
+                return {
+                  ...canvas,
+                  layout: canvas.layout.map((el: StudioElement) => {
+                    if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+                      return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+                    }
+                    return el;
+                  })
+                };
+              }
+              return canvas;
+            });
+          }
+          if (stateToPersist.savedStudioLayouts && Array.isArray(stateToPersist.savedStudioLayouts)) {
+            stateToPersist.savedStudioLayouts = stateToPersist.savedStudioLayouts.map(savedLayout => {
+              if (savedLayout.canvases && Array.isArray(savedLayout.canvases)) {
+                return {
+                  ...savedLayout,
+                  canvases: savedLayout.canvases.map(canvas => {
+                    if (canvas.layout && Array.isArray(canvas.layout)) {
+                      return {
+                        ...canvas,
+                        layout: canvas.layout.map((el: StudioElement) => {
+                          if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+                            return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+                          }
+                          return el;
+                        })
+                      };
+                    }
+                    return canvas;
+                  })
+                };
+              }
+              return savedLayout;
+            });
+          }
+          return stateToPersist;
+        },
         storage: customLocalStorageWithBroadcast,
         onRehydrateStorage: (state, error) => {
           if (error) console.error('LOGAOEINFO: [draftStore] Error during rehydration:', error);
