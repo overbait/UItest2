@@ -1,5 +1,63 @@
 /* src/components/studio/BoXSeriesOverviewElement.module.css */
 
+/* General glow colors - can be overridden by player-specific colors if needed */
+@value pickGlowColor: #00dd00;
+@value banGlowColor: #dd0000;
+@value adminPickGlowColor: #ffd700; /* Gold for admin picks */
+
+/* Keyframes for animations */
+@keyframes glow-intensify-pick {
+  from { box-shadow: none; }
+  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; }
+}
+@keyframes glow-intensify-ban {
+  from { box-shadow: none; }
+  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; }
+}
+
+/* For elements that are already picked/banned and should have a sustained 50% glow */
+.pickedSteadyGlow {
+  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset !important;
+  border-color: pickGlowColor !important;
+}
+.bannedSteadyGlow {
+  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset !important;
+  border-color: banGlowColor !important;
+}
+.adminPickedSteadyGlow {
+  box-shadow: 0 0 8px 3px adminPickGlowColor, 0 0 5px 2px adminPickGlowColor inset !important;
+  border-color: adminPickGlowColor !important;
+}
+
+
+/* Animation classes to be applied by the hook */
+.animatePickInitial {
+  animation: glow-intensify-pick 0.5s ease-out forwards;
+}
+.animateBanInitial {
+  animation: glow-intensify-ban 0.5s ease-out forwards;
+}
+
+/* Classes for the sustained glow state (target of 2s transition) */
+/* The transition to these properties will be handled by CSS transition on box-shadow and border-color */
+.animatePickSustain {
+  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset;
+  border-color: pickGlowColor;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out;
+}
+.animateBanSustain {
+  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset;
+  border-color: banGlowColor;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out;
+}
+
+/* Image opacity transition */
+.imageFadeContainer { /* Apply this to a container around the image if needed, or directly to image/background-image host */
+  /* opacity will be set by the hook */
+  transition: opacity 0.5s ease-in-out;
+}
+
+
 .baseElement {
   width: 100%;
   height: 100%;
@@ -36,6 +94,7 @@
   box-sizing: border-box;
   color: white;
   text-shadow: 0 0 3px black, 0 0 3px black;
+  transition: opacity 0.5s ease-in-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out; /* Added opacity transition */
   /* display: flex; */ /* Removed */
   /* justify-content: center; */ /* Removed */
   /* align-items: flex-end; */ /* Removed */

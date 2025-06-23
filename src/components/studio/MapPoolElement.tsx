@@ -1,7 +1,8 @@
-import React, { useMemo, useCallback } from 'react'; // Import useMemo
+import React, { useMemo, useCallback } from 'react';
 import useDraftStore from '../../store/draftStore';
-import { StudioElement, MapItem, Aoe2cmRawDraftData } from '../../types/draft'; // Added Aoe2cmRawDraftData
+import { StudioElement, MapItem, Aoe2cmRawDraftData } from '../../types/draft';
 import styles from './MapPoolElement.module.css';
+import useDraftAnimation from '../../hooks/useDraftAnimation'; // Import the hook
 
 // Helper function to reorder maps for bottom-to-top display in columns
 // Now returns (MapItem | null)[] to allow for padding, and always returns full grid size
@@ -177,14 +178,19 @@ console.log('[MapPoolElement] mapBansGuest:', mapBansGuest ? JSON.parse(JSON.str
             // Render a placeholder or nothing for null items to maintain grid structure
             return <div key={`p1-placeholder-${index}`} className={styles.mapItemGridCell} />;
           }
+          // eslint-disable-next-line react-hooks/rules-of-hooks
+          const animation = useDraftAnimation(mapItem.name, 'map', mapItem.status);
+          const combinedClassName = `${styles.mapItemVisualContent} ${getStatusClass(mapItem.status)} ${styles[animation.animationClass] || ''}`;
+
           return (
             <div key={`p1-map-${index}-${mapItem.name}`} className={styles.mapItemGridCell}>
               <div
-                className={`${styles.mapItemVisualContent} ${getStatusClass(mapItem.status)}`}
+                className={combinedClassName}
                 style={{
                   width: `${mapItemWidth}px`,
                   height: `${mapItemHeight}px`,
                   backgroundImage: mapItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${mapItem.imageUrl}')` : undefined,
+                  opacity: animation.imageOpacity,
                 }}
               >
                 <span className={styles.mapName}>{mapItem.name || 'Unknown Map'}</span>
@@ -207,14 +213,19 @@ console.log('[MapPoolElement] mapBansGuest:', mapBansGuest ? JSON.parse(JSON.str
             // Render a placeholder or nothing for null items
             return <div key={`p2-placeholder-${index}`} className={styles.mapItemGridCell} />;
           }
+          // eslint-disable-next-line react-hooks/rules-of-hooks
+          const animation = useDraftAnimation(mapItem.name, 'map', mapItem.status);
+          const combinedClassName = `${styles.mapItemVisualContent} ${getStatusClass(mapItem.status)} ${styles[animation.animationClass] || ''}`;
+
           return (
             <div key={`p2-map-${index}-${mapItem.name}`} className={styles.mapItemGridCell}>
               <div
-                className={`${styles.mapItemVisualContent} ${getStatusClass(mapItem.status)}`}
+                className={combinedClassName}
                 style={{
                   width: `${mapItemWidth}px`,
                   height: `${mapItemHeight}px`,
                   backgroundImage: mapItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${mapItem.imageUrl}')` : undefined,
+                  opacity: animation.imageOpacity,
                 }}
               >
                 <span className={styles.mapName}>{mapItem.name || 'Unknown Map'}</span>

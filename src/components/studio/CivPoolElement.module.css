@@ -1,4 +1,45 @@
 /* src/components/studio/CivPoolElement.module.css */
+/* src/components/studio/CivPoolElement.module.css */
+
+@value pickGlowColor: #00dd00;
+@value banGlowColor: #dd0000;
+@value adminPickGlowColor: #ffd700;
+
+@keyframes glow-intensify-pick-civ {
+  from { box-shadow: none; opacity: 0.5; }
+  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; opacity: 1; }
+}
+@keyframes glow-intensify-ban-civ {
+  from { box-shadow: none; opacity: 0.5; }
+  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; opacity: 1; }
+}
+
+.animatePickInitial {
+  animation: glow-intensify-pick-civ 0.5s ease-out forwards;
+}
+.animateBanInitial {
+  animation: glow-intensify-ban-civ 0.5s ease-out forwards;
+}
+
+.animatePickSustain {
+  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset;
+  border-color: pickGlowColor;
+  opacity: 1;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out;
+}
+.animateBanSustain {
+  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset;
+  border-color: banGlowColor;
+  opacity: 1;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out;
+}
+
+.civItemVisualContent {
+  /* ... existing styles ... */
+  transition: opacity 0.5s ease-in-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out; /* Added opacity transition */
+}
+
+
 .civPoolElement {
   width: 100%;
   height: 100%;
@@ -58,6 +99,7 @@
   align-items: center; /* Center civ name horizontally */
   padding: 4px; /* Reduced padding to make civs more rectangular - this is for INSIDE the card */
   overflow: hidden;
+  /* transition is now at the top of this class definition */
 }
 
 .civName {

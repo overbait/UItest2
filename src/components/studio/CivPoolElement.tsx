@@ -1,6 +1,7 @@
-import React, { useMemo, useCallback } from 'react'; // Import useMemo
+import React, { useMemo, useCallback } from 'react';
 import useDraftStore from '../../store/draftStore';
-import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft'; // Added Aoe2cmRawDraftData
+import { StudioElement, Aoe2cmRawDraftData } from '../../types/draft';
+import useDraftAnimation from '../../hooks/useDraftAnimation'; // Import the hook
 
 // Define a basic CivItem interface if it doesn't exist elsewhere
 interface CivItem {
@@ -223,14 +224,19 @@ console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.str
             // Render a placeholder or nothing for null items to maintain grid structure
             return <div key={`p1-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
+          // eslint-disable-next-line react-hooks/rules-of-hooks
+          const animation = useDraftAnimation(civItem.name, 'civ', civItem.status);
+          const combinedClassName = `${styles.civItemVisualContent} ${getStatusClass(civItem.status)} ${styles[animation.animationClass] || ''}`;
+
           return (
             <div key={`p1-civ-${index}-${civItem.name}`} className={styles.civItemGridCell}>
               <div
-                className={`${styles.civItemVisualContent} ${getStatusClass(civItem.status)}`}
+                className={combinedClassName}
                 style={{
                   width: `${civItemWidth}px`,
                   height: `${civItemHeight}px`,
                   backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
+                  opacity: animation.imageOpacity,
                 }}
               >
                 <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>
@@ -253,14 +259,19 @@ console.log('[CivPoolElement] civBansGuest:', civBansGuest ? JSON.parse(JSON.str
             // Render a placeholder or nothing for null items
             return <div key={`p2-placeholder-${index}`} className={styles.civItemGridCell} />;
           }
+          // eslint-disable-next-line react-hooks/rules-of-hooks
+          const animation = useDraftAnimation(civItem.name, 'civ', civItem.status);
+          const combinedClassName = `${styles.civItemVisualContent} ${getStatusClass(civItem.status)} ${styles[animation.animationClass] || ''}`;
+
           return (
             <div key={`p2-civ-${index}-${civItem.name}`} className={styles.civItemGridCell}>
               <div
-                className={`${styles.civItemVisualContent} ${getStatusClass(civItem.status)}`}
+                className={combinedClassName}
                 style={{
                   width: `${civItemWidth}px`,
                   height: `${civItemHeight}px`,
                   backgroundImage: civItem.imageUrl ? `linear-gradient(to bottom, rgba(74,59,42,0.3) 0%, rgba(74,59,42,0.0) 30%), url('${civItem.imageUrl}')` : undefined,
+                  opacity: animation.imageOpacity,
                 }}
               >
                 <span className={styles.civName}>{civItem.name || 'Unknown Civ'}</span>

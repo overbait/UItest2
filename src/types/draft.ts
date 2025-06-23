@@ -126,6 +126,14 @@ export interface CombinedDraftState {
   layoutLastUpdated?: number;
   draftIsLikelyFinished?: boolean;
   isNewSessionAwaitingFirstDraft: boolean;
+  lastDraftAction: LastDraftAction | null; // Added for animation trigger
+}
+
+export interface LastDraftAction {
+  item: string; // Name of the civ or map
+  itemType: 'civ' | 'map';
+  action: 'pick' | 'ban'; // Type of action
+  timestamp: number; // Timestamp of the action
 }
 
 // Define StudioCanvas type

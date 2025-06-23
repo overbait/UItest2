@@ -1,4 +1,52 @@
 /* src/components/studio/MapPoolElement.module.css */
+/* src/components/studio/MapPoolElement.module.css */
+
+/* Using values from BoXSeriesOverview or define locally if different behavior is needed */
+@value pickGlowColor: #00dd00; /* Green */
+@value banGlowColor: #dd0000; /* Red */
+@value adminPickGlowColor: #ffd700; /* Gold */
+
+/* Keyframes for animations (can be shared if identical, but defined here for explicitness) */
+@keyframes glow-intensify-pick-map {
+  from { box-shadow: none; opacity: 0.5; /* Start slightly faded for effect if desired */ }
+  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; opacity: 1; }
+}
+@keyframes glow-intensify-ban-map {
+  from { box-shadow: none; opacity: 0.5; }
+  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; opacity: 1; }
+}
+
+/* Animation classes to be applied by the hook */
+.animatePickInitial {
+  animation: glow-intensify-pick-map 0.5s ease-out forwards;
+  /* Image opacity will be handled by inline style from the hook */
+}
+.animateBanInitial {
+  animation: glow-intensify-ban-map 0.5s ease-out forwards;
+  /* Image opacity will be handled by inline style from the hook */
+}
+
+/* Classes for the sustained glow state (target of 2s transition) */
+.animatePickSustain {
+  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset;
+  border-color: pickGlowColor; /* Ensure border also transitions if it changes */
+  opacity: 1;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out; /* Opacity transition for image */
+}
+.animateBanSustain {
+  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset;
+  border-color: banGlowColor;
+  opacity: 1;
+  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out;
+}
+
+/* Ensure the visual content itself can transition opacity for the image fade-in */
+.mapItemVisualContent {
+  /* ... existing styles ... */
+  transition: opacity 0.5s ease-in-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out; /* Added opacity transition */
+}
+
+
 .mapPoolElement {
   width: 100%;
   height: 100%;
@@ -58,6 +106,7 @@
   align-items: center; /* Center map name horizontally */
   padding: 4px; /* Reduced padding to make maps more rectangular - this is for INSIDE the card */
   overflow: hidden;
+  /* transition property is now at the top of this class definition for clarity */
 }
 
 .mapName {
