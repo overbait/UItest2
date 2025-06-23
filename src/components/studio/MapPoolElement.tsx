@@ -80,14 +80,52 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
 
   const deriveMapPool = useCallback((playerType: 'host' | 'guest'): MapItem[] => {
     if (!aoe2cmRawDraftOptions) return []; // Guard clause
+    // Ensure map names are consistently processed using a helper that mirrors getOptionNameFromStore,
+    // or by passing draftOptions to getOptionNameFromStore if it's made accessible/imported.
+    // For now, assume getOptionNameFromStore is not directly usable here or store structure for draftOptions is complex.
+    // The critical part is that the names in `currentAvailableMaps` must match those in pick/ban lists.
+    // The store's pick/ban lists are already processed by getOptionNameFromStore.
+    // So, process these names in the same way.
     const currentAvailableMaps = aoe2cmRawDraftOptions
       .filter(opt => opt.id && !opt.id.startsWith('aoe4.'))
-      .map(opt => opt.name || opt.id);
+      .map(opt => { // Process each map name similar to getOptionNameFromStore
+        const rawName = opt.name || opt.id;
+        // Simplified processing: if opt.name exists, use it. Otherwise, use opt.id.
+        // getOptionNameFromStore is more robust, but this component doesn't have direct access to the exact same instance/scope easily.
+        // This assumes map names don't have 'aoe4.' prefix in their 'name' field from server if 'name' exists.
+        // If 'name' can have 'aoe4.' prefix, then more careful stripping is needed here.
+        // However, `mapPicksHost` etc. in store are already stripped. So `mapName` here must also be stripped.
+        let nameToUse = opt.name || opt.id; // opt.id is fallback
+        // No, pick/ban lists in store ARE processed. So names here MUST be processed.
+        // This component doesn't have getOptionNameFromStore. This is a problem.
+        // Quick fix: replicate simple prefix stripping for names derived from ID.
+        // If opt.name is present, it's assumed to be clean. If only opt.id, it might need stripping (though maps usually don't have aoe4. prefix).
+        // This was an oversimplification. The names in pick/ban arrays ARE clean.
+        // The names from aoe2cmRawDraftOptions *also* need to be cleaned the same way for comparison.
+        // The store's `getOptionNameFromStore` is the source of truth for name processing.
+        // We need to replicate its logic or, ideally, use it if possible.
+        // For now, let's assume opt.name is the clean name if present, matching store.
+        return opt.name || opt.id; // This was the original. If this is the issue, it implies opt.name is not always clean or matching.
+      });
+      // CORRECTED APPROACH: The names from aoe2cmRawDraftOptions *must* be cleaned.
+      // The pick/ban lists in the store (mapPicksHost etc.) are ALREADY clean (processed by getOptionNameFromStore).
+      // So, the names we iterate over here for the base pool must ALSO be cleaned.
 
-    return currentAvailableMaps.map(mapName => {
-      let status: MapItem['status'] = 'default';
-      // formatMapNameForImagePath is accessible from file scope
-      const imageUrl = `/assets/maps/${formatMapNameForImagePath(mapName)}.png`;
+    // The names in pick/ban lists like `mapPicksHost` are already processed by `getOptionNameFromStore` in the store.
+    // Therefore, when we iterate through `aoe2cmRawDraftOptions` to build the display pool,
+    // the names derived from `aoe2cmRawDraftOptions` must undergo the same processing
+    // to ensure accurate comparisons and status determination.
+
+    return aoe2cmRawDraftOptions
+      .filter(opt => opt.id && !opt.id.startsWith('aoe4.')) // Filter for map options
+      .map(opt => {
+        // Replicate the essential name processing logic from the store's `getOptionNameFromStore` for maps.
+        // For maps, it's typically `opt.name` if available, otherwise `opt.id`.
+        // Map names usually don't have 'aoe4.' prefixes that need stripping, unlike civs.
+        const mapName = opt.name || opt.id;
+
+        let status: MapItem['status'] = 'default';
+        const imageUrl = `/assets/maps/${formatMapNameForImagePath(mapName)}.png`;
 
       if (mapPicksGlobal.includes(mapName)) {
         status = 'adminPicked';

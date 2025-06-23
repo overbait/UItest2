@@ -102,7 +102,7 @@ const useDraftAnimation = (
         setAnimationState(prev => ({ ...prev, animationClass: '' }));
       }
     }
-  }, [lastDraftAction, itemMatchesLastAction, isActiveAction, currentStatus, processedTimestamp, animationState.animationClass]);
+  }, [lastDraftAction, itemMatchesLastAction, isActiveAction, currentStatus, processedTimestamp]); // Removed animationState.animationClass from deps
 
 
   // If an item is not the lastDraftAction but is picked/banned,

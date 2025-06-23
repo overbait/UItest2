@@ -8,12 +8,12 @@
 
 /* Keyframes for animations (can be shared if identical, but defined here for explicitness) */
 @keyframes glow-intensify-pick-map {
-  from { box-shadow: none; opacity: 0.5; /* Start slightly faded for effect if desired */ }
-  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; opacity: 1; }
+  from { box-shadow: none; }
+  to { box-shadow: 0 0 16px 6px pickGlowColor, 0 0 8px 4px pickGlowColor inset; }
 }
 @keyframes glow-intensify-ban-map {
-  from { box-shadow: none; opacity: 0.5; }
-  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; opacity: 1; }
+  from { box-shadow: none; }
+  to { box-shadow: 0 0 16px 6px banGlowColor, 0 0 8px 4px banGlowColor inset; }
 }
 
 /* Animation classes to be applied by the hook */

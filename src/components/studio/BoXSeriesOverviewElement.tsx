@@ -1,8 +1,7 @@
-import React from 'react'; // Removed useState, not directly used here anymore for fallbacks
+import React, { useEffect, useState } from 'react';
 import useDraftStore from '../../store/draftStore';
 import { StudioElement, BoxSeriesGame } from '../../types/draft';
 import styles from './BoXSeriesOverviewElement.module.css';
-import useDraftAnimation from '../../hooks/useDraftAnimation'; // Import the hook
 
 // Helper functions
 const formatCivNameForImagePath = (civName: string): string => {
@@ -146,23 +145,25 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     >
       {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
         const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
-        // Determine current status for animation hook (simplified, assuming no 'banned' status directly in BoX, only picked or default)
-        // For BoX, items are generally 'picked' or 'default'. Bans are handled in Civ/Map pools.
-        // If a civ/map is part of a game, it's considered 'picked' in this context.
-        const hostCivStatus = game.hostCiv ? 'picked' : 'default';
-        const guestCivStatus = game.guestCiv ? 'picked' : 'default';
-        const mapStatus = game.map ? 'picked' : 'default';
+        // Simple state for fade-in effect, could be enhanced
+        const [hostCivOpacity, setHostCivOpacity] = useState(0);
+        const [guestCivOpacity, setGuestCivOpacity] = useState(0);
+        const [mapOpacity, setMapOpacity] = useState(0);
 
-        const hostCivAnimation = useDraftAnimation(game.hostCiv, 'civ', hostCivStatus as any); // Cast as any if status types don't perfectly align
-        const guestCivAnimation = useDraftAnimation(game.guestCiv, 'civ', guestCivStatus as any);
-        const mapAnimation = useDraftAnimation(game.map, 'map', mapStatus as any);
+        useEffect(() => {
+          if (game.hostCiv) setHostCivOpacity(1); else setHostCivOpacity(0);
+        }, [game.hostCiv]);
+        useEffect(() => {
+          if (game.guestCiv) setGuestCivOpacity(1); else setGuestCivOpacity(0);
+        }, [game.guestCiv]);
+        useEffect(() => {
+          if (game.map) setMapOpacity(1); else setMapOpacity(0);
+        }, [game.map]);
 
-        const getCombinedClassName = (baseClass: string, animationClass: string, winnerClass: string = '') => {
-          return `${baseClass} ${styles[animationClass] || ''} ${winnerClass}`;
-        };
 
         return (
          <div
@@ -179,17 +180,20 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               <div className={`${styles.civCell} ${styles.leftCivCell}`}>
                 <div
                   key={hostCivKey + '-container'}
-                  className={getCombinedClassName(
-                    styles.selectorDisplay,
-                    hostCivAnimation.animationClass,
-                    game.winner === 'host' ? styles.winnerGlow : styles.pickedSteadyGlow // Apply steady if picked, winnerGlow if also winner
-                  )}
-                  style={{
+                  className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
+                  style={{ // This div is the placeholder with "random" background
                     ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv || 'random')}.png')`,
-                    opacity: hostCivAnimation.imageOpacity,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
                   }}
                 >
+                  {game.hostCiv && (
+                    <img
+                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png`}
+                      alt={game.hostCiv}
+                      className={styles.pickedImageOverlay}
+                      style={{ opacity: hostCivOpacity }}
+                    />
+                  )}
                   {showCivNames && game.hostCiv && (
                     <div className={styles.selectorTextOverlay}>{game.hostCiv}</div>
                   )}
@@ -204,17 +208,20 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               <div className={styles.mapCell}>
                 <div
                   key={mapKey + '-container'}
-                  className={getCombinedClassName(
-                    styles.selectorDisplay,
-                    mapAnimation.animationClass,
-                    game.map ? styles.pickedSteadyGlow: '' // Maps in BoX are picked, apply steady glow
-                  )}
-                  style={{
+                  className={styles.selectorDisplay} // No winnerGlow for maps
+                  style={{ // Placeholder with "random" map (if one exists, otherwise just background color)
                     ...mapSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath(game.map || 'random')}.png')`,
-                    opacity: mapAnimation.imageOpacity,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath('random')}.png')`,
                   }}
                 >
+                  {game.map && (
+                    <img
+                      src={`/assets/maps/${formatMapNameForImagePath(game.map)}.png`}
+                      alt={game.map}
+                      className={styles.pickedImageOverlay}
+                      style={{ opacity: mapOpacity }}
+                    />
+                  )}
                   {showMapNames && game.map && (
                     <div className={styles.selectorTextOverlay}>{game.map}</div>
                   )}
@@ -229,17 +236,20 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
               <div className={`${styles.civCell} ${styles.rightCivCell}`}>
                 <div
                   key={guestCivKey + '-container'}
-                  className={getCombinedClassName(
-                    styles.selectorDisplay,
-                    guestCivAnimation.animationClass,
-                    game.winner === 'guest' ? styles.winnerGlow : styles.pickedSteadyGlow // Apply steady if picked, winnerGlow if also winner
-                  )}
-                  style={{
+                  className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
+                  style={{ // Placeholder with "random" background
                     ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv || 'random')}.png')`,
-                    opacity: guestCivAnimation.imageOpacity,
+                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
                   }}
                 >
+                  {game.guestCiv && (
+                    <img
+                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png`}
+                      alt={game.guestCiv}
+                      className={styles.pickedImageOverlay}
+                      style={{ opacity: guestCivOpacity }}
+                    />
+                  )}
                   {showCivNames && game.guestCiv && (
                     <div className={styles.selectorTextOverlay}>{game.guestCiv}</div>
                   )}
