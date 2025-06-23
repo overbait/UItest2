@@ -959,8 +959,7 @@ const useDraftStore = create<DraftStore>()(
                       set(state => {
                           let newCivBansHost = [...state.civBansHost];
                           let newCivBansGuest = [...state.civBansGuest];
-                          let newCivBansHost = [...state.civBansHost];
-                          let newCivBansGuest = [...state.civBansGuest];
+                           // Removed duplicate declarations of newCivBansHost and newCivBansGuest
                           let newMapBansHost = [...state.mapBansHost];
                           let newMapBansGuest = [...state.mapBansGuest];
                           let newMapBansGlobal = [...state.mapBansGlobal];
