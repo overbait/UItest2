@@ -144,7 +144,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
       style={{ fontFamily, fontSize: `${dynamicFontSize}px` }}
     >
       {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-        // const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`; // Duplicate removed by earlier fix
+        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`; // Restored single declaration
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
