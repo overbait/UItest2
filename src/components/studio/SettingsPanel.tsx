@@ -326,6 +326,81 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
        </>
      )}
 
+      {selectedElement.type === 'BackgroundImage' && (
+        <>
+          <h4 style={sectionHeaderStyle}>Background Image Options</h4>
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageFileInput" style={labelStyle}>Import Image:</label>
+            <input
+              type="file"
+              id="bgImageFileInput"
+              accept="image/*"
+              style={{...inputStyle, padding: '3px'}} // Adjust padding for file input
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const file = e.target.files[0];
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    handleSettingChange('imageUrl', reader.result as string);
+                    // Log selectedElementId from store AFTER setting image to see if it changed
+                    console.log(`[SETTINGS DEBUG] Image URL updated for ${selectedElement?.id}. Current selectedElementId from store: ${useDraftStore.getState().selectedElementId}`);
+                  };
+                  reader.readAsDataURL(file);
+                } else {
+                  // Optionally handle case where no file is chosen or selection is cancelled
+                  // For now, if they cancel, imageUrl remains unchanged or they can clear it
+                }
+              }}
+            />
+          </div>
+          {selectedElement.imageUrl && (
+            <div style={{...settingRowStyle, flexDirection: 'column', alignItems: 'flex-start'}}>
+              <label style={{...labelStyle, marginBottom: '5px'}}>Current Image:</label>
+              <img src={selectedElement.imageUrl} alt="Selected background" style={{maxWidth: '100%', maxHeight: '100px', border: '1px solid #555', objectFit: 'contain'}}/>
+              <button
+                onClick={() => {
+                  console.log(`[SETTINGS DEBUG] Clearing image for element: ${selectedElement?.id}`);
+                  handleSettingChange('imageUrl', null);
+                }}
+                style={{...buttonStyle, backgroundColor: '#dc3545', color: 'white', width: 'auto', padding: '3px 8px', fontSize: '0.8em', marginTop: '5px'}}
+              >
+                Clear Selected Image
+              </button>
+            </div>
+          )}
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageOpacitySlider" style={labelStyle}>Opacity:</label>
+            <input
+              type="range"
+              id="bgImageOpacitySlider"
+              style={rangeInputStyle}
+              min="0"
+              max="1"
+              step="0.01"
+              value={selectedElement.opacity === undefined ? 1 : selectedElement.opacity}
+              onChange={(e) => handleSettingChange('opacity', parseFloat(e.target.value))}
+            />
+            <span style={rangeValueStyle}>{(selectedElement.opacity === undefined ? 1 : selectedElement.opacity).toFixed(2)}</span>
+          </div>
+          <div style={settingRowStyle}>
+            <label htmlFor="bgImageStretchSelect" style={labelStyle}>Stretch Mode:</label>
+            <select
+              id="bgImageStretchSelect"
+              style={inputStyle} // Reuse inputStyle for select
+              value={selectedElement.stretch || 'cover'}
+              onChange={(e) => handleSettingChange('stretch', e.target.value as 'cover' | 'contain' | 'fill')}
+            >
+              <option value="cover">Cover</option>
+              <option value="contain">Contain</option>
+              <option value="fill">Fill</option>
+            </select>
+          </div>
+          {/* Add other BackgroundImage specific settings here if any in the future */}
+          {/* Common settings like scale, pivot lock might not be relevant for a background */}
+          {/* but could be added if desired. For now, keeping it simple. */}
+        </>
+      )}
+
       <div style={{ borderTop: '1px solid #444', marginTop: '20px', paddingTop: '15px' }}><button onClick={handleDeleteElement} style={{...inputStyle, width: '100%', backgroundColor: '#dc3545', color: 'white'}}>Delete Element</button></div>
       <button onClick={onClose} style={{...inputStyle, width: '100%', backgroundColor: '#555', color: 'white', marginTop: '10px'}}>Close Panel</button>
     </div>

@@ -80,6 +80,8 @@ interface DraftStore extends CombinedDraftState {
   addCanvas: (name?: string) => void;
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
+  setCanvasBackgroundColor: (canvasId: string, color: string | null) => void;
+  // setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void; // To be removed
   setActiveStudioLayoutId: (layoutId: string | null) => void;
 
   // WebSocket Actions
@@ -94,7 +96,13 @@ const initialPlayerNameHost = 'Player 1';
 const initialPlayerNameGuest = 'Player 2';
 
 const initialDefaultCanvasId = `default-${Date.now()}`;
-const initialCanvases: StudioCanvas[] = [{ id: initialDefaultCanvasId, name: 'Default', layout: [] }];
+const initialCanvases: StudioCanvas[] = [{
+  id: initialDefaultCanvasId,
+  name: 'Default',
+  layout: [],
+  backgroundColor: null,
+  // backgroundImage: null, // Removed
+}];
 
 // Initial flags are now derived in TechnicalInterface.tsx based on playerFlagMappings in localStorage.
 // The store's hostFlag/guestFlag will be null initially, then populated.
@@ -1690,6 +1698,27 @@ const useDraftStore = create<DraftStore>()(
                 horizontalSplitOffset: 0,
                 // player1CivPool and player2CivPool are derived from store, not needed here
               };
+            } else if (elementType === "BackgroundImage") {
+              newElement = {
+                id: Date.now().toString(),
+                type: "BackgroundImage",
+                position: { x: 0, y: 0 }, // Default to top-left
+                size: { width: 1920, height: 1080 }, // Default to full canvas size
+                imageUrl: null,
+                opacity: 1,
+                stretch: 'cover',
+                // Other common properties if needed, like scale, isPivotLocked, etc.
+                // For a background, these might often be 1 and false respectively.
+                scale: 1,
+                isPivotLocked: false, // Usually not relevant for a full background
+              };
+              // Prepend BackgroundImageElement to ensure it's rendered first (bottom layer)
+              const updatedCanvases = state.currentCanvases.map(canvas =>
+                canvas.id === state.activeCanvasId
+                  ? { ...canvas, layout: [newElement, ...canvas.layout] } // Prepend
+                  : canvas
+              );
+              return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now(), selectedElementId: newElement.id };
             } else {
               // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
               // It should NOT include showName or showScore.
@@ -1738,23 +1767,34 @@ const useDraftStore = create<DraftStore>()(
         },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
         updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
+          console.log(`[STORE DEBUG] updateStudioElementSettings called. Element ID: ${elementId}, Settings: `, JSON.stringify(settings));
           set(state => {
+            let updatedElementForLog: StudioElement | undefined;
             const updatedCanvases = state.currentCanvases.map(canvas => {
               if (canvas.id === state.activeCanvasId) {
+                const newLayout = canvas.layout.map(el => {
+                  if (el.id === elementId) {
+                    updatedElementForLog = { ...el, ...settings };
+                    return updatedElementForLog;
+                  }
+                  return el;
+                });
+                if (updatedElementForLog) {
+                  console.log(`[STORE DEBUG] Element ${elementId} after update (within set): `, JSON.stringify(updatedElementForLog));
+                }
                 return {
                   ...canvas,
-                  layout: canvas.layout.map(el => {
-                    if (el.id === elementId) {
-                      return { ...el, ...settings };
-                    }
-                    return el;
-                  }),
+                  layout: newLayout,
                 };
               }
               return canvas;
             });
             return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now() };
           });
+          // Log after state is set (though the above log inside map is more immediate for the change)
+          // const activeCanvas = get().currentCanvases.find(c => c.id === get().activeCanvasId);
+          // const finalUpdatedElement = activeCanvas?.layout.find(el => el.id === elementId);
+          // console.log(`[STORE DEBUG] Element ${elementId} imageUrl after update (from get): `, finalUpdatedElement?.imageUrl);
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         removeStudioElement: (elementId: string) => {
@@ -1839,7 +1879,12 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const newCanvasId = `canvas-${Date.now()}`;
             const newCanvasName = name || `Canvas ${state.currentCanvases.length + 1}`;
-            const newCanvas: StudioCanvas = { id: newCanvasId, name: newCanvasName, layout: [] };
+            const newCanvas: StudioCanvas = {
+              id: newCanvasId,
+              name: newCanvasName,
+              layout: [],
+              backgroundColor: null, // backgroundImage was already removed here, this is correct
+            };
             return { ...state, currentCanvases: [...state.currentCanvases, newCanvas], activeCanvasId: newCanvasId, selectedElementId: null };
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
@@ -1856,6 +1901,17 @@ const useDraftStore = create<DraftStore>()(
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
+        setCanvasBackgroundColor: (canvasId: string, color: string | null) => {
+          set(state => ({
+            ...state,
+            currentCanvases: state.currentCanvases.map(canvas =>
+              canvas.id === canvasId ? { ...canvas, backgroundColor: color } : canvas
+            ),
+            layoutLastUpdated: Date.now(),
+          }));
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+      // Removed setCanvasBackgroundImage action
       updateCanvasName: (canvasId: string, newName: string) => {
         set(state => {
           const newTrimmedName = newName.trim();
@@ -1917,17 +1973,34 @@ const useDraftStore = create<DraftStore>()(
 
         _autoSaveOrUpdateActiveStudioLayout: () => {
           const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
-          const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId);
-          console.log(
-            '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
-            'ActiveCanvasID:', activeCanvasId,
-            'Total Canvases:', currentCanvases.length,
-            'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
-          );
+          // const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId); // Replaced by more detailed log below
+          // console.log(
+          //   '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
+          //   'ActiveCanvasID:', activeCanvasId,
+          //   'Total Canvases:', currentCanvases.length,
+          //   'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
+          // );
           const autoSavePresetName = "(auto)";
 
-          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId);
-          console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] currentCanvases being processed:', JSON.parse(JSON.stringify(currentCanvases)));
+          console.log(`[STORE DEBUG] _autoSaveOrUpdateActiveStudioLayout called. Active Layout ID: ${activeStudioLayoutId}`);
+          const canvasesToLog = currentCanvases.map(c => ({
+            id: c.id,
+            name: c.name,
+            backgroundColor: c.backgroundColor, // Also log canvas background color
+            layout: c.layout.map(el => ({
+              id: el.id,
+              type: el.type,
+              // Log only a snippet of imageUrl if it's a long Data URL
+              imageUrl: el.imageUrl ? (el.imageUrl.length > 100 ? el.imageUrl.substring(0, 100) + '...' : el.imageUrl) : null,
+              opacity: el.opacity,
+              stretch: el.stretch
+            }))
+          }));
+          console.log('[STORE DEBUG] Data being processed by _autoSaveOrUpdateActiveStudioLayout:', JSON.stringify(canvasesToLog, null, 2));
+
+
+          // console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] Called. Active Layout ID:', activeStudioLayoutId); // Covered by new log
+          // console.log('LOGAOEINFO: [_autoSaveOrUpdateActiveStudioLayout] currentCanvases being processed:', JSON.parse(JSON.stringify(currentCanvases))); // Covered by new log
 
           if (activeStudioLayoutId) {
             let updatedLayoutObject: SavedStudioLayout | null = null;
@@ -1967,7 +2040,9 @@ const useDraftStore = create<DraftStore>()(
       }),
       {
         name: 'aoe2-draft-overlay-combined-storage-v1',
-        partialize: (state) => ({
+        partialize: (state) => {
+          // Create a deep copy of the state to avoid mutating the original state
+          const stateToPersist = JSON.parse(JSON.stringify({
             hostName: state.hostName, guestName: state.guestName, scores: state.scores,
             savedPresets: state.savedPresets, civDraftId: state.civDraftId, mapDraftId: state.mapDraftId,
             boxSeriesFormat: state.boxSeriesFormat, boxSeriesGames: state.boxSeriesGames,
@@ -2000,7 +2075,57 @@ const useDraftStore = create<DraftStore>()(
             socketStatus: state.socketStatus,
             socketError: state.socketError,
             socketDraftType: state.socketDraftType,
-        }),
+          }));
+
+          // Now, modify the copy
+          // Now, modify the copy
+          // The following logic that replaced data: URLs with "[LOCAL_IMAGE_DATA_NOT_PERSISTED]"
+          // has been removed to allow data: URLs to be persisted directly.
+          // This will fix issues #2 and #3 regarding background images not appearing.
+          // Note: This might lead to larger localStorage usage if many large local images are used.
+
+          // if (stateToPersist.currentCanvases && Array.isArray(stateToPersist.currentCanvases)) {
+          //   stateToPersist.currentCanvases = stateToPersist.currentCanvases.map(canvas => {
+          //     if (canvas.layout && Array.isArray(canvas.layout)) {
+          //       return {
+          //         ...canvas,
+          //         layout: canvas.layout.map((el: StudioElement) => {
+          //           if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+          //             return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+          //           }
+          //           return el;
+          //         })
+          //       };
+          //     }
+          //     return canvas;
+          //   });
+          // }
+          // if (stateToPersist.savedStudioLayouts && Array.isArray(stateToPersist.savedStudioLayouts)) {
+          //   stateToPersist.savedStudioLayouts = stateToPersist.savedStudioLayouts.map(savedLayout => {
+          //     if (savedLayout.canvases && Array.isArray(savedLayout.canvases)) {
+          //       return {
+          //         ...savedLayout,
+          //         canvases: savedLayout.canvases.map(canvas => {
+          //           if (canvas.layout && Array.isArray(canvas.layout)) {
+          //             return {
+          //               ...canvas,
+          //               layout: canvas.layout.map((el: StudioElement) => {
+          //                 if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+          //                   return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+          //                 }
+          //                 return el;
+          //               })
+          //             };
+          //           }
+          //           return canvas;
+          //         })
+          //       };
+          //     }
+          //     return savedLayout;
+          //   });
+          // }
+          return stateToPersist;
+        },
         storage: customLocalStorageWithBroadcast,
         onRehydrateStorage: (state, error) => {
           if (error) console.error('LOGAOEINFO: [draftStore] Error during rehydration:', error);

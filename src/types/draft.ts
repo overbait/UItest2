@@ -80,6 +80,9 @@ export interface StudioElement {
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
   hideCivs?: boolean; // New property for BoXSeriesOverview to hide civs
   // showName and showScore removed
+  imageUrl?: string | null; // For BackgroundImageElement
+  opacity?: number;         // For BackgroundImageElement
+  stretch?: 'cover' | 'contain' | 'fill'; // For BackgroundImageElement
   [key: string]: any;
   player1MapPool?: MapItem[];
   player2MapPool?: MapItem[];
@@ -130,4 +133,6 @@ export interface StudioCanvas {
   id: string; // Unique identifier for the canvas
   name: string; // User-friendly name for the tab, e.g., "Scene 1" or "Default"
   layout: StudioElement[]; // Array of elements on this canvas
+  backgroundColor?: string | null;
+  // backgroundImage?: string | null; // Removed, will be handled by BackgroundImageElement
 }
