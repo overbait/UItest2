@@ -148,40 +148,13 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
-        // Opacity states for fade-in effect of the picked image layers
-        const [hostCivOpacity, setHostCivOpacity] = useState(0);
-        const [guestCivOpacity, setGuestCivOpacity] = useState(0);
-        const [mapOpacity, setMapOpacity] = useState(0);
+        // Opacity states for the picked image layers, directly reflecting presence of data
+        const hostCivOpacity = game.hostCiv ? 1 : 0;
+        const guestCivOpacity = game.guestCiv ? 1 : 0;
+        const mapOpacity = game.map ? 1 : 0;
 
-        useEffect(() => {
-            if (game.hostCiv) {
-                setHostCivOpacity(0); // Set to 0 to initiate fade-in if not already visible
-                const timer = setTimeout(() => setHostCivOpacity(1), 50); // Start fade-in
-                return () => clearTimeout(timer);
-            } else {
-                setHostCivOpacity(0); // No host civ, picked layer is transparent
-            }
-        }, [game.hostCiv]);
-
-        useEffect(() => {
-            if (game.guestCiv) {
-                setGuestCivOpacity(0);
-                const timer = setTimeout(() => setGuestCivOpacity(1), 50);
-                return () => clearTimeout(timer);
-            } else {
-                setGuestCivOpacity(0);
-            }
-        }, [game.guestCiv]);
-
-        useEffect(() => {
-            if (game.map) {
-                setMapOpacity(0);
-                const timer = setTimeout(() => setMapOpacity(1), 50);
-                return () => clearTimeout(timer);
-            } else {
-                setMapOpacity(0);
-            }
-        }, [game.map]);
+        // No useEffect needed for this direct approach, CSS transition handles the animation
+        // when the opacity value changes from 0 to 1 or 1 to 0.
 
         return (
          <div

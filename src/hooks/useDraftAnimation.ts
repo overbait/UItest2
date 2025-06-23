@@ -1,113 +1,83 @@
 // src/hooks/useDraftAnimation.ts
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
-import { LastDraftAction } from '../types/draft';
 
-interface AnimationOutput {
+interface DebugAnimationOutput {
   animationClass: string;
   imageOpacity: number;
+  debugStatus?: string;
 }
 
-// Timings for new glow spread animation:
-const ANIMATION_SPREAD_INCREASE_DURATION_MS = 2000;
-const ANIMATION_SPREAD_RETURN_DURATION_MS = 2000; // This is for the CSS transition on the base class when animation class is removed
-// Total time the item is considered "actively animating" by the hook for the initial spread increase part
-const ACTIVE_ANIMATION_DURATION_MS = ANIMATION_SPREAD_INCREASE_DURATION_MS;
-
-// Image fade-in duration (distinct from glow)
-const IMAGE_FADE_IN_DURATION_MS = 500; // Standard 0.5s fade for images, happens concurrently
-
-const useDraftAnimation = (
+const useDraftAnimation_DEBUG = (
   itemName: string | null | undefined,
   itemType: 'civ' | 'map',
-  currentStatus: 'picked' | 'banned' | 'default' | 'affected' | 'adminPicked'
-): AnimationOutput => {
+  currentStatus: string
+): DebugAnimationOutput => {
   const lastDraftAction = useDraftStore(state => state.lastDraftAction);
   const activeCivDraftId = useDraftStore(state => state.civDraftId);
   const activeMapDraftId = useDraftStore(state => state.mapDraftId);
-  const isDraftContextActive = itemType === 'civ' ? !!activeCivDraftId : !!activeMapDraftId;
+  // const isDraftContextActive = itemType === 'civ' ? !!activeCivDraftId : !!activeMapDraftId;
+  // Refined isDraftContextActive: also check if the lastDraftAction matches the itemType's active draft ID
+  let isContextActuallyActiveForThisItemTypeInLastAction = false;
+  if (lastDraftAction) {
+    if (lastDraftAction.itemType === 'civ' && activeCivDraftId && lastDraftAction.id === activeCivDraftId) {
+      isContextActuallyActiveForThisItemTypeInLastAction = true;
+    } else if (lastDraftAction.itemType === 'map' && activeMapDraftId && lastDraftAction.id === activeMapDraftId) {
+      isContextActuallyActiveForThisItemTypeInLastAction = true;
+    }
+    // If lastDraftAction has no ID, or ID doesn't match active draft, context is not active for it.
+    // This handles cases where lastDraftAction might be from a *different* draft that was previously active.
+  }
+   // A simpler check for general draft activity for the item's type
+  const isGeneralDraftContextActive = itemType === 'civ' ? !!activeCivDraftId : !!activeMapDraftId;
 
-  const [animationClass, setAnimationClass] = useState('');
-  const [imageOpacity, setImageOpacity] = useState(1);
-  const [processedTimestamp, setProcessedTimestamp] = useState<number | null>(null);
-  const [isAnimatingThisItem, setIsAnimatingThisItem] = useState(false); // True during the ACTIVE_ANIMATION_DURATION_MS
 
   const itemIsTheLastAction = useMemo(() => {
-    if (!itemName || !lastDraftAction) return false;
-    if (lastDraftAction.itemType === 'civ' && !activeCivDraftId) return false;
-    if (lastDraftAction.itemType === 'map' && !activeMapDraftId) return false;
-    return lastDraftAction.item === itemName && lastDraftAction.itemType === itemType;
+    if (!itemName || !lastDraftAction) {
+      return false;
+    }
+    // Original check:
+    // return lastDraftAction.item === itemName && lastDraftAction.itemType === itemType;
+
+    // Refined check: Ensure the lastDraftAction is relevant to an *active* draft of the item's type
+    // And that the lastDraftAction's specific draft ID (if available) matches the currently active draft ID for that type.
+    let lastActionIsRelevant = false;
+    if (lastDraftAction.item === itemName && lastDraftAction.itemType === itemType) {
+      if (itemType === 'civ' && activeCivDraftId) {
+        // If lastDraftAction doesn't have an ID, assume it's for the current civ draft if one is active.
+        // If it *does* have an ID, it must match.
+        lastActionIsRelevant = !lastDraftAction.id || lastDraftAction.id === activeCivDraftId;
+      } else if (itemType === 'map' && activeMapDraftId) {
+        lastActionIsRelevant = !lastDraftAction.id || lastDraftAction.id === activeMapDraftId;
+      }
+    }
+    return lastActionIsRelevant;
+
   }, [itemName, itemType, lastDraftAction, activeCivDraftId, activeMapDraftId]);
 
-  useEffect(() => {
-    // Guard for stale lastDraftAction if context is not active for this item type
-    if (!isDraftContextActive && lastDraftAction && lastDraftAction.item === itemName && lastDraftAction.itemType === itemType) {
-      if (animationClass !== '') setAnimationClass('');
-      if (imageOpacity !== 1) setImageOpacity(1);
-      if (processedTimestamp === lastDraftAction.timestamp) {
-        setProcessedTimestamp(null);
-      }
-      if(isAnimatingThisItem) setIsAnimatingThisItem(false);
-      return;
-    }
+  // Conceptual logging
+  // console.log(`[DEBUG_HOOK] Item: ${itemName}, Type: ${itemType}, Status: ${currentStatus}, LdA: ${lastDraftAction?.itemType === itemType ? lastDraftAction?.item : 'N/A'}, IsLdAForActiveDraft: ${itemIsTheLastAction}, GenCtxActive: ${isGeneralDraftContextActive}`);
 
-    const shouldStartAnimation =
-      itemIsTheLastAction &&
-      lastDraftAction &&
-      lastDraftAction.timestamp !== processedTimestamp &&
-      isDraftContextActive;
+  let targetOpacity = 1;
+  // For this debug step, we are NOT implementing the affected state opacity yet to isolate the disappearance.
+  // if (currentStatus === 'affected' && isGeneralDraftContextActive) { // Only apply affected if context is active
+  //   targetOpacity = 0.8; // Will be for step 3 of main plan
+  // }
 
-    let targetOpacity = 1;
-    if (currentStatus === 'affected') {
-      targetOpacity = 0.8;
-    }
 
-    if (shouldStartAnimation) {
-      setIsAnimatingThisItem(true);
-      setProcessedTimestamp(lastDraftAction!.timestamp);
+  if (itemIsTheLastAction) { // itemIsTheLastAction now implies context is active and relevant
+    return {
+      animationClass: 'debugLastActionItem',
+      imageOpacity: 1, // Always visible if it's the last action
+      debugStatus: `DEBUG_LAST_ACTION (Status: ${currentStatus})`,
+    };
+  }
 
-      setImageOpacity(0);
-      const fadeInTimer = setTimeout(() => {
-        // Target opacity for fade-in should consider if item is also affected
-        setImageOpacity(currentStatus === 'affected' ? 0.8 : 1);
-      }, 50); // CSS transition for opacity is IMAGE_FADE_IN_DURATION_MS
-
-      setAnimationClass(`animate-spread-increase-${lastDraftAction!.action}`);
-
-      const endActiveIncreasePhaseTimer = setTimeout(() => {
-        setIsAnimatingThisItem(false);
-        // When isAnimatingThisItem becomes false, the `else if (!isAnimatingThisItem)` block below
-        // will clear the `animate-spread-increase-*` class in the next render,
-        // allowing the CSS transition on the base element to animate the glow back to normal.
-      }, ACTIVE_ANIMATION_DURATION_MS); // Active part of animation (increase phase)
-
-      return () => {
-        clearTimeout(fadeInTimer);
-        clearTimeout(endActiveIncreasePhaseTimer);
-      };
-    } else if (isAnimatingThisItem && !itemIsTheLastAction) {
-      // Interrupted: This item WAS in its active animation phase, but is no longer the last action.
-      setIsAnimatingThisItem(false); // Stop its active animation phase
-      setAnimationClass(''); // Immediately remove animation class
-      setImageOpacity(targetOpacity); // Set to its correct current non-animating opacity
-    } else if (!isAnimatingThisItem) {
-      // Not actively animating (initial state, or after active animation phase ended, or interrupted and reset).
-      setImageOpacity(targetOpacity);
-      // If animationClass was for spread increase and item is no longer in active animation, clear it.
-      // This allows the CSS transition on the base class to take over for the return glow.
-      if (animationClass.startsWith('animate-spread-increase-')) {
-        setAnimationClass('');
-      } else if (animationClass !== '' ) { // Clear any other potentially stale animation class
-        setAnimationClass('');
-      }
-    }
-  }, [
-    itemName, itemType, lastDraftAction, currentStatus,
-    processedTimestamp, isAnimatingThisItem, itemIsTheLastAction,
-    animationClass, isDraftContextActive, imageOpacity
-  ]);
-
-  return { animationClass, imageOpacity };
+  return {
+    animationClass: '',
+    imageOpacity: targetOpacity,
+    debugStatus: `DEBUG_NORMAL (Status: ${currentStatus})`,
+  };
 };
 
-export default useDraftAnimation;
+export default useDraftAnimation_DEBUG;
