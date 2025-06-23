@@ -148,29 +148,38 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
-        // Opacity states for fade-in effect
+        // Opacity states for fade-in effect of the picked image layers
         const [hostCivOpacity, setHostCivOpacity] = useState(0);
         const [guestCivOpacity, setGuestCivOpacity] = useState(0);
         const [mapOpacity, setMapOpacity] = useState(0);
 
         useEffect(() => {
-            setHostCivOpacity(0); // Reset opacity before fade-in
             if (game.hostCiv) {
-                setTimeout(() => setHostCivOpacity(1), 50); // Start fade-in after a brief delay
+                setHostCivOpacity(0); // Set to 0 to initiate fade-in if not already visible
+                const timer = setTimeout(() => setHostCivOpacity(1), 50); // Start fade-in
+                return () => clearTimeout(timer);
+            } else {
+                setHostCivOpacity(0); // No host civ, picked layer is transparent
             }
         }, [game.hostCiv]);
 
         useEffect(() => {
-            setGuestCivOpacity(0);
             if (game.guestCiv) {
-                setTimeout(() => setGuestCivOpacity(1), 50);
+                setGuestCivOpacity(0);
+                const timer = setTimeout(() => setGuestCivOpacity(1), 50);
+                return () => clearTimeout(timer);
+            } else {
+                setGuestCivOpacity(0);
             }
         }, [game.guestCiv]);
 
         useEffect(() => {
-            setMapOpacity(0);
             if (game.map) {
-                setTimeout(() => setMapOpacity(1), 50);
+                setMapOpacity(0);
+                const timer = setTimeout(() => setMapOpacity(1), 50);
+                return () => clearTimeout(timer);
+            } else {
+                setMapOpacity(0);
             }
         }, [game.map]);
 
@@ -194,13 +203,13 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 >
                   <div
                     className={styles.placeholderImageLayer}
-                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
+                    style={{ backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
                   />
                   {game.hostCiv && (
                     <div
                       className={styles.pickedImageLayer}
                       style={{
-                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
+                        backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
                         opacity: hostCivOpacity
                       }}
                     />
@@ -224,13 +233,13 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 >
                   <div
                     className={styles.placeholderImageLayer}
-                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath('random')}.png')`}}
+                    style={{ backgroundImage: `url('/assets/maps/${formatMapNameForImagePath('random')}.png')`}}
                   />
                   {game.map && (
                     <div
                       className={styles.pickedImageLayer}
                       style={{
-                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
+                        backgroundImage: `url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
                         opacity: mapOpacity
                       }}
                     />
@@ -254,13 +263,13 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 >
                   <div
                     className={styles.placeholderImageLayer}
-                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
+                    style={{ backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
                   />
                   {game.guestCiv && (
                     <div
                       className={styles.pickedImageLayer}
                       style={{
-                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
+                        backgroundImage: `url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
                         opacity: guestCivOpacity
                       }}
                     />

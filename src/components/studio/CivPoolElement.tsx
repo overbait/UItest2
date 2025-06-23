@@ -137,13 +137,15 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     const pool = deriveCivPool('host');
     // NUM_ROWS is passed as the second argument (previously columnSize)
     return reorderCivsForDisplay(pool, NUM_ROWS);
-  }, [deriveCivPool]);
+  }, [deriveCivPool, forceMapPoolUpdate]); // Assuming forceMapPoolUpdate was a previous attempt; deriveCivPool is key
 
-  const player2CivPool = useMemo(() => {
-    const pool = deriveCivPool('guest');
-    // NUM_ROWS is passed as the second argument
-    return reorderCivsForDisplay(pool, NUM_ROWS);
-  }, [deriveCivPool]);
+  // Temporarily remove useMemo for debugging disappearing items
+  const hostCivPoolData = deriveCivPool('host');
+  const player1CivPool = reorderCivsForDisplay(hostCivPoolData, NUM_ROWS);
+
+  const guestCivPoolData = deriveCivPool('guest');
+  const player2CivPool = reorderCivsForDisplay(guestCivPoolData, NUM_ROWS);
+  // }, [deriveCivPool]); // Old useMemo dependency
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);

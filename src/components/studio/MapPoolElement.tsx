@@ -146,13 +146,15 @@ const MapPoolElement: React.FC<MapPoolElementProps> = ({ element, isBroadcast })
     const pool = deriveMapPool('host');
     // NUM_ROWS is passed as the second argument (previously columnSize)
     return reorderMapsForDisplay(pool, NUM_ROWS);
-  }, [deriveMapPool, forceMapPoolUpdate]);
+  }, [deriveMapPool, forceMapPoolUpdate]); // forceMapPoolUpdate might be from a previous attempt
 
-  const player2MapPool = useMemo(() => {
-    const pool = deriveMapPool('guest');
-    // NUM_ROWS is passed as the second argument
-    return reorderMapsForDisplay(pool, NUM_ROWS);
-  }, [deriveMapPool, forceMapPoolUpdate]);
+  // Temporarily remove useMemo for debugging disappearing items
+  const hostMapPoolData = deriveMapPool('host');
+  const player1MapPool = reorderMapsForDisplay(hostMapPoolData, NUM_ROWS);
+
+  const guestMapPoolData = deriveMapPool('guest');
+  const player2MapPool = reorderMapsForDisplay(guestMapPoolData, NUM_ROWS);
+  // }, [deriveMapPool, forceMapPoolUpdate]); // Old useMemo dependency
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
