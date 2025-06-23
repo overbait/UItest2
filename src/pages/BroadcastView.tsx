@@ -129,6 +129,12 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
 
         // const currentScale = element.scale || 1; // Moved up
 
+        // If content is null (e.g., BackgroundImageElement returned null for broadcast),
+        // then don't render the wrapper divs for this element.
+        if (!content) {
+          return null;
+        }
+
         return (
           <div
             key={element.id}

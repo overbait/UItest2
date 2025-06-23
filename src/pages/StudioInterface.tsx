@@ -382,7 +382,7 @@ const StudioInterface: React.FC = () => {
                 height: '100%',
                 backgroundColor: '#555',
                 pointerEvents: 'none',
-                zIndex: 0,
+                zIndex: 99998, // Increased zIndex
               }}
               aria-hidden="true"
             />
@@ -397,7 +397,7 @@ const StudioInterface: React.FC = () => {
                 height: `${Math.max(0.5, 1 / (studioCanvasScaleFactor || 1))}px`,
                 backgroundColor: '#555',
                 pointerEvents: 'none',
-                zIndex: 0,
+                zIndex: 99998, // Increased zIndex
               }}
               aria-hidden="true"
             />
