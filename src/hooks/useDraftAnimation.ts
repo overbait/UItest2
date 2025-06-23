@@ -3,114 +3,95 @@ import { useState, useEffect, useMemo } from 'react';
 import useDraftStore from '../store/draftStore';
 import { LastDraftAction } from '../types/draft';
 
-interface AnimationState {
+interface AnimationOutput {
   animationClass: string;
   imageOpacity: number;
 }
 
-const ANIMATION_DURATION_MS = 500; // 0.5s for initial glow and fade-in
-const SUSTAINED_GLOW_DELAY_MS = ANIMATION_DURATION_MS; // Start sustain animation after initial one finishes
-const RESET_ANIMATION_STATE_MS = SUSTAINED_GLOW_DELAY_MS + 2000; // 2s for sustain + initial
+// New timing: 1s intensify, 1s fade to sustain. Total 2s special glow.
+const ANIMATION_INTENSIFY_DURATION_MS = 1000; // Phase 1: 0 to 100% glow
+const ANIMATION_SUSTAIN_TRANSITION_DELAY_MS = ANIMATION_INTENSIFY_DURATION_MS; // When to start fading to 50%
+const ANIMATION_SUSTAIN_TRANSITION_DURATION_MS = 1000; // Phase 2: 100% to 50% glow
+const TOTAL_ANIMATED_GLOW_DURATION_MS = ANIMATION_INTENSIFY_DURATION_MS + ANIMATION_SUSTAIN_TRANSITION_DURATION_MS; // Total 2s
 
 const useDraftAnimation = (
   itemName: string | null | undefined,
   itemType: 'civ' | 'map',
-  currentStatus: 'picked' | 'banned' | 'default' | 'affected' | 'adminPicked' // Extended to include all known statuses
-): AnimationState => {
+  currentStatus: 'picked' | 'banned' | 'default' | 'affected' | 'adminPicked'
+): AnimationOutput => {
   const lastDraftAction = useDraftStore(state => state.lastDraftAction);
-  const hostColor = useDraftStore(state => state.hostColor); // Assuming player colors might influence glow
-  const guestColor = useDraftStore(state => state.guestColor); // Assuming player colors might influence glow
 
-  const [animationState, setAnimationState] = useState<AnimationState>({
-    animationClass: '',
-    imageOpacity: 1, // Default to visible, animation sequence will handle fade-in for active item
-  });
-  const [isActiveAction, setIsActiveAction] = useState(false);
+  // Local state for this specific item's animation properties
+  const [animationClass, setAnimationClass] = useState('');
+  const [imageOpacity, setImageOpacity] = useState(1); // Default to visible
+
+  // Tracks if the current lastDraftAction.timestamp has been processed by this hook instance for this item
   const [processedTimestamp, setProcessedTimestamp] = useState<number | null>(null);
+  // Tracks if this specific item is currently in an active animation sequence
+  const [isAnimatingThisItem, setIsAnimatingThisItem] = useState(false);
 
-  const itemMatchesLastAction = useMemo(() => {
+  const itemIsTheLastAction = useMemo(() => {
     if (!itemName || !lastDraftAction) return false;
     return lastDraftAction.item === itemName && lastDraftAction.itemType === itemType;
   }, [itemName, itemType, lastDraftAction]);
 
   useEffect(() => {
-    // Set initial image opacity based on status when component mounts or status changes (but not due to animation)
-    // This is important if the item is already picked/banned when the component loads.
-    // The animation will then override this if it's the *last action*.
-    if (!isActiveAction) { // Only apply if not in an active animation sequence for this item
-      if (currentStatus === 'picked' || currentStatus === 'banned' || currentStatus === 'adminPicked') {
-        setAnimationState(prev => ({ ...prev, imageOpacity: 1 }));
-      } else {
-        setAnimationState(prev => ({ ...prev, imageOpacity: 1 })); // Default/affected should be visible
-      }
-    }
-  }, [currentStatus, itemName, isActiveAction]);
+    const shouldStartAnimation =
+      itemIsTheLastAction &&
+      lastDraftAction &&
+      lastDraftAction.timestamp !== processedTimestamp;
 
+    if (shouldStartAnimation) {
+      setIsAnimatingThisItem(true);
+      setProcessedTimestamp(lastDraftAction!.timestamp);
+      setImageOpacity(0);
+      setAnimationClass(`animate-${lastDraftAction!.action}-initial`);
 
-  useEffect(() => {
-    if (itemMatchesLastAction && lastDraftAction && lastDraftAction.timestamp !== processedTimestamp) {
-      setProcessedTimestamp(lastDraftAction.timestamp);
-      setIsActiveAction(true);
-      const actionType = lastDraftAction.action; // 'pick' or 'ban'
+      const fadeInTimer = setTimeout(() => {
+        setImageOpacity(1);
+      }, 50);
 
-      // Initial animation phase
-      setAnimationState({
-        animationClass: `animate-${actionType}-initial`, // e.g., animate-pick-initial
-        imageOpacity: 0, // Start image as transparent for fade-in
-      });
+      const sustainGlowTimer = setTimeout(() => {
+        // Only update class if still animating *this* item and this action
+        if (isAnimatingThisItem && lastDraftAction && lastDraftAction.timestamp === processedTimestamp) {
+             setAnimationClass(`animate-${lastDraftAction!.action}-sustain`);
+        }
+      }, ANIMATION_SUSTAIN_TRANSITION_DELAY_MS); // Use new constant
 
-      // Start fade-in for image
-      const imageFadeTimer = setTimeout(() => {
-        setAnimationState(prev => ({
-          ...prev,
-          imageOpacity: 1,
-        }));
-      }, 50); // Slight delay to ensure CSS transition for opacity catches the change
-
-      // Transition to sustained glow phase
-      const sustainTimer = setTimeout(() => {
-        setAnimationState(prev => ({ // Use prev to ensure we don't lose opacity if it was set
-          ...prev,
-          animationClass: `animate-${actionType}-sustain`, // e.g., animate-pick-sustain
-        }));
-      }, SUSTAINED_GLOW_DELAY_MS);
-
-      // Timer to clear the "active action" state for this item
-      const resetTimer = setTimeout(() => {
-        setIsActiveAction(false);
-        // The animationClass will be cleared by the !isActiveAction condition in the next render cycle,
-        // or if another item becomes the lastDraftAction.
-        // No need to explicitly set animationClass to '' here, as it might prematurely stop sustain transition
-        // if the timing is tight. Let the natural state flow handle it.
-      }, RESET_ANIMATION_STATE_MS); // Use the defined constant
+      const endAnimationTimer = setTimeout(() => {
+        setIsAnimatingThisItem(false);
+      }, TOTAL_ANIMATED_GLOW_DURATION_MS); // Use new constant
 
       return () => {
-        clearTimeout(imageFadeTimer);
-        clearTimeout(sustainTimer);
-        clearTimeout(resetTimer);
+        clearTimeout(fadeInTimer);
+        clearTimeout(sustainGlowTimer);
+        clearTimeout(endAnimationTimer);
       };
-    } else if (!itemMatchesLastAction && isActiveAction) {
-      // This item was active, but a new lastDraftAction occurred for a *different* item.
-      // Reset this item's animation immediately.
-      setIsActiveAction(false);
-      setAnimationState({ animationClass: '', imageOpacity: 1 }); // Reset and ensure visible
-      // setProcessedTimestamp(null); // Not strictly needed here, as a new action for *this* item will have a new timestamp
-    } else if (!isActiveAction) {
-      // This item is not animating. Ensure its animationClass is clear.
-      // The imageOpacity is managed by the other useEffect based on currentStatus.
-      if (animationState.animationClass !== '') { // Only set state if it needs changing
-        setAnimationState(prev => ({ ...prev, animationClass: '' }));
+    } else if (isAnimatingThisItem && !itemIsTheLastAction) {
+      // Interrupted: This item WAS animating, but is no longer the target.
+      setIsAnimatingThisItem(false);
+      setAnimationClass('');
+      setImageOpacity(1);
+    } else if (!isAnimatingThisItem) {
+      // Not animating: ensure it's visible and has no lingering animation classes.
+      // This also handles the state after an animation sequence naturally ends.
+      setImageOpacity(1);
+      if (animationClass !== '') {
+        setAnimationClass('');
       }
     }
-  }, [lastDraftAction, itemMatchesLastAction, isActiveAction, currentStatus, processedTimestamp]); // Removed animationState.animationClass from deps
+  }, [
+    itemName,
+    itemType,
+    lastDraftAction,
+    // currentStatus, // currentStatus might not be needed if opacity is always 1 when not animating
+    processedTimestamp,
+    isAnimatingThisItem, // Critical for managing state transitions
+    itemIsTheLastAction,
+    animationClass // To allow clearing it when !isAnimatingThisItem
+  ]);
 
-
-  // If an item is not the lastDraftAction but is picked/banned,
-  // it should still have a "normal" (50%) glow. This will be handled by
-  // static CSS classes in the components themselves based on `currentStatus`.
-  // The `animationClass` from this hook is primarily for the *newly updated* item.
-
-  return animationState;
+  return { animationClass, imageOpacity };
 };
 
 export default useDraftAnimation;

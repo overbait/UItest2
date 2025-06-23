@@ -18,26 +18,26 @@
 
 /* Animation classes to be applied by the hook */
 .animatePickInitial {
-  animation: glow-intensify-pick-map 0.5s ease-out forwards;
+  animation: glow-intensify-pick-map 1s ease-out forwards; /* Changed to 1s */
   /* Image opacity will be handled by inline style from the hook */
 }
 .animateBanInitial {
-  animation: glow-intensify-ban-map 0.5s ease-out forwards;
+  animation: glow-intensify-ban-map 1s ease-out forwards; /* Changed to 1s */
   /* Image opacity will be handled by inline style from the hook */
 }
 
-/* Classes for the sustained glow state (target of 2s transition) */
+/* Classes for the sustained glow state (target of 1s transition to 50% glow) */
 .animatePickSustain {
-  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset;
-  border-color: pickGlowColor; /* Ensure border also transitions if it changes */
-  opacity: 1;
-  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out; /* Opacity transition for image */
+  box-shadow: 0 0 8px 3px pickGlowColor, 0 0 5px 2px pickGlowColor inset; /* 50% glow */
+  border-color: pickGlowColor;
+  /* opacity: 1; /* Opacity is controlled by inline style via hook */
+  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
 }
 .animateBanSustain {
-  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset;
+  box-shadow: 0 0 8px 3px banGlowColor, 0 0 5px 2px banGlowColor inset; /* 50% glow */
   border-color: banGlowColor;
-  opacity: 1;
-  transition: box-shadow 2s ease-out, border-color 2s ease-out, opacity 0.5s ease-out;
+  /* opacity: 1; */
+  transition: box-shadow 1s ease-out, border-color 1s ease-out; /* Changed to 1s */
 }
 
 /* Ensure the visual content itself can transition opacity for the image fade-in */
