@@ -133,19 +133,17 @@ const CivPoolElement: React.FC<CivPoolElementProps> = ({ element, isBroadcast })
     });
   }, [aoe2cmRawDraftOptions, civPicksHost, civBansHost, civPicksGuest, civBansGuest, civPicksGlobal]);
 
-  const player1CivPool = useMemo(() => {
-    const pool = deriveCivPool('host');
-    // NUM_ROWS is passed as the second argument (previously columnSize)
-    return reorderCivsForDisplay(pool, NUM_ROWS);
-  }, [deriveCivPool, forceMapPoolUpdate]); // Assuming forceMapPoolUpdate was a previous attempt; deriveCivPool is key
+  // const player1CivPool = useMemo(() => { // Original useMemo declaration - REMOVED
+  //   const pool = deriveCivPool('host');
+  //   return reorderCivsForDisplay(pool, NUM_ROWS);
+  // }, [deriveCivPool, forceMapPoolUpdate]);
 
-  // Temporarily remove useMemo for debugging disappearing items
+  // Direct calculation (temporary for debugging, or permanent if useMemo was problematic)
   const hostCivPoolData = deriveCivPool('host');
   const player1CivPool = reorderCivsForDisplay(hostCivPoolData, NUM_ROWS);
 
   const guestCivPoolData = deriveCivPool('guest');
   const player2CivPool = reorderCivsForDisplay(guestCivPoolData, NUM_ROWS);
-  // }, [deriveCivPool]); // Old useMemo dependency
 
   const p1TranslateX = -(element.horizontalSplitOffset || 0);
   const p2TranslateX = (element.horizontalSplitOffset || 0);
