@@ -549,6 +549,22 @@ const useDraftStore = create<DraftStore>()(
                         // We re-evaluate it here to ensure atomicity.
                         let actuallyCausedPickBanChange = false;
                         let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
+                        let tempAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions ? [...state.aoe2cmRawDraftOptions] : [];
+
+                        // Optimistically add option if not present (for playerEvent/act)
+                        if (chosenOptionId && typeof chosenOptionId === 'string' && chosenOptionId !== "HIDDEN_BAN") {
+                            const optionExists = tempAoe2cmRawDraftOptions.some(opt => opt.id === chosenOptionId);
+                            if (!optionExists) {
+                                // We need the raw name that would be in the preset, not the processed one yet for adding.
+                                // However, getOptionNameFromStore processes it. If we add, use processed name for consistency.
+                                // This assumes that if an option is dynamically picked, its 'name' field would be the processed name.
+                                // Or, we'd need to fetch full draft state. For now, optimistic add with processed name.
+                                console.log(`[draftStore] Optimistically adding option ${chosenOptionId} with name ${optionName} to draftOptions.`);
+                                tempAoe2cmRawDraftOptions.push({ id: chosenOptionId, name: optionName });
+                                // This implies optionName should be the "display" name.
+                                // And getOptionNameFromStore should be robust if draftOptions contains already-processed names for these dynamic adds.
+                            }
+                        }
 
                         if (effectiveDraftType === 'civ') {
                             if (actionType === 'pick') {
@@ -633,6 +649,7 @@ const useDraftStore = create<DraftStore>()(
                             mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
                             boxSeriesGames: newBoxSeriesGames,
                             lastDraftAction: newLastDraftAction, // Update lastDraftAction
+                            aoe2cmRawDraftOptions: tempAoe2cmRawDraftOptions, // Persist potentially updated options
                         };
                     });
 
@@ -695,6 +712,16 @@ const useDraftStore = create<DraftStore>()(
                         let tempMapBansGlobal = state.mapBansGlobal;
                         let actuallyCausedPickBanChange = false;
                         let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
+                        let tempAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions ? [...state.aoe2cmRawDraftOptions] : [];
+
+                        // Optimistically add option if not present (for playerEvent/act)
+                        if (chosenOptionId && typeof chosenOptionId === 'string' && chosenOptionId !== "HIDDEN_BAN") {
+                            const optionExists = tempAoe2cmRawDraftOptions.some(opt => opt.id === chosenOptionId);
+                            if (!optionExists) {
+                                console.log(`[draftStore] Optimistically adding option ${chosenOptionId} with name ${optionName} to draftOptions in 'act' handler.`);
+                                tempAoe2cmRawDraftOptions.push({ id: chosenOptionId, name: optionName });
+                            }
+                        }
 
                         if (effectiveDraftType === 'civ') {
                             if (actionType === 'pick') {
@@ -774,6 +801,7 @@ const useDraftStore = create<DraftStore>()(
                             mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
                             boxSeriesGames: newBoxSeriesGames,
                             lastDraftAction: newLastDraftAction, // Update lastDraftAction
+                            aoe2cmRawDraftOptions: tempAoe2cmRawDraftOptions, // Persist potentially updated options
                         };
                     });
                     // The outer pickBanStateChanged is set based on valid effectiveDraftType and actionType

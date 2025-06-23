@@ -144,8 +144,7 @@
   left: 5px;   /* Respect parent's padding */
   right: 5px;  /* Respect parent's padding */
   bottom: 5px; /* Respect parent's padding */
-  width: calc(100% - 10px); /* Fill content area within padding */
-  height: calc(100% - 10px);/* Fill content area within padding */
+  /* width and height are now implicitly defined by top/left/right/bottom to fill the content area */
   object-fit: contain;
   transition: opacity 3s ease-in-out; /* 3-second fade-in */
   image-rendering: crisp-edges;

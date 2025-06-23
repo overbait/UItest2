@@ -10,12 +10,11 @@ interface AnimationOutput {
 
 // Timings for new glow spread animation:
 const ANIMATION_SPREAD_INCREASE_DURATION_MS = 2000;
-const ANIMATION_SPREAD_RETURN_DURATION_MS = 2000;
-// Total time the item is considered in a "special animated glow state" by the hook.
-// The hook will apply 'increase' for 2s. Then remove it. The CSS handles the return transition.
-// So, isAnimatingThisItem could be true for just the increase phase, or the whole 4s.
-// Let's make isAnimatingThisItem true for the whole 4s for clarity.
-const TOTAL_ANIMATED_GLOW_DURATION_MS = ANIMATION_SPREAD_INCREASE_DURATION_MS + ANIMATION_SPREAD_RETURN_DURATION_MS;
+const ANIMATION_SPREAD_RETURN_DURATION_MS = 2000; // This is for the CSS transition on the base class when animation class is removed
+const TOTAL_ANIMATED_GLOW_DURATION_MS = ANIMATION_SPREAD_INCREASE_DURATION_MS; // Hook applies "increase" class for this duration. Return is passive.
+// Correction: isAnimatingThisItem will be true for the "increase" phase.
+// The return phase is handled by CSS transition when the class is removed.
+const ACTIVE_ANIMATION_DURATION_MS = ANIMATION_SPREAD_INCREASE_DURATION_MS; // 2000ms. Hook actively manages class for this long.
 
 // Image fade-in duration (distinct from glow)
 const IMAGE_FADE_IN_DURATION_MS = 500; // Standard 0.5s fade for images, happens concurrently
@@ -43,12 +42,14 @@ const useDraftAnimation = (
   }, [itemName, itemType, lastDraftAction, activeCivDraftId, activeMapDraftId]);
 
   useEffect(() => {
-    if (!isDraftContextActive && lastDraftAction) {
+    // Guard for stale lastDraftAction if context is not active
+    if (!isDraftContextActive && lastDraftAction && lastDraftAction.item === itemName && lastDraftAction.itemType === itemType) {
       if (animationClass !== '') setAnimationClass('');
-      if (imageOpacity !== 1) setImageOpacity(1);
-      if (lastDraftAction.item === itemName && lastDraftAction.itemType === itemType && processedTimestamp === lastDraftAction.timestamp) {
-        setProcessedTimestamp(null);
+      if (imageOpacity !== 1) setImageOpacity(1); // Default to fully visible
+      if (processedTimestamp === lastDraftAction.timestamp) {
+        setProcessedTimestamp(null); // Allow re-processing if context becomes active again
       }
+      if(isAnimatingThisItem) setIsAnimatingThisItem(false); // Stop any active animation
       return;
     }
 
@@ -72,57 +73,41 @@ const useDraftAnimation = (
         setImageOpacity(currentStatus === 'affected' ? 0.8 : 1);
       }, 50);
 
-      // Apply class for glow increase animation
       setAnimationClass(`animate-spread-increase-${lastDraftAction!.action}`);
 
-      // Timer to remove the "increase" class. The return to normal glow will be handled by CSS transition.
-      // However, to make isAnimatingThisItem cover the whole 4s period:
-      const removeIncreaseClassTimer = setTimeout(() => {
-        // This timeout is effectively just for conceptual phase change.
-        // The actual removal of the class will happen when isAnimatingThisItem becomes false.
-        // For now, let's not change class here, but let endAnimationTimer handle full cycle.
-        // If we wanted a 2-stage class system:
-        // setAnimationClass(`animate-spread-return-${lastDraftAction!.action}`);
-      }, ANIMATION_SPREAD_INCREASE_DURATION_MS);
-
-
-      const endAnimationTimer = setTimeout(() => {
+      // This timer is to manage the duration of the "isAnimatingThisItem" state.
+      // After this duration, the item is no longer considered "actively animating the increase".
+      const endActiveIncreasePhaseTimer = setTimeout(() => {
         setIsAnimatingThisItem(false);
-      }, TOTAL_ANIMATED_GLOW_DURATION_MS); // After 4 seconds total
+        // When isAnimatingThisItem becomes false, the useEffect's `else if (!isAnimatingThisItem)`
+        // block will run, which will clear the `animate-spread-increase-*` class,
+        // allowing the CSS transition on the base element to animate the glow back to normal.
+      }, ACTIVE_ANIMATION_DURATION_MS); // End active animation after the "increase" phase.
 
       return () => {
         clearTimeout(fadeInTimer);
-        clearTimeout(removeIncreaseClassTimer);
-        clearTimeout(endAnimationTimer);
+        // clearTimeout(removeIncreaseClassTimer); // This timer was removed in previous step of thought process
+        clearTimeout(endActiveIncreasePhaseTimer);
       };
     } else if (isAnimatingThisItem && !itemIsTheLastAction) {
-      // Interrupted
-      setIsAnimatingThisItem(false);
+      // Interrupted: This item WAS animating, but is no longer the target.
+      setIsAnimatingThisItem(false); // Stop its animation sequence
       setAnimationClass('');
-      setImageOpacity(targetOpacity);
+      setImageOpacity(targetOpacity); // Set to its correct non-animating opacity
     } else if (!isAnimatingThisItem) {
-      // Not animating or animation ended
+      // Not animating or animation has ended its "active" phase.
       setImageOpacity(targetOpacity);
-      if (animationClass !== '' && !animationClass.startsWith('animate-spread-increase-')) {
-        // If it had a 'return' class or something else, clear it.
-        // Or, more simply, if it's not animating, it should have no *animation specific* class.
+      // If class was 'animate-spread-increase-*', clear it to allow CSS transition for return.
+      if (animationClass.startsWith('animate-spread-increase-')) {
         setAnimationClass('');
-      } else if (animationClass.startsWith('animate-spread-increase-') && !itemIsTheLastAction) {
-        // This case means an animation was active, it finished its increase phase,
-        // but before isAnimatingThisItem was set to false by its own timer, another item became last action.
-        // So, it should also revert.
-         setAnimationClass('');
+      } else if (animationClass !== '') { // Clear any other potentially stale animation class
+        setAnimationClass('');
       }
-       // If animationClass is 'animate-spread-increase-*' and isAnimatingThisItem is false (due to endAnimationTimer),
-       // this block will run, and animationClass will be set to ''. This removal triggers CSS transition back to normal.
-       if (animationClass !== '' && !isAnimatingThisItem) {
-           setAnimationClass('');
-       }
     }
   }, [
     itemName, itemType, lastDraftAction, currentStatus,
     processedTimestamp, isAnimatingThisItem, itemIsTheLastAction,
-    animationClass, isDraftContextActive, imageOpacity // Added imageOpacity
+    animationClass, isDraftContextActive, imageOpacity // imageOpacity added to ensure effect re-runs if it's changed externally
   ]);
 
   return { animationClass, imageOpacity };
