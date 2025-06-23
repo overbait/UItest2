@@ -2078,46 +2078,52 @@ const useDraftStore = create<DraftStore>()(
           }));
 
           // Now, modify the copy
-          if (stateToPersist.currentCanvases && Array.isArray(stateToPersist.currentCanvases)) {
-            stateToPersist.currentCanvases = stateToPersist.currentCanvases.map(canvas => {
-              if (canvas.layout && Array.isArray(canvas.layout)) {
-                return {
-                  ...canvas,
-                  layout: canvas.layout.map((el: StudioElement) => {
-                    if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
-                      return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
-                    }
-                    return el;
-                  })
-                };
-              }
-              return canvas;
-            });
-          }
-          if (stateToPersist.savedStudioLayouts && Array.isArray(stateToPersist.savedStudioLayouts)) {
-            stateToPersist.savedStudioLayouts = stateToPersist.savedStudioLayouts.map(savedLayout => {
-              if (savedLayout.canvases && Array.isArray(savedLayout.canvases)) {
-                return {
-                  ...savedLayout,
-                  canvases: savedLayout.canvases.map(canvas => {
-                    if (canvas.layout && Array.isArray(canvas.layout)) {
-                      return {
-                        ...canvas,
-                        layout: canvas.layout.map((el: StudioElement) => {
-                          if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
-                            return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
-                          }
-                          return el;
-                        })
-                      };
-                    }
-                    return canvas;
-                  })
-                };
-              }
-              return savedLayout;
-            });
-          }
+          // Now, modify the copy
+          // The following logic that replaced data: URLs with "[LOCAL_IMAGE_DATA_NOT_PERSISTED]"
+          // has been removed to allow data: URLs to be persisted directly.
+          // This will fix issues #2 and #3 regarding background images not appearing.
+          // Note: This might lead to larger localStorage usage if many large local images are used.
+
+          // if (stateToPersist.currentCanvases && Array.isArray(stateToPersist.currentCanvases)) {
+          //   stateToPersist.currentCanvases = stateToPersist.currentCanvases.map(canvas => {
+          //     if (canvas.layout && Array.isArray(canvas.layout)) {
+          //       return {
+          //         ...canvas,
+          //         layout: canvas.layout.map((el: StudioElement) => {
+          //           if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+          //             return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+          //           }
+          //           return el;
+          //         })
+          //       };
+          //     }
+          //     return canvas;
+          //   });
+          // }
+          // if (stateToPersist.savedStudioLayouts && Array.isArray(stateToPersist.savedStudioLayouts)) {
+          //   stateToPersist.savedStudioLayouts = stateToPersist.savedStudioLayouts.map(savedLayout => {
+          //     if (savedLayout.canvases && Array.isArray(savedLayout.canvases)) {
+          //       return {
+          //         ...savedLayout,
+          //         canvases: savedLayout.canvases.map(canvas => {
+          //           if (canvas.layout && Array.isArray(canvas.layout)) {
+          //             return {
+          //               ...canvas,
+          //               layout: canvas.layout.map((el: StudioElement) => {
+          //                 if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+          //                   return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
+          //                 }
+          //                 return el;
+          //               })
+          //             };
+          //           }
+          //           return canvas;
+          //         })
+          //       };
+          //     }
+          //     return savedLayout;
+          //   });
+          // }
           return stateToPersist;
         },
         storage: customLocalStorageWithBroadcast,
