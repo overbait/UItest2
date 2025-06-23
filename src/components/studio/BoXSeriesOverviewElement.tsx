@@ -190,17 +190,19 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 <div
                   key={hostCivKey + '-container'}
                   className={`${styles.selectorDisplay} ${game.winner === 'host' ? styles.winnerGlow : ''}`}
-                  style={{ // Base placeholder image
-                    ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
-                  }}
+                  style={{...civSelectorStyle }} // Removed direct backgroundImage from parent
                 >
+                  <div
+                    className={styles.placeholderImageLayer}
+                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
+                  />
                   {game.hostCiv && (
-                    <img
-                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png`}
-                      alt={game.hostCiv}
-                      className={styles.boxPickedImage} // Use new class
-                      style={{ opacity: hostCivOpacity }}
+                    <div
+                      className={styles.pickedImageLayer}
+                      style={{
+                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.hostCiv)}.png')`,
+                        opacity: hostCivOpacity
+                      }}
                     />
                   )}
                   {showCivNames && game.hostCiv && (
@@ -218,17 +220,19 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 <div
                   key={mapKey + '-container'}
                   className={styles.selectorDisplay} // No winnerGlow for maps
-                  style={{ // Base placeholder image
-                    ...mapSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath('random')}.png')`, // Assuming a random map placeholder exists
-                  }}
+                  style={{ ...mapSelectorStyle }} // Removed direct backgroundImage from parent
                 >
+                  <div
+                    className={styles.placeholderImageLayer}
+                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath('random')}.png')`}}
+                  />
                   {game.map && (
-                    <img
-                      src={`/assets/maps/${formatMapNameForImagePath(game.map)}.png`}
-                      alt={game.map}
-                      className={styles.boxPickedImage} // Use new class
-                      style={{ opacity: mapOpacity }}
+                    <div
+                      className={styles.pickedImageLayer}
+                      style={{
+                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/maps/${formatMapNameForImagePath(game.map)}.png')`,
+                        opacity: mapOpacity
+                      }}
                     />
                   )}
                   {showMapNames && game.map && (
@@ -246,17 +250,19 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 <div
                   key={guestCivKey + '-container'}
                   className={`${styles.selectorDisplay} ${game.winner === 'guest' ? styles.winnerGlow : ''}`}
-                  style={{ // Base placeholder image
-                    ...civSelectorStyle,
-                    backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')`,
-                  }}
+                  style={{ ...civSelectorStyle }} // Removed direct backgroundImage from parent
                 >
+                  <div
+                    className={styles.placeholderImageLayer}
+                    style={{ backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath('random')}.png')` }}
+                  />
                   {game.guestCiv && (
-                    <img
-                      src={`/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png`}
-                      alt={game.guestCiv}
-                      className={styles.boxPickedImage} // Use new class
-                      style={{ opacity: guestCivOpacity }}
+                    <div
+                      className={styles.pickedImageLayer}
+                      style={{
+                        backgroundImage: `linear-gradient(to bottom, rgba(74,59,42,0.7), rgba(74,59,42,0.1)), url('/assets/civflags_normal/${formatCivNameForImagePath(game.guestCiv)}.png')`,
+                        opacity: guestCivOpacity
+                      }}
                     />
                   )}
                   {showCivNames && game.guestCiv && (
