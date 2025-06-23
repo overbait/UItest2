@@ -145,7 +145,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     >
       {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
         const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
-        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
+        // Removed duplicate hostCivKey declaration
         const mapKey = `map-${index}-${game.map || 'random'}`;
         const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
 
