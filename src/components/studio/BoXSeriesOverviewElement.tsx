@@ -47,12 +47,12 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   } else if (hideCivs) {
     gridTemplateColumnsValue = 'auto'; // Only Map visible
   } else if (hideMaps) {
-    // If pivot is used: HostCiv Spacer GuestCiv
+    // Civs are visible, Maps are hidden
     gridTemplateColumnsValue = (pivotInternalOffset && pivotInternalOffset > 0)
-      ? `1fr ${pivotInternalOffset}px 1fr`
-      : '1fr 1fr'; // HostCiv GuestCiv
+      ? `1fr ${pivotInternalOffset * 2}px 1fr` // HostCiv | Gap (2*offset) | GuestCiv
+      : '1fr 1fr'; // HostCiv GuestCiv (adjacent)
   } else {
-    // All visible, consider pivot
+    // All visible (neither civs nor maps hidden), consider pivot
     gridTemplateColumnsValue = (pivotInternalOffset && pivotInternalOffset > 0)
       ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr` // HostCiv Spacer Map Spacer GuestCiv
       : '1fr auto 1fr'; // HostCiv Map GuestCiv
