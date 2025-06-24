@@ -137,45 +137,19 @@
   /* No visual styling needed unless for debugging */
 }
 
-/* .boxPickedImage is being replaced by the layered approach below */
-/*
+/* Restored .boxPickedImage for use with an <img> tag overlay */
 .boxPickedImage {
   position: absolute;
-  top: 5px;
+  top: 5px;    /* To fit within parent's padding */
   left: 5px;
   right: 5px;
   bottom: 5px;
-  object-fit: contain;
-  transition: opacity 3s ease-in-out;
-  image-rendering: crisp-edges;
-  border-radius: 2px;
-  background-color: transparent;
-}
-*/
-
-/* CSS for layered image display in BoX Overview */
-.imageLayer {
-  position: absolute;
-  top: 0; /* Cover parent's full box (including padding area, like a background-image) */
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover; /* Emulate original background-size: cover */
-  background-position: center;
-  background-repeat: no-repeat;
-  /* If .selectorDisplay has border-radius: 3px, this can help inner layers conform if needed */
-  /* border-radius: 2px; */ /* Match selectorDisplay's effective inner radius if applicable */
-}
-
-.placeholderImageLayer {
-  /* Inherits from imageLayer */
-  /* backgroundImage will be set inline via style prop */
-  /* This layer is always opacity 1 and behind the pickedImageLayer */
-}
-
-.pickedImageLayer {
-  /* Inherits from imageLayer */
-  /* backgroundImage will be set inline via style prop */
-  /* opacity is controlled by component state for fade-in */
+  width: calc(100% - 10px); /* Adjusts for the 5px padding on each side */
+  height: calc(100% - 10px);/* Adjusts for the 5px padding on each side */
+  object-fit: contain; /* Ensures aspect ratio is maintained, fits within bounds */
   transition: opacity 3s ease-in-out; /* 3-second fade as per requirement */
+  image-rendering: crisp-edges; /* Good for pixel art if applicable */
+  border-radius: 2px; /* Consistent with parent's border-radius */
 }
+
+/* Removed .imageLayer, .placeholderImageLayer, .pickedImageLayer from previous layered div attempt */
