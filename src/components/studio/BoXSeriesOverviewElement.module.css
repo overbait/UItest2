@@ -146,7 +146,7 @@
   bottom: 5px;
   width: calc(100% - 10px); /* Adjusts for the 5px padding on each side */
   height: calc(100% - 10px);/* Adjusts for the 5px padding on each side */
-  object-fit: contain; /* Ensures aspect ratio is maintained, fits within bounds */
+  object-fit: cover; /* Ensures aspect ratio is maintained, fits within bounds */
   transition: opacity 3s ease-in-out; /* 3-second fade as per requirement */
   image-rendering: crisp-edges; /* Good for pixel art if applicable */
   border-radius: 2px; /* Consistent with parent's border-radius */
