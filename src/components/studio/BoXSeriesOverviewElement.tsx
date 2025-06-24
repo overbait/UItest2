@@ -41,21 +41,40 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
   const gameTitleFontSize = dynamicFontSize * 0.9;
 
   // Adjust gridTemplateColumns based on hideCivs and hideMaps
-  let gridTemplateColumnsValue = '1fr auto 1fr'; // Default: HostCiv Map GuestCiv
-  if (hideCivs && hideMaps) {
-    gridTemplateColumnsValue = 'auto'; // Should not happen based on UI, but good to handle (maybe just Game X title)
-  } else if (hideCivs) {
-    gridTemplateColumnsValue = 'auto'; // Only Map visible
-  } else if (hideMaps) {
-    // Civs are visible, Maps are hidden
-    gridTemplateColumnsValue = (pivotInternalOffset && pivotInternalOffset > 0)
-      ? `1fr ${pivotInternalOffset * 2}px 1fr` // HostCiv | Gap (2*offset) | GuestCiv
-      : '1fr 1fr'; // HostCiv GuestCiv (adjacent)
-  } else {
-    // All visible (neither civs nor maps hidden), consider pivot
-    gridTemplateColumnsValue = (pivotInternalOffset && pivotInternalOffset > 0)
-      ? `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr` // HostCiv Spacer Map Spacer GuestCiv
-      : '1fr auto 1fr'; // HostCiv Map GuestCiv
+  let gridTemplateColumnsValue = '';
+
+  if (hideCivs) {
+    if (hideMaps) {
+      // Case 1: Civs hidden, Maps hidden (element is effectively empty or only shows game titles, which are also hidden)
+      gridTemplateColumnsValue = 'auto'; // Or 'none', or doesn't matter much as content is hidden
+    } else {
+      // Case 2: Civs hidden, Maps visible
+      gridTemplateColumnsValue = 'auto'; // Map takes up the space
+    }
+  } else { // Civs are visible
+    if (hideMaps) {
+      // Case 3: Civs visible, Maps hidden
+      if (pivotInternalOffset && pivotInternalOffset > 0) {
+        // Civs visible, Maps hidden, Pivot Active
+        // Structure: LeftCiv, DynamicCentralSpacer, RightCiv
+        gridTemplateColumnsValue = '1fr auto 1fr';
+      } else {
+        // Civs visible, Maps hidden, Pivot NOT Active
+        // Structure: LeftCiv, RightCiv (adjacent)
+        gridTemplateColumnsValue = '1fr 1fr';
+      }
+    } else {
+      // Case 4: Civs visible, Maps visible (original logic)
+      if (pivotInternalOffset && pivotInternalOffset > 0) {
+        // Civs visible, Maps visible, Pivot Active
+        // Structure: LeftCiv, OriginalSpacer, Map, OriginalSpacer, RightCiv
+        gridTemplateColumnsValue = `1fr ${pivotInternalOffset}px auto ${pivotInternalOffset}px 1fr`;
+      } else {
+        // Civs visible, Maps visible, Pivot NOT Active
+        // Structure: LeftCiv, Map, RightCiv
+        gridTemplateColumnsValue = '1fr auto 1fr';
+      }
+    }
   }
 
   const gameImageRowDynamicStyle: React.CSSProperties = {
@@ -128,7 +147,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
         return (
          <div key={index} className={styles.gameEntryContainer} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}>
-            <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1}</div>
+            {!hideMaps && <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1}</div>}
             <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
               {!hideCivs && (
                 <div className={`${styles.civCell} ${styles.leftCivCell}`}>
@@ -155,7 +174,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                 </div>
               )}
               {!hideCivs && !hideMaps && (pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
-              {!hideMaps && (
+              {/* Central content: Map or Spacer if map is hidden and pivot is active */}
+              {(!hideMaps) && (
                 <div className={styles.mapCell}>
                   <div
                     key={mapKey}
@@ -178,6 +198,10 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
                     )}
                   </div>
                 </div>
+              )}
+              {/* Dedicated spacer for when maps are hidden, civs are visible, and pivot is active */}
+              {hideMaps && !hideCivs && pivotInternalOffset > 0 && (
+                <div style={{ width: `${pivotInternalOffset * 2}px`, flexShrink: 0 /* Prevent shrinking */ }}></div>
               )}
               {!hideCivs && !hideMaps && (pivotInternalOffset > 0) && <div className={styles.spacer}></div>}
               {!hideCivs && (
