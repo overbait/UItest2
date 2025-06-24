@@ -80,6 +80,7 @@ export interface StudioElement {
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
   hideCivs?: boolean; // New property for BoXSeriesOverview to hide civs
   hideMaps?: boolean; // New property for BoXSeriesOverview to hide maps
+  hideGameXText?: boolean; // New property for BoXSeriesOverview to hide "Game X" titles
   // showName and showScore removed
   imageUrl?: string | null; // For BackgroundImageElement
   opacity?: number;         // For BackgroundImageElement

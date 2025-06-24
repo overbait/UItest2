@@ -25,7 +25,8 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     showMapNames = true,
     gameEntrySpacing = 10,
     hideCivs = false,
-    hideMaps = false, // Added hideMaps
+    hideMaps = false,
+    hideGameXText = false, // Added hideGameXText
     pivotInternalOffset = 0,
   } = element;
 
@@ -147,7 +148,7 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
 
         return (
          <div key={index} className={styles.gameEntryContainer} style={{ paddingTop: index > 0 ? `${gameEntrySpacing}px` : '0px' }}>
-            {!hideMaps && <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1}</div>}
+            {!hideGameXText && <div className={styles.gameTitle} style={dynamicGameTitleStyle}>Game {index + 1}</div>}
             <div className={styles.gameImageRow} style={gameImageRowDynamicStyle}>
               {!hideCivs && (
                 <div className={`${styles.civCell} ${styles.leftCivCell}`}>
