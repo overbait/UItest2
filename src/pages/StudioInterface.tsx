@@ -34,6 +34,7 @@ const StudioInterface: React.FC = () => {
     resetActiveCanvasLayout,
     setCanvasBackgroundColor,
     importLayoutsFromFile, // Added import action
+    toggleCanvasBroadcastBorder, // Added for border toggle
     // setCanvasBackgroundImage, // This action was removed from the store
   } = useDraftStore(state => state);
 
@@ -407,6 +408,24 @@ const StudioInterface: React.FC = () => {
                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', display: 'inline-block'}} title={canvas.name} > {canvas.name.length > 15 ? canvas.name.substring(0, 12) + '...' : canvas.name} </span>
                    <button title="Rename canvas" onClick={(e) => { e.stopPropagation(); setEditingCanvasId(canvas.id); setEditingCanvasName(canvas.name); }} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0 5px', marginLeft: '5px', cursor: 'pointer', fontSize: '1em' }} > ✏️ </button>
                    <span title="Open canvas in new window (placeholder)" onClick={(e) => { e.stopPropagation(); const broadcastUrl = `/index.html?view=broadcast&canvasId=${canvas.id}`; window.open(broadcastUrl, '_blank'); console.log('Attempting to open broadcast view in new tab for canvas ID:', canvas.id, 'at URL:', broadcastUrl); }} style={{ width: '10px', height: '10px', backgroundColor: 'white', border: '1px solid #666', marginLeft: '8px', cursor: 'pointer', display: 'inline-block' }} ></span>
+                   <button
+                      title={canvas.showBroadcastBorder === false ? "Show broadcast border" : "Hide broadcast border"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCanvasBroadcastBorder(canvas.id);
+                      }}
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        backgroundColor: canvas.showBroadcastBorder === false ? 'transparent' : 'black',
+                        border: `1px solid ${canvas.showBroadcastBorder === false ? '#888' : 'white'}`,
+                        marginLeft: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-block',
+                        padding: 0,
+                        lineHeight: '10px', // Adjust for vertical centering if needed
+                      }}
+                    ></button>
                    {currentCanvases.length > 1 && ( <button title="Remove canvas" onClick={(e) => { e.stopPropagation(); if(confirm(`Are you sure you want to delete canvas "${canvas.name}"?`)) removeCanvas(canvas.id); }} style={{ background: 'transparent', border: 'none', color: '#aaa', marginLeft: '5px', cursor: 'pointer', fontSize: '1.2em', padding: '0 3px', lineHeight: '1', fontWeight: 'bold' }} > &times; </button> )}
                  </>
                )}

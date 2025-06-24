@@ -96,7 +96,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         position: 'relative',
         overflow: 'hidden',
         backgroundColor: canvasToRender.backgroundColor || 'transparent', // Canvas background color remains
-        border: '1px dashed #777', // Added dotted border for clarity
+        border: canvasToRender.showBroadcastBorder === false ? '1px dashed transparent' : '1px dashed #777', // Conditional border
       }}
     >
       {/* Old direct background image rendering removed */}
