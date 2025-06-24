@@ -1,4 +1,75 @@
 /* src/components/studio/MapPoolElement.module.css */
+/* src/components/studio/MapPoolElement.module.css */
+
+/* Using values from BoXSeriesOverview or define locally if different behavior is needed */
+@value pickGlowColor: #00dd00; /* Green */
+@value banGlowColor: #dd0000; /* Red */
+@value adminPickGlowColor: #ffd700; /* Gold */
+
+/* Normal X1 Glow values (ensure these match .picked and .banned if not using CSS vars there) */
+@value normalPickBoxShadow: 0 0 8px 3px #00dd00, 0 0 5px 2px #00dd00 inset;
+@value normalBanBoxShadow: 0 0 8px 3px #dd0000, 0 0 5px 2px #dd0000 inset;
+
+/* X2 Glow values (doubled spread/blur, adjust as needed) */
+@value doublePickBoxShadow: 0 0 16px 6px #00dd00, 0 0 10px 4px #00dd00 inset;
+@value doubleBanBoxShadow: 0 0 16px 6px #dd0000, 0 0 10px 4px #dd0000 inset;
+
+
+/* Keyframes for spread animation */
+@keyframes increase-glow-spread-pick {
+  from { box-shadow: normalPickBoxShadow; }
+  to   { box-shadow: doublePickBoxShadow; }
+}
+@keyframes increase-glow-spread-ban {
+  from { box-shadow: normalBanBoxShadow; }
+  to   { box-shadow: doubleBanBoxShadow; }
+}
+
+/* Animation classes to be applied by the hook */
+/* These replace animatePickInitial, animateBanInitial, animatePickSustain, animateBanSustain */
+.animate-spread-increase-pick {
+  animation: increase-glow-spread-pick 2s ease-in-out forwards;
+}
+.animate-spread-increase-ban {
+  animation: increase-glow-spread-ban 2s ease-in-out forwards;
+}
+
+/* Ensure the visual content itself can transition opacity for the image fade-in,
+   and box-shadow for the return to normal glow */
+.mapItemVisualContent {
+  box-sizing: border-box;
+  border: 1px solid #c19a49;
+  border-radius: 3px;
+  background-color: #4a3b2a;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  color: white;
+  text-shadow: 0 0 2px black, 0 0 2px black;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 4px;
+  overflow: hidden;
+  filter: grayscale(0%); /* Base state for filter */
+  /* Opacity will be set by inline style from hook, base is effectively 1 */
+  transition: opacity 0.5s ease-in-out, /* Default for hook-driven fade-ins */
+              box-shadow 2s ease-in-out, /* For RETURN to normal glow (was 0.3s) */
+              border-color 0.3s ease-out, /* Keep border transition short or sync with box-shadow if needed */
+              filter 2s ease-in-out; /* For affected state filter transition */
+}
+
+.mapItemVisualContent.affected {
+  filter: grayscale(100%);
+  /* Hook will set inline opacity to 0.9 */
+  /* Override transition duration for opacity specifically for the affected state change */
+  transition-property: filter, opacity;
+  transition-duration: 2s, 2s;
+  transition-timing-function: ease-in-out, ease-in-out;
+}
+
 .mapPoolElement {
   width: 100%;
   height: 100%;
@@ -58,6 +129,13 @@
   align-items: center; /* Center map name horizontally */
   padding: 4px; /* Reduced padding to make maps more rectangular - this is for INSIDE the card */
   overflow: hidden;
+  /* transition property is now at the top of this class definition for clarity */
+}
+
+.debugLastActionItem { /* For debugging disappearing items */
+  outline: 3px solid limegreen !important;
+  border-color: limegreen !important;
+  box-shadow: 0 0 10px 5px limegreen !important; /* Make it very obvious */
 }
 
 .mapName {

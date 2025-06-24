@@ -15,6 +15,7 @@ import {
   MapItem,
   // CombinedDraftState as CombinedDraftStateType, // This line is no longer needed
   CombinedDraftState as OriginalCombinedDraftState, // Import original for augmentation
+  LastDraftAction, // Import the new type
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
@@ -22,6 +23,7 @@ import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust pat
 // Augment CombinedDraftState locally
 export interface CombinedDraftState extends OriginalCombinedDraftState {
   forceMapPoolUpdate: number;
+  lastDraftAction: LastDraftAction | null; // Add the new state property
 }
 
 // The local CombinedDraftState interface that extended CombinedDraftStateType is no longer needed.
@@ -134,6 +136,7 @@ const initialCombinedState: CombinedDraftState = {
   draftIsLikelyFinished: false,
   isNewSessionAwaitingFirstDraft: false, // Initial value
   forceMapPoolUpdate: 0,
+  lastDraftAction: null, // Initialize lastDraftAction
 };
 
 // Helper function _calculateUpdatedBoxSeriesGames is removed as per previous subtask to refactor _updateBoxSeriesGamesFromPicks directly.
@@ -545,20 +548,42 @@ const useDraftStore = create<DraftStore>()(
                         // if effectiveDraftType and actionType are valid.
                         // We re-evaluate it here to ensure atomicity.
                         let actuallyCausedPickBanChange = false;
+                        let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
+                        let tempAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions ? [...state.aoe2cmRawDraftOptions] : [];
+
+                        // Optimistically add option if not present (for playerEvent/act)
+                        if (chosenOptionId && typeof chosenOptionId === 'string' && chosenOptionId !== "HIDDEN_BAN") {
+                            const optionExists = tempAoe2cmRawDraftOptions.some(opt => opt.id === chosenOptionId);
+                            if (!optionExists) {
+                                // We need the raw name that would be in the preset, not the processed one yet for adding.
+                                // However, getOptionNameFromStore processes it. If we add, use processed name for consistency.
+                                // This assumes that if an option is dynamically picked, its 'name' field would be the processed name.
+                                // Or, we'd need to fetch full draft state. For now, optimistic add with processed name.
+                                console.log(`[draftStore] Optimistically adding option ${chosenOptionId} with name ${optionName} to draftOptions.`);
+                                tempAoe2cmRawDraftOptions.push({ id: chosenOptionId, name: optionName });
+                                // This implies optionName should be the "display" name.
+                                // And getOptionNameFromStore should be robust if draftOptions contains already-processed names for these dynamic adds.
+                            }
+                        }
 
                         if (effectiveDraftType === 'civ') {
                             if (actionType === 'pick') {
                                 if (executingPlayer === 'HOST') tempCivPicksHost = [...new Set([...state.civPicksHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivPicksGuest = [...new Set([...state.civPicksGuest, optionName])];
                                 else pickBanStateChanged = false; // Outer scope variable
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'pick', timestamp: Date.now() };
                             } else if (actionType === 'ban') {
                                 if (executingPlayer === 'HOST') tempCivBansHost = [...new Set([...state.civBansHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivBansGuest = [...new Set([...state.civBansGuest, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'ban', timestamp: Date.now() };
                             } else if (actionType === 'snipe') {
                                 if (executingPlayer === 'HOST') tempCivBansGuest = [...new Set([...state.civBansGuest, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivBansHost = [...new Set([...state.civBansHost, optionName])];
                                 else pickBanStateChanged = false;
+                                // Snipes are like bans for the target player, consider if animation is needed
+                                // For now, let's assume snipes also trigger animation as a 'ban' on the item
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'ban', timestamp: Date.now() };
                             } else pickBanStateChanged = false;
                         } else if (effectiveDraftType === 'map') {
                             if (actionType === 'pick') {
@@ -566,15 +591,18 @@ const useDraftStore = create<DraftStore>()(
                                 else if (executingPlayer === 'GUEST') tempMapPicksGuest = [...new Set([...state.mapPicksGuest, optionName])];
                                 else if (executingPlayer === 'NONE') tempMapPicksGlobal = [...new Set([...state.mapPicksGlobal, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'pick', timestamp: Date.now() };
                             } else if (actionType === 'ban') {
                                 if (executingPlayer === 'HOST') tempMapBansHost = [...new Set([...state.mapBansHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempMapBansGuest = [...new Set([...state.mapBansGuest, optionName])];
                                 else if (executingPlayer === 'NONE') tempMapBansGlobal = [...new Set([...state.mapBansGlobal, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'ban', timestamp: Date.now() };
                             } else if (actionType === 'snipe') {
                                 if (executingPlayer === 'HOST') tempMapBansGuest = [...new Set([...state.mapBansGuest, optionName])];
                                 else if (executingPlayer === 'GUEST') tempMapBansHost = [...new Set([...state.mapBansHost, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'ban', timestamp: Date.now() };
                             } else pickBanStateChanged = false;
                         } else {
                              // This case is already logged outside and pickBanStateChanged is set to false there.
@@ -599,6 +627,7 @@ const useDraftStore = create<DraftStore>()(
                             pickBanStateChanged = false; // Synchronize outer variable if no change occurred
                             return state; // No change, return current state
                         }
+                        pickBanStateChanged = true; // If we reached here, a change occurred.
 
                         // If a pick/ban change occurred, calculate newBoxSeriesGames
                         const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
@@ -618,7 +647,9 @@ const useDraftStore = create<DraftStore>()(
                             mapPicksHost: tempMapPicksHost, mapBansHost: tempMapBansHost,
                             mapPicksGuest: tempMapPicksGuest, mapBansGuest: tempMapBansGuest,
                             mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
-                            boxSeriesGames: newBoxSeriesGames
+                            boxSeriesGames: newBoxSeriesGames,
+                            lastDraftAction: newLastDraftAction, // Update lastDraftAction
+                            aoe2cmRawDraftOptions: tempAoe2cmRawDraftOptions, // Persist potentially updated options
                         };
                     });
 
@@ -680,20 +711,34 @@ const useDraftStore = create<DraftStore>()(
                         let tempMapPicksGlobal = state.mapPicksGlobal;
                         let tempMapBansGlobal = state.mapBansGlobal;
                         let actuallyCausedPickBanChange = false;
+                        let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
+                        let tempAoe2cmRawDraftOptions = state.aoe2cmRawDraftOptions ? [...state.aoe2cmRawDraftOptions] : [];
+
+                        // Optimistically add option if not present (for playerEvent/act)
+                        if (chosenOptionId && typeof chosenOptionId === 'string' && chosenOptionId !== "HIDDEN_BAN") {
+                            const optionExists = tempAoe2cmRawDraftOptions.some(opt => opt.id === chosenOptionId);
+                            if (!optionExists) {
+                                console.log(`[draftStore] Optimistically adding option ${chosenOptionId} with name ${optionName} to draftOptions in 'act' handler.`);
+                                tempAoe2cmRawDraftOptions.push({ id: chosenOptionId, name: optionName });
+                            }
+                        }
 
                         if (effectiveDraftType === 'civ') {
                             if (actionType === 'pick') {
                                 if (executingPlayer === 'HOST') tempCivPicksHost = [...new Set([...state.civPicksHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivPicksGuest = [...new Set([...state.civPicksGuest, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'pick', timestamp: Date.now() };
                             } else if (actionType === 'ban') {
                                 if (executingPlayer === 'HOST') tempCivBansHost = [...new Set([...state.civBansHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivBansGuest = [...new Set([...state.civBansGuest, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'ban', timestamp: Date.now() };
                             } else if (actionType === 'snipe') {
                                 if (executingPlayer === 'HOST') tempCivBansGuest = [...new Set([...state.civBansGuest, optionName])];
                                 else if (executingPlayer === 'GUEST') tempCivBansHost = [...new Set([...state.civBansHost, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'civ', action: 'ban', timestamp: Date.now() };
                             } else pickBanStateChanged = false;
                         } else if (effectiveDraftType === 'map') {
                             if (actionType === 'pick') {
@@ -701,15 +746,18 @@ const useDraftStore = create<DraftStore>()(
                                 else if (executingPlayer === 'GUEST') tempMapPicksGuest = [...new Set([...state.mapPicksGuest, optionName])];
                                 else if (executingPlayer === 'NONE') tempMapPicksGlobal = [...new Set([...state.mapPicksGlobal, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'pick', timestamp: Date.now() };
                             } else if (actionType === 'ban') {
                                 if (executingPlayer === 'HOST') tempMapBansHost = [...new Set([...state.mapBansHost, optionName])];
                                 else if (executingPlayer === 'GUEST') tempMapBansGuest = [...new Set([...state.mapBansGuest, optionName])];
                                 else if (executingPlayer === 'NONE') tempMapBansGlobal = [...new Set([...state.mapBansGlobal, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'ban', timestamp: Date.now() };
                             } else if (actionType === 'snipe') {
                                 if (executingPlayer === 'HOST') tempMapBansGuest = [...new Set([...state.mapBansGuest, optionName])];
                                 else if (executingPlayer === 'GUEST') tempMapBansHost = [...new Set([...state.mapBansHost, optionName])];
                                 else pickBanStateChanged = false;
+                                if (optionName) newLastDraftAction = { item: optionName, itemType: 'map', action: 'ban', timestamp: Date.now() };
                             } else pickBanStateChanged = false;
                         } else {
                             // This case is logged outside, and pickBanStateChanged is set to false there.
@@ -732,6 +780,7 @@ const useDraftStore = create<DraftStore>()(
                             pickBanStateChanged = false;
                             return state;
                         }
+                        pickBanStateChanged = true; // If we reached here, a change occurred.
 
                         const newBoxSeriesGames = _calculateUpdatedBoxSeriesGames(
                             state.boxSeriesFormat,
@@ -750,7 +799,9 @@ const useDraftStore = create<DraftStore>()(
                             mapPicksHost: tempMapPicksHost, mapBansHost: tempMapBansHost,
                             mapPicksGuest: tempMapPicksGuest, mapBansGuest: tempMapBansGuest,
                             mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
-                            boxSeriesGames: newBoxSeriesGames
+                            boxSeriesGames: newBoxSeriesGames,
+                            lastDraftAction: newLastDraftAction, // Update lastDraftAction
+                            aoe2cmRawDraftOptions: tempAoe2cmRawDraftOptions, // Persist potentially updated options
                         };
                     });
                     // The outer pickBanStateChanged is set based on valid effectiveDraftType and actionType
@@ -797,6 +848,7 @@ const useDraftStore = create<DraftStore>()(
                         let tempMapBansGuest = [...state.mapBansGuest];
                         let tempMapPicksGlobal = [...state.mapPicksGlobal];
                         let tempMapBansGlobal = [...state.mapBansGlobal];
+                        let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
 
                         if (typeof data !== 'object' || data === null) {
                             console.warn('[draftStore] Socket.IO "draft_update": Invalid data type received:', data);
@@ -885,7 +937,13 @@ const useDraftStore = create<DraftStore>()(
                                 } else {
                                     console.warn(`[draftStore] Socket.IO "draft_update": Could not determine type (civ/map) for event processing. chosenOptionId: ${chosenOptionId}, socketDraftType: ${currentSocketDraftType}`);
                                 }
-                                if (individualEventCausedChange) draftUpdateStateChanged = true; // If any event causes a change, the overall draft update caused a change
+                                if (individualEventCausedChange) {
+                                    draftUpdateStateChanged = true; // If any event causes a change, the overall draft update caused a change
+                                    // Update lastDraftAction for this specific event if it's a pick or ban
+                                    if ((actionType === 'pick' || actionType === 'ban') && optionName && optionName !== "Hidden Ban") {
+                                        newLastDraftAction = { item: optionName, itemType: effectiveDraftType as 'civ' | 'map', action: actionType, timestamp: Date.now() };
+                                    }
+                                }
                             });
                         }
 
@@ -909,7 +967,8 @@ const useDraftStore = create<DraftStore>()(
                                 mapPicksHost: tempMapPicksHost, mapBansHost: tempMapBansHost,
                                 mapPicksGuest: tempMapPicksGuest, mapBansGuest: tempMapBansGuest,
                                 mapPicksGlobal: tempMapPicksGlobal, mapBansGlobal: tempMapBansGlobal,
-                                boxSeriesGames: newBoxSeriesGames
+                                boxSeriesGames: newBoxSeriesGames,
+                                lastDraftAction: newLastDraftAction, // Update lastDraftAction
                             };
                         }
                         return state;
@@ -928,9 +987,11 @@ const useDraftStore = create<DraftStore>()(
                       set(state => {
                           let newCivBansHost = [...state.civBansHost];
                           let newCivBansGuest = [...state.civBansGuest];
+                           // Removed duplicate declarations of newCivBansHost and newCivBansGuest
                           let newMapBansHost = [...state.mapBansHost];
                           let newMapBansGuest = [...state.mapBansGuest];
                           let newMapBansGlobal = [...state.mapBansGlobal];
+                          let newLastDraftAction: LastDraftAction | null = state.lastDraftAction;
 
                           const currentDraftOptions = state.aoe2cmRawDraftOptions;
                           const currentSocketDraftType = state.socketDraftType;
@@ -977,6 +1038,10 @@ const useDraftStore = create<DraftStore>()(
                                       else if (listKeyForUpdate === 'mapBansGlobal') newMapBansGlobal = updatedList;
 
                                       bansRevealedStateChanged = true;
+                                      // Set lastDraftAction for the revealed ban
+                                      if (optionName && optionName !== "Hidden Ban") {
+                                        newLastDraftAction = { item: optionName, itemType: effectiveDraftType as 'civ' | 'map', action: 'ban', timestamp: Date.now() };
+                                      }
                                   } else {
                                       console.warn(`[draftStore] Socket.IO "adminEvent" (REVEAL_BANS): "Hidden Ban" placeholder not found for revealed ban:`, revealedBanEvent, `List was for key ${listKeyForUpdate}:`, targetBanList);
                                   }
@@ -989,7 +1054,7 @@ const useDraftStore = create<DraftStore>()(
                             // Re-calculate boxSeriesGames only if map bans changed, civ bans usually don't affect map layout in BoX
                             const mapBansChanged = newMapBansHost !== state.mapBansHost || newMapBansGuest !== state.mapBansGuest || newMapBansGlobal !== state.mapBansGlobal;
                             const newBoxSeriesGames = mapBansChanged ? _calculateUpdatedBoxSeriesGames(state.boxSeriesFormat, state.boxSeriesGames, state.civPicksHost, state.civPicksGuest, newMapBansHost, newMapBansGuest, newMapBansGlobal) : state.boxSeriesGames;
-                            return { ...state, civBansHost: newCivBansHost, civBansGuest: newCivBansGuest, mapBansHost: newMapBansHost, mapBansGuest: newMapBansGuest, mapBansGlobal: newMapBansGlobal, boxSeriesGames: newBoxSeriesGames};
+                            return { ...state, civBansHost: newCivBansHost, civBansGuest: newCivBansGuest, mapBansHost: newMapBansHost, mapBansGuest: newMapBansGuest, mapBansGlobal: newMapBansGlobal, boxSeriesGames: newBoxSeriesGames, lastDraftAction: newLastDraftAction };
                           }
                           return state; // Return original state if no changes
                       });
@@ -1225,6 +1290,7 @@ const useDraftStore = create<DraftStore>()(
             // Reset UI selection state but not the layout structure itself
             selectedElementId: null,
             layoutLastUpdated: null,
+            lastDraftAction: null, // Explicitly reset lastDraftAction
 
             // Properties to preserve (by not mentioning them, they remain as per current state):
             // currentCanvases: state.currentCanvases,
@@ -1478,8 +1544,45 @@ const useDraftStore = create<DraftStore>()(
           }
         },
         disconnectDraft: (draftType: 'civ' | 'map') => {
-          get().disconnectWebSocket();
-          if (draftType === 'civ') { set({ civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost, guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest, boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })), activePresetId: null, }); } else { set({ mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [], boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })), activePresetId: null, }); } if (!get().civDraftId && !get().mapDraftId) set({ boxSeriesFormat: null, boxSeriesGames: [], activePresetId: null }); },
+          get().disconnectWebSocket(); // Disconnects any active socket
+
+          let update: Partial<CombinedDraftState> = { lastDraftAction: null }; // Always reset lastDraftAction on any disconnect
+
+          if (draftType === 'civ') {
+            update = {
+              ...update,
+              civDraftId: null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false,
+              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+              // Only reset host/guest names if the other draft is also not active
+              hostName: get().mapDraftId ? get().hostName : initialPlayerNameHost,
+              guestName: get().mapDraftId ? get().guestName : initialPlayerNameGuest,
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, hostCiv: null, guestCiv: null })),
+              // activePresetId: null, // Keep active preset unless both drafts are disconnected
+            };
+          } else if (draftType === 'map') {
+            update = {
+              ...update,
+              mapDraftId: null, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false,
+              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
+              mapPicksGlobal: [], mapBansGlobal: [],
+              boxSeriesGames: get().boxSeriesGames.map(game => ({ ...game, map: null })),
+              // activePresetId: null, // Keep active preset unless both drafts are disconnected
+            };
+          }
+
+          set(update);
+
+          // If both drafts are now disconnected, then also reset BoX format and activePresetId
+          if (!get().civDraftId && !get().mapDraftId) {
+            set({
+              boxSeriesFormat: null,
+              boxSeriesGames: [],
+              activePresetId: null, // Now clear active preset
+              aoe2cmRawDraftOptions: undefined, // Clear draft options
+              lastDraftAction: null // Ensure it's cleared here too
+            });
+          }
+        },
         reconnectDraft: async (draftType: 'civ' | 'map') => { const idToReconnect = draftType === 'civ' ? get().civDraftId : get().mapDraftId; if (!idToReconnect) { const errorMsg = `No ${draftType} draft ID to reconnect.`; if (draftType === 'civ') set({ civDraftError: errorMsg }); else set({ mapDraftError: errorMsg }); return false; } return get().connectToDraft(idToReconnect, draftType); },
         setHostName: (name: string) => { set({ hostName: name }); get()._updateActivePresetIfNeeded(); },
         setGuestName: (name: string) => { set({ guestName: name }); get()._updateActivePresetIfNeeded(); },
@@ -1573,9 +1676,35 @@ const useDraftStore = create<DraftStore>()(
           console.log('[loadPreset] Starting to load preset ID:', presetId);
           const preset = get().savedPresets.find(p => p.id === presetId);
           if (preset) {
-            set({ activePresetId: preset.id, civDraftId: preset.civDraftId, mapDraftId: preset.mapDraftId, hostName: preset.hostName, guestName: preset.guestName, scores: { ...preset.scores }, boxSeriesFormat: preset.boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(preset.boxSeriesGames)), hostColor: preset.hostColor || null, guestColor: preset.guestColor || null, civDraftStatus: 'disconnected', civDraftError: null, isLoadingCivDraft: false, mapDraftStatus: 'disconnected', mapDraftError: null, isLoadingMapDraft: false, civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [], mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [], mapPicksGlobal: [], mapBansGlobal: [] });
-            set({ aoe2cmRawDraftOptions: undefined });
-            console.log('[loadPreset] Cleared aoe2cmRawDraftOptions for preset ID:', presetId);
+            // Explicitly reset lastDraftAction and pick/ban lists before loading new preset data
+            set({
+              lastDraftAction: null,
+              civPicksHost: [], civBansHost: [], civPicksGuest: [], civBansGuest: [],
+              mapPicksHost: [], mapBansHost: [], mapPicksGuest: [], mapBansGuest: [],
+              mapPicksGlobal: [], mapBansGlobal: [],
+              aoe2cmRawDraftOptions: undefined, // Also clear draft options here
+              // Reset other relevant draft state before applying preset values
+              civDraftId: null, mapDraftId: null,
+              civDraftStatus: 'disconnected', mapDraftStatus: 'disconnected',
+              isLoadingCivDraft: false, isLoadingMapDraft: false,
+              civDraftError: null, mapDraftError: null,
+              boxSeriesGames: [] // Clear BoX games as they depend on picks
+            });
+
+            // Now set the preset specific data
+            set({
+              activePresetId: preset.id,
+              // civDraftId and mapDraftId will be set by connectToDraft if they exist in preset
+              hostName: preset.hostName,
+              guestName: preset.guestName,
+              scores: { ...preset.scores },
+              boxSeriesFormat: preset.boxSeriesFormat,
+              // boxSeriesGames will be repopulated by connectToDraft and _calculateUpdatedBoxSeriesGames
+              hostColor: preset.hostColor || null,
+              guestColor: preset.guestColor || null,
+            });
+
+            console.log('[loadPreset] Cleared transient draft states for preset ID:', presetId);
             if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ');
             if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map');
             set({ activePresetId: preset.id }); // Ensure activePresetId is set after connections
@@ -2075,6 +2204,7 @@ const useDraftStore = create<DraftStore>()(
             socketStatus: state.socketStatus,
             socketError: state.socketError,
             socketDraftType: state.socketDraftType,
+            // lastDraftAction: state.lastDraftAction, // DO NOT PERSIST lastDraftAction
           }));
 
           // Now, modify the copy
