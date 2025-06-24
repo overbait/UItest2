@@ -85,6 +85,7 @@ interface DraftStore extends CombinedDraftState {
   setCanvasBackgroundColor: (canvasId: string, color: string | null) => void;
   // setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void; // To be removed
   setActiveStudioLayoutId: (layoutId: string | null) => void;
+  toggleCanvasBroadcastBorder: (canvasId: string) => void; // New action for toggling border
 
   // Import/Export Actions
   importLayoutsFromFile: (data: { savedStudioLayouts: SavedStudioLayout[], currentCanvases: StudioCanvas[], activeCanvasId: string | null }) => void;
@@ -106,6 +107,7 @@ const initialCanvases: StudioCanvas[] = [{
   name: 'Default',
   layout: [],
   backgroundColor: null,
+  showBroadcastBorder: true, // Default to true
   // backgroundImage: null, // Removed
 }];
 
@@ -2145,6 +2147,25 @@ const useDraftStore = create<DraftStore>()(
               };
             }
             return state; // Return original state if active canvas not found or no change made
+          });
+          get()._autoSaveOrUpdateActiveStudioLayout();
+        },
+
+        toggleCanvasBroadcastBorder: (canvasId: string) => {
+          set(state => {
+            const updatedCanvases = state.currentCanvases.map(canvas => {
+              if (canvas.id === canvasId) {
+                return { ...canvas, showBroadcastBorder: !(canvas.showBroadcastBorder === undefined ? true : canvas.showBroadcastBorder) };
+              }
+              return canvas;
+            });
+            // Check if a change actually occurred
+            const originalCanvas = state.currentCanvases.find(c => c.id === canvasId);
+            const updatedCanvas = updatedCanvases.find(c => c.id === canvasId);
+            if (originalCanvas && updatedCanvas && originalCanvas.showBroadcastBorder !== updatedCanvas.showBroadcastBorder) {
+              return { ...state, currentCanvases: updatedCanvases, layoutLastUpdated: Date.now() };
+            }
+            return state; // No change if canvas not found or value is the same
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },

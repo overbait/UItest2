@@ -142,5 +142,6 @@ export interface StudioCanvas {
   name: string; // User-friendly name for the tab, e.g., "Scene 1" or "Default"
   layout: StudioElement[]; // Array of elements on this canvas
   backgroundColor?: string | null;
+  showBroadcastBorder?: boolean; // Added for toggling broadcast view border
   // backgroundImage?: string | null; // Removed, will be handled by BackgroundImageElement
 }
