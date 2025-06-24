@@ -22,7 +22,8 @@ const StudioInterface: React.FC = () => {
     activeStudioLayoutId,
     setActiveStudioLayoutId,
     updateStudioLayoutName,
-    savedStudioLayouts, selectedElementId,
+    savedStudioLayouts,
+    selectedElementId,
     addStudioElement,
     updateStudioElementPosition, updateStudioElementSize, updateStudioElementSettings,
     saveCurrentStudioLayout, loadStudioLayout, deleteStudioLayout, setSelectedElementId,
@@ -32,6 +33,7 @@ const StudioInterface: React.FC = () => {
     updateCanvasName, // Added updateCanvasName
     resetActiveCanvasLayout,
     setCanvasBackgroundColor,
+    importLayoutsFromFile, // Added import action
     // setCanvasBackgroundImage, // This action was removed from the store
   } = useDraftStore(state => state);
 
@@ -49,6 +51,7 @@ const StudioInterface: React.FC = () => {
   const [isElementsOpen, setIsElementsOpen] = useState<boolean>(true);
   const [isSaveLayoutOpen, setIsSaveLayoutOpen] = useState<boolean>(true);
   const [isLayoutsListOpen, setIsLayoutsListOpen] = useState<boolean>(true);
+  const [isImportExportOpen, setIsImportExportOpen] = useState<boolean>(true); // New state for Import/Export
   const [isCanvasSettingsOpen, setIsCanvasSettingsOpen] = useState<boolean>(true);
   const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
   const [editingCanvasName, setEditingCanvasName] = useState<string>("");
@@ -186,6 +189,56 @@ const StudioInterface: React.FC = () => {
   const handleElementClick = (elementId: string) => { setSelectedElementId(elementId); };
   const handleCloseSettingsPanel = () => { setSelectedElementId(null); };
 
+  const handleExportLayouts = () => {
+    const dataToExport = {
+      version: 1, // In case we need to version the format later
+      savedStudioLayouts: useDraftStore.getState().savedStudioLayouts,
+      currentCanvases: useDraftStore.getState().currentCanvases,
+      activeCanvasId: useDraftStore.getState().activeCanvasId,
+    };
+    const jsonString = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = 'aoe4-layouts.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+  };
+
+  const handleImportLayouts = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text === 'string') {
+          const importedData = JSON.parse(text);
+          // Basic validation of top-level structure
+          if (importedData && Array.isArray(importedData.savedStudioLayouts) &&
+              Array.isArray(importedData.currentCanvases) &&
+              (typeof importedData.activeCanvasId === 'string' || importedData.activeCanvasId === null)) {
+            importLayoutsFromFile(importedData);
+            alert('Layouts imported successfully!');
+          } else {
+            alert('Import failed: Invalid file format or missing key properties (savedStudioLayouts, currentCanvases, activeCanvasId).');
+          }
+        }
+      } catch (error) {
+        console.error("Error importing layouts:", error);
+        alert(`Error importing layouts: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        // Reset the input value to allow importing the same file again if needed
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const toolboxSectionStyle: React.CSSProperties = { marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #444',};
   const toolboxHeaderStyle: React.CSSProperties = { fontSize: '1em', color: '#ccc', marginBottom: '8px',};
   const inputStyle: React.CSSProperties = { width: 'calc(100% - 22px)', padding: '8px 10px', marginBottom: '10px', backgroundColor: '#2c2c2c', border: '1px solid #555', color: 'white', borderRadius: '4px',};
@@ -270,6 +323,28 @@ const StudioInterface: React.FC = () => {
               <button onClick={handleSaveLayout} style={buttonStyle}>Save Layout</button>
            </>
          )}
+        </div>
+        <div style={toolboxSectionStyle}>
+          <h3 style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}} onClick={() => setIsImportExportOpen(!isImportExportOpen)}>
+            Import / Export Layouts <span>{isImportExportOpen ? '▼' : '▶'}</span>
+          </h3>
+          {isImportExportOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button onClick={handleExportLayouts} style={buttonStyle}>Export All Layouts</button>
+              <div>
+                <input
+                  type="file"
+                  id="import-layouts-input"
+                  accept=".json"
+                  onChange={handleImportLayouts}
+                  style={{ display: 'none' }} // Hide the default input
+                />
+                <label htmlFor="import-layouts-input" style={{...buttonStyle, backgroundColor: '#17a2b8', cursor: 'pointer'}}>
+                  Import Layouts from File
+                </label>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
          <h3 style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', flexShrink: 0}} onClick={() => setIsLayoutsListOpen(!isLayoutsListOpen)}>

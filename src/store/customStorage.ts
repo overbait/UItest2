@@ -1,7 +1,7 @@
 import { StateStorage } from 'zustand/middleware';
 import useDraftStore from './draftStore';
 
-const STORE_NAME = 'aoe2-draft-overlay-combined-storage-v1';
+const STORE_NAME = 'aoe4-draft-overlay-storage-v1';
 const BROADCAST_CHANNEL_NAME = 'zustand_store_sync_channel';
 let channel: BroadcastChannel | null = null;
 

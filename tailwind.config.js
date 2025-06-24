@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // AoE2 theme colors
+        // AoE4 theme colors (can be adjusted later if specific AoE4 theme is desired)
         'aoe-gold': '#D4AF37',
         'aoe-brown': '#8B4513',
         'aoe-tan': '#D2B48C',

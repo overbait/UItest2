@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* AoE2 theme colors */
+  /* AoE4 theme colors (can be adjusted later if specific AoE4 theme is desired) */
   --color-aoe-gold: #D4AF37;
   --color-aoe-brown: #8B4513;
   --color-aoe-tan: #D2B48C;
