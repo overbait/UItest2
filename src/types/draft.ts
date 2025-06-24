@@ -79,6 +79,7 @@ export interface StudioElement {
   showMapNames?: boolean;  // For toggling map names on map selectors
   gameEntrySpacing?: number; // Vertical spacing between game entries in BoX overview
   hideCivs?: boolean; // New property for BoXSeriesOverview to hide civs
+  hideMaps?: boolean; // New property for BoXSeriesOverview to hide maps
   // showName and showScore removed
   imageUrl?: string | null; // For BackgroundImageElement
   opacity?: number;         // For BackgroundImageElement

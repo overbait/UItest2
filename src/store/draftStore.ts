@@ -1748,6 +1748,7 @@ const useDraftStore = create<DraftStore>()(
                 scale: 1,
                 isPivotLocked: false,
                 hideCivs: false, // Added hideCivs default
+                hideMaps: false, // Added hideMaps default
                 // No showName or showScore here
               };
             } else if (elementType === "ScoreOnly") {
