@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
@@ -20,11 +20,21 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     currentCanvasesFromHook: state.currentCanvases,
     activeCanvasIdFromHook: state.activeCanvasId,
   }));
+  // const [refreshKey, setRefreshKey] = useState(0); // No longer needed
 
   useEffect(() => {
     (window as any).IS_BROADCAST_VIEW = true;
+
+    const handlePresetChange = (event: Event) => {
+      console.log('[BroadcastView] Detected externalPresetChange event, reloading page. Details:', (event as CustomEvent).detail);
+      window.location.reload();
+    };
+
+    window.addEventListener('externalPresetChange', handlePresetChange);
+
     return () => {
       (window as any).IS_BROADCAST_VIEW = false;
+      window.removeEventListener('externalPresetChange', handlePresetChange);
     };
   }, []);
 
@@ -32,20 +42,33 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     // First, try with targetCanvasId from URL
     let foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === targetCanvasId);
 
-    if (!foundCanvas && currentCanvasesFromHook.length > 0) {
-      // If not found by URL ID, and canvases exist, try the activeCanvasId from the store
+    if (!foundCanvas && activeCanvasIdFromHook && currentCanvasesFromHook.length > 0) {
+      // Try fallback to activeCanvasIdFromHook if targetCanvasId not found
+      console.log(`[BroadcastView] Target canvas ID "${targetCanvasId}" not found. Attempting fallback to activeCanvasIdFromHook: "${activeCanvasIdFromHook}"`);
       foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === activeCanvasIdFromHook);
+    }
+
+    if (!foundCanvas && currentCanvasesFromHook.length > 0) {
+      // If still not found (e.g., targetCanvasId was invalid AND activeCanvasIdFromHook was invalid/null),
+      // and there are canvases available, fall back to the first available canvas.
+      console.log(`[BroadcastView] Target canvas ID "${targetCanvasId}" and activeCanvasIdFromHook "${activeCanvasIdFromHook}" not found or invalid. Attempting fallback to the first available canvas.`);
+      foundCanvas = currentCanvasesFromHook[0];
       if (foundCanvas) {
-      } else {
+        console.log(`[BroadcastView] Fell back to first available canvas: ID "${foundCanvas.id}", Name "${foundCanvas.name}"`);
       }
     }
+    // If foundCanvas is still undefined here, it means currentCanvasesFromHook is empty.
     return foundCanvas;
-  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]);
+  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]); // Removed refreshKey dependency
 
   if (!canvasToRender) {
+    // This message will now primarily appear if currentCanvasesFromHook is empty.
+    const message = currentCanvasesFromHook.length === 0
+      ? "No canvases available in the current layout."
+      : `Canvas with ID '${targetCanvasId}' not found, and fallback to active or first canvas also failed.`;
     return (
       <div style={{ width: '1920px', height: '1080px', backgroundColor: 'rgba(255,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px' }}>
-        Canvas with ID '{targetCanvasId}' (or active canvas fallback) not found.
+        {message}
       </div>
     );
   }
