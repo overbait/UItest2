@@ -1693,23 +1693,26 @@ const useDraftStore = create<DraftStore>()(
               civDraftStatus: 'disconnected', mapDraftStatus: 'disconnected',
               isLoadingCivDraft: false, isLoadingMapDraft: false,
               civDraftError: null, mapDraftError: null,
-              boxSeriesGames: [] // Clear BoX games as they depend on picks
+              // DO NOT clear boxSeriesGames here anymore, it will be set from the preset.
+              // boxSeriesGames: []
             });
 
-            // Now set the preset specific data
+            // Now set the preset specific data, INCLUDING boxSeriesGames from the preset
             set({
               activePresetId: preset.id,
-              // civDraftId and mapDraftId will be set by connectToDraft if they exist in preset
               hostName: preset.hostName,
               guestName: preset.guestName,
-              scores: { ...preset.scores },
+              scores: { ...preset.scores }, // Deep copy
               boxSeriesFormat: preset.boxSeriesFormat,
-              // boxSeriesGames will be repopulated by connectToDraft and _calculateUpdatedBoxSeriesGames
+              // Load boxSeriesGames from the preset directly into the state.
+              // Ensure a deep copy to prevent direct mutation of preset data if state.boxSeriesGames is modified later.
+              boxSeriesGames: preset.boxSeriesGames ? JSON.parse(JSON.stringify(preset.boxSeriesGames)) : [],
               hostColor: preset.hostColor || null,
               guestColor: preset.guestColor || null,
+              // civDraftId and mapDraftId will be set by connectToDraft if they exist in the preset object
             });
 
-            console.log('[loadPreset] Cleared transient draft states for preset ID:', presetId);
+            console.log('[loadPreset] Applied preset data (including boxSeriesGames with winners) for preset ID:', presetId);
             if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ');
             if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map');
             set({ activePresetId: preset.id }); // Ensure activePresetId is set after connections
