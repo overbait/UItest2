@@ -26,6 +26,7 @@ const applyStateFromLocalStorage = (sourceTabIdentifier?: string) => {
 
       if (actualAppState && typeof actualAppState === 'object') {
         const updates: Partial<ReturnType<typeof useDraftStore.getState>> = {};
+        const previousActivePresetId = useDraftStore.getState().activePresetId; // Get previous value
 
         // Define properties to sync from the persisted state
         const propertiesToSync: (keyof typeof actualAppState)[] = [
@@ -71,6 +72,16 @@ const applyStateFromLocalStorage = (sourceTabIdentifier?: string) => {
           }
           useDraftStore.setState(updates);
           // console.debug('[CustomStorage applyState] Store selectively updated from localStorage. Applied properties:', Object.keys(updates)); // Changed to debug/commented
+
+          // Check if activePresetId changed and dispatch event
+          if (sourceTabIdentifier && sourceTabIdentifier !== '' && updates.hasOwnProperty('activePresetId')) {
+            const newActivePresetId = updates.activePresetId;
+            if (newActivePresetId !== previousActivePresetId) {
+              console.log(`[CustomStorage applyState] activePresetId changed from "${previousActivePresetId}" to "${newActivePresetId}". Dispatching 'externalPresetChange' event.`);
+              window.dispatchEvent(new CustomEvent('externalPresetChange', { detail: { oldId: previousActivePresetId, newId: newActivePresetId } }));
+            }
+          }
+
         } else {
           // console.debug('[CustomStorage applyState] No relevant own properties found in stored state to apply, or actualAppState was empty.'); // Changed to debug/commented
         }
