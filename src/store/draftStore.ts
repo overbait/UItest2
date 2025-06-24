@@ -86,6 +86,9 @@ interface DraftStore extends CombinedDraftState {
   // setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void; // To be removed
   setActiveStudioLayoutId: (layoutId: string | null) => void;
 
+  // Import/Export Actions
+  importLayoutsFromFile: (data: { savedStudioLayouts: SavedStudioLayout[], currentCanvases: StudioCanvas[], activeCanvasId: string | null }) => void;
+
   // WebSocket Actions
   connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => void;
   disconnectWebSocket: () => void;
@@ -2075,6 +2078,52 @@ const useDraftStore = create<DraftStore>()(
           set({ activeStudioLayoutId: layoutId });
         },
 
+        importLayoutsFromFile: (data) => {
+          set(state => {
+            // Basic validation
+            if (!data || !Array.isArray(data.savedStudioLayouts) || !Array.isArray(data.currentCanvases)) {
+              console.error("Import failed: Invalid data structure.");
+              return state;
+            }
+
+            // Ensure currentCanvases has at least one valid canvas if activeCanvasId is to be set from it
+            let newActiveCanvasId = data.activeCanvasId;
+            if (data.currentCanvases.length === 0) {
+                const defaultCanvasId = `default-import-${Date.now()}`;
+                data.currentCanvases.push({
+                    id: defaultCanvasId,
+                    name: 'Default (Imported)',
+                    layout: [],
+                    backgroundColor: null,
+                });
+                newActiveCanvasId = defaultCanvasId;
+            } else if (newActiveCanvasId && !data.currentCanvases.find(c => c.id === newActiveCanvasId)) {
+                // If activeCanvasId from file doesn't exist in the file's currentCanvases, default to first one
+                newActiveCanvasId = data.currentCanvases[0].id;
+            } else if (!newActiveCanvasId && data.currentCanvases.length > 0) {
+                // If no activeCanvasId in file, default to first one
+                newActiveCanvasId = data.currentCanvases[0].id;
+            }
+
+
+            // TODO: More robust validation for each layout and canvas structure could be added here.
+            // For now, we assume the imported data is generally well-formed.
+
+            return {
+              ...state,
+              savedStudioLayouts: JSON.parse(JSON.stringify(data.savedStudioLayouts)),
+              currentCanvases: JSON.parse(JSON.stringify(data.currentCanvases)),
+              activeCanvasId: newActiveCanvasId,
+              selectedElementId: null, // Reset selection
+              activeStudioLayoutId: null, // Reset active layout, user can pick one from imported list
+              layoutLastUpdated: Date.now(),
+            };
+          });
+          // After importing, there's no specific "active" layout from the file to auto-save to,
+          // so we don't call _autoSaveOrUpdateActiveStudioLayout here.
+          // The user will need to save or select a layout to make it active for auto-saving.
+        },
+
         resetActiveCanvasLayout: () => {
           set(state => {
             const updatedCanvases = state.currentCanvases.map(canvas =>
@@ -2168,7 +2217,7 @@ const useDraftStore = create<DraftStore>()(
         },
       }),
       {
-        name: 'aoe2-draft-overlay-combined-storage-v1',
+        name: 'aoe4-draft-overlay-storage-v1',
         partialize: (state) => {
           // Create a deep copy of the state to avoid mutating the original state
           const stateToPersist = JSON.parse(JSON.stringify({

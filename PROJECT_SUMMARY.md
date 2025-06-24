@@ -1,7 +1,7 @@
-# AoE2 Draft Overlay – Project Summary
+# Aoe4 Draft Overlay – Project Summary
 
 ## 1. Overview
-This project is a **web-based overlay toolkit** for visualising real-time Captains-Mode drafts from **aoe2cm.net**.  
+This project is a **web-based overlay toolkit** for visualising real-time drafts for **Age of Empires IV**.
 It provides two coordinated UIs:
 
 | Window | Purpose | Typical User |
@@ -9,15 +9,15 @@ It provides two coordinated UIs:
 | **Technical Interface** (`/technical`) | Manage draft, edit scores/names, drag-place UI elements, change fonts & colours, upload images | Caster, Tournament Admin |
 | **Broadcast View** (`/broadcast`) | Transparent overlay for OBS / streaming software, mirrors all customised positions | OBS Browser-Source |
 
-Both windows read live draft data (picks, bans, snipes, maps, timer, scores) via **REST + WebSocket** and are skinnable without code changes.
+Both windows read live draft data (picks, bans, snipes, maps, timer, scores) via **REST + WebSocket** (or other data sources TBD) and are skinnable without code changes.
 
 ---
 
 ## 2. Key Features
 ### Core
-* Draft ID auto-extraction from any `https://aoe2cm.net/draft/<id>` or manual ID entry
-* Live REST fetch (`GET /api/draft/:id`) and **socket.io** updates (`draftUpdate`, `turnTimerUpdate`)
-* Colour-coded actions – green = pick, red = ban, orange = snipe
+* Draft ID auto-extraction from a relevant source (e.g. a tournament platform API or manual entry)
+* Live data fetch and **socket.io** updates (or alternative real-time mechanism)
+* Colour-coded actions – green = pick, red = ban, orange = snipe (customizable)
 * Manual score & player-name controls
 * Connection status & auto-reconnect
 
@@ -109,4 +109,4 @@ npm run build  # outputs /dist
 
 ---
 
-_Ready for casters to elevate AoE2 draft coverage – customise, connect, and stream!_
+_Ready for casters to elevate Aoe4 draft coverage – customise, connect, and stream!_
