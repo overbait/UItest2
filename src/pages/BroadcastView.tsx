@@ -20,14 +20,14 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     currentCanvasesFromHook: state.currentCanvases,
     activeCanvasIdFromHook: state.activeCanvasId,
   }));
-  const [refreshKey, setRefreshKey] = useState(0); // Local state to trigger re-render
+  // const [refreshKey, setRefreshKey] = useState(0); // No longer needed
 
   useEffect(() => {
     (window as any).IS_BROADCAST_VIEW = true;
 
     const handlePresetChange = (event: Event) => {
-      console.log('[BroadcastView] Detected externalPresetChange event:', (event as CustomEvent).detail);
-      setRefreshKey(prevKey => prevKey + 1);
+      console.log('[BroadcastView] Detected externalPresetChange event, reloading page. Details:', (event as CustomEvent).detail);
+      window.location.reload();
     };
 
     window.addEventListener('externalPresetChange', handlePresetChange);
@@ -59,7 +59,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     }
     // If foundCanvas is still undefined here, it means currentCanvasesFromHook is empty.
     return foundCanvas;
-  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook, refreshKey]); // Added refreshKey dependency
+  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]); // Removed refreshKey dependency
 
   if (!canvasToRender) {
     // This message will now primarily appear if currentCanvasesFromHook is empty.
