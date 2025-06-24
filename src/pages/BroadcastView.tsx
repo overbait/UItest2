@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useDraftStore from '../store/draftStore';
 import { StudioElement } from '../types/draft';
 import ScoreOnlyElement from '../components/studio/ScoreOnlyElement';
@@ -20,11 +20,21 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     currentCanvasesFromHook: state.currentCanvases,
     activeCanvasIdFromHook: state.activeCanvasId,
   }));
+  const [refreshKey, setRefreshKey] = useState(0); // Local state to trigger re-render
 
   useEffect(() => {
     (window as any).IS_BROADCAST_VIEW = true;
+
+    const handlePresetChange = (event: Event) => {
+      console.log('[BroadcastView] Detected externalPresetChange event:', (event as CustomEvent).detail);
+      setRefreshKey(prevKey => prevKey + 1);
+    };
+
+    window.addEventListener('externalPresetChange', handlePresetChange);
+
     return () => {
       (window as any).IS_BROADCAST_VIEW = false;
+      window.removeEventListener('externalPresetChange', handlePresetChange);
     };
   }, []);
 
@@ -49,7 +59,7 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     }
     // If foundCanvas is still undefined here, it means currentCanvasesFromHook is empty.
     return foundCanvas;
-  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]);
+  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook, refreshKey]); // Added refreshKey dependency
 
   if (!canvasToRender) {
     // This message will now primarily appear if currentCanvasesFromHook is empty.
