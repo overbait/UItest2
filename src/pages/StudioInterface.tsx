@@ -7,6 +7,7 @@ import CountryFlagsElement from '../components/studio/CountryFlagsElement';
 import ColorGlowElement from '../components/studio/ColorGlowElement';
 import MapPoolElement from '../components/studio/MapPoolElement';
 import CivPoolElement from '../components/studio/CivPoolElement'; // Added CivPoolElement import
+import BackgroundImageElement from '../components/studio/BackgroundImageElement'; // Import BackgroundImageElement
 import { StudioElement, SavedStudioLayout } from '../types/draft';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
@@ -516,10 +517,8 @@ const StudioInterface: React.FC = () => {
               else if (element.type === "MapPoolElement") { content = <MapPoolElement element={element} />; }
               else if (element.type === "CivPoolElement") { content = <CivPoolElement element={element} />; }
               else if (element.type === "BackgroundImage") {
-                content = <div style={{width: '100%', height: '100%', overflow: 'hidden'}}><img src={element.imageUrl || undefined} alt="BG Preview" style={{width: '100%', height: '100%', objectFit: element.stretch || 'cover', opacity: element.opacity || 1}}/></div>;
-                if (!element.imageUrl) {
-                  content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #777', background: 'rgba(255,255,255,0.05)'}}>BG Image (No file)</div>;
-                }
+                // Use BackgroundImageElement for preview in StudioInterface as well
+                content = <BackgroundImageElement element={element} isSelected={isSelected} />;
               }
               else { content = <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555'}}>Unknown: {element.type}</div>; }
 
