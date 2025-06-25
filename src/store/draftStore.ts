@@ -1846,6 +1846,19 @@ const useDraftStore = create<DraftStore>()(
                 imageUrl: null,
                 opacity: 1,
                 stretch: 'cover',
+              };
+              console.log('[STORE LOG] addStudioElement: Adding BackgroundImage. Initial imageUrl:', newElement.imageUrl); // BG LOG
+              // Prepend BackgroundImageElement to ensure it's rendered first (bottom layer)
+              const updatedCanvases = state.currentCanvases.map(canvas =>
+                canvas.id === state.activeCanvasId
+                  ? { ...canvas, layout: [newElement, ...canvas.layout] } // Prepend
+                  : canvas
+              );
+              return { ...state, currentCanvases: JSON.parse(JSON.stringify(updatedCanvases)), layoutLastUpdated: Date.now(), selectedElementId: newElement.id };
+            } else {
+              // This 'else' block might represent the old "ScoreDisplay" or any other generic type.
+              // It should NOT include showName or showScore.
+              newElement = {
                 // Other common properties if needed, like scale, isPivotLocked, etc.
                 // For a background, these might often be 1 and false respectively.
                 scale: 1,
@@ -1883,6 +1896,7 @@ const useDraftStore = create<DraftStore>()(
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         updateStudioElementPosition: (elementId: string, position: { x: number, y: number }) => {
+          console.log(`[STORE LOG] updateStudioElementPosition: Element ${elementId}, New position: x=${position.x}, y=${position.y}`); // POS/SIZE LOG
           set(state => {
             const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
@@ -1894,6 +1908,7 @@ const useDraftStore = create<DraftStore>()(
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         updateStudioElementSize: (elementId: string, size: { width: number, height: number }) => {
+          console.log(`[STORE LOG] updateStudioElementSize: Element ${elementId}, New size: w=${size.width}, h=${size.height}`); // POS/SIZE LOG
           set(state => {
             const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
@@ -1906,6 +1921,17 @@ const useDraftStore = create<DraftStore>()(
         },
         setSelectedElementId: (elementId: string | null) => { set({ selectedElementId: elementId }); },
         updateStudioElementSettings: (elementId: string, settings: Partial<StudioElement>) => {
+          // BG LOG: Log incoming settings, especially if it's for imageUrl
+          if (settings.hasOwnProperty('imageUrl')) {
+            console.log(`[STORE LOG] updateStudioElementSettings: Updating element ${elementId} with imageUrl. Length: ${settings.imageUrl ? settings.imageUrl.length : 'null'}. Starts with: ${settings.imageUrl ? settings.imageUrl.substring(0, 30) : 'N/A'}`);
+          }
+          // POS/SIZE LOG for settings update
+          if (settings.position) {
+            console.log(`[STORE LOG] updateStudioElementSettings (for position): Element ${elementId}, New position: x=${settings.position.x}, y=${settings.position.y}`);
+          }
+          if (settings.size) {
+            console.log(`[STORE LOG] updateStudioElementSettings (for size): Element ${elementId}, New size: w=${settings.size.width}, h=${settings.size.height}`);
+          }
           console.log(`[STORE DEBUG] updateStudioElementSettings called. Element ID: ${elementId}, Settings: `, JSON.stringify(settings));
           set(state => {
             let updatedElementForLog: StudioElement | undefined;
@@ -1914,6 +1940,10 @@ const useDraftStore = create<DraftStore>()(
                 const newLayout = canvas.layout.map(el => {
                   if (el.id === elementId) {
                     updatedElementForLog = { ...el, ...settings };
+                    // BG LOG: Log the imageUrl of the element being updated
+                    if (settings.hasOwnProperty('imageUrl')) {
+                        console.log(`[STORE LOG] updateStudioElementSettings (inside set): Element ${elementId} new imageUrl. Length: ${updatedElementForLog.imageUrl ? updatedElementForLog.imageUrl.length : 'null'}. Starts with: ${updatedElementForLog.imageUrl ? updatedElementForLog.imageUrl.substring(0, 30) : 'N/A'}`);
+                    }
                     return updatedElementForLog;
                   }
                   return el;
@@ -1979,6 +2009,16 @@ const useDraftStore = create<DraftStore>()(
                 // console.log(`[loadStudioLayout] Layout ${layoutId} is already active and matches current state. Skipping load.`);
                 return state; // Return current state, no changes needed
               }
+
+              // BG LOG: Log imageUrls when loading a layout
+              console.log(`[STORE LOG] loadStudioLayout: Loading layout ID ${layoutId}.`);
+              layoutToLoad.canvases.forEach(canvas => {
+                canvas.layout.forEach(el => {
+                  if (el.type === 'BackgroundImage' && el.imageUrl) {
+                    console.log(`[STORE LOG] loadStudioLayout: Canvas ${canvas.id}, Element ${el.id} (BG Image) has imageUrl. Length: ${el.imageUrl.length}. Starts with: ${el.imageUrl.substring(0, 30)}`);
+                  }
+                });
+              });
 
               const canvasesToLoad = Array.isArray(layoutToLoad.canvases) && layoutToLoad.canvases.length > 0
                 ? layoutToLoad.canvases
@@ -2160,7 +2200,10 @@ const useDraftStore = create<DraftStore>()(
           set(state => {
             const updatedCanvases = state.currentCanvases.map(canvas => {
               if (canvas.id === canvasId) {
-                return { ...canvas, showBroadcastBorder: !(canvas.showBroadcastBorder === undefined ? true : canvas.showBroadcastBorder) };
+        const oldVal = canvas.showBroadcastBorder;
+        const newVal = !(oldVal === undefined ? true : oldVal);
+        console.log(`[STORE LOG] toggleCanvasBroadcastBorder: Canvas ${canvasId}. Old showBroadcastBorder: ${oldVal}, New: ${newVal}`); // BORDER LOG
+        return { ...canvas, showBroadcastBorder: newVal };
               }
               return canvas;
             });
@@ -2177,6 +2220,21 @@ const useDraftStore = create<DraftStore>()(
 
         _autoSaveOrUpdateActiveStudioLayout: () => {
           const { activeStudioLayoutId, savedStudioLayouts, currentCanvases, activeCanvasId } = get();
+          const autoSavePresetName = "(auto)";
+
+          // BG LOG: Log imageUrls within currentCanvases before saving
+          console.log(`[STORE LOG] _autoSaveOrUpdateActiveStudioLayout: Called. Active Layout ID: ${activeStudioLayoutId}.`);
+          currentCanvases.forEach(canvas => {
+            // BORDER LOG: Log showBroadcastBorder for each canvas being saved
+            console.log(`[STORE LOG] _autoSaveOrUpdateActiveStudioLayout: Canvas ${canvas.id} being saved. showBroadcastBorder: ${canvas.showBroadcastBorder}`);
+            canvas.layout.forEach(el => {
+              if (el.type === 'BackgroundImage' && el.imageUrl) {
+                console.log(`[STORE LOG] _autoSaveOrUpdateActiveStudioLayout: Canvas ${canvas.id}, Element ${el.id} (BG Image) being saved has imageUrl. Length: ${el.imageUrl.length}. Starts with: ${el.imageUrl.substring(0, 30)}`);
+              }
+              // POS/SIZE LOG for each element during save
+              console.log(`[STORE LOG] _autoSaveOrUpdateActiveStudioLayout: Saving Element ${el.id} (Type: ${el.type}) in Canvas ${canvas.id}. Pos: x=${el.position.x}, y=${el.position.y}. Size: w=${el.size.width}, h=${el.size.height}`);
+            });
+          });
           // const activeCanvasForLog = currentCanvases.find(c => c.id === activeCanvasId); // Replaced by more detailed log below
           // console.log(
           //   '[Autosave Debug] _autoSaveOrUpdateActiveStudioLayout CALLED. ActiveLayoutID:', activeStudioLayoutId,
@@ -2184,7 +2242,6 @@ const useDraftStore = create<DraftStore>()(
           //   'Total Canvases:', currentCanvases.length,
           //   'Elements in Active Canvas:', activeCanvasForLog ? activeCanvasForLog.layout.length : 'N/A'
           // );
-          const autoSavePresetName = "(auto)";
 
           console.log(`[STORE DEBUG] _autoSaveOrUpdateActiveStudioLayout called. Active Layout ID: ${activeStudioLayoutId}`);
           const canvasesToLog = currentCanvases.map(c => ({
