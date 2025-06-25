@@ -1,6 +1,7 @@
 import React from 'react';
 import { StudioElement } from '../../types/draft';
 import useDraftStore from '../../store/draftStore';
+import { saveImageToDb, deleteImageFromDb } from '../../services/imageDb';
 import styles from './SettingsPanel.module.css';
 
 interface SettingsPanelProps {
@@ -356,31 +357,51 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedElement, onClose 
               id="bgImageFileInput"
               accept="image/*"
               style={{...inputStyle, padding: '3px'}} // Adjust padding for file input
-              onChange={(e) => {
+              onChange={async (e) => { // Make async
                 if (e.target.files && e.target.files[0]) {
                   const file = e.target.files[0];
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    handleSettingChange('imageUrl', reader.result as string);
-                    // Log selectedElementId from store AFTER setting image to see if it changed
-                    console.log(`[SETTINGS DEBUG] Image URL updated for ${selectedElement?.id}. Current selectedElementId from store: ${useDraftStore.getState().selectedElementId}`);
-                  };
-                  reader.readAsDataURL(file);
-                } else {
-                  // Optionally handle case where no file is chosen or selection is cancelled
-                  // For now, if they cancel, imageUrl remains unchanged or they can clear it
+                  try {
+                    // If element already has an image (which is now an imageKey), delete it from DB first
+                    if (selectedElement?.imageUrl && typeof selectedElement.imageUrl === 'string' && selectedElement.imageUrl.startsWith('bg-')) {
+                      console.log(`[SettingsPanel] Attempting to delete old image with key: ${selectedElement.imageUrl} before saving new one.`);
+                      await deleteImageFromDb(selectedElement.imageUrl);
+                    }
+                    const imageKey = await saveImageToDb(file);
+                    handleSettingChange('imageUrl', imageKey);
+                    console.log(`[SettingsPanel] New image saved to DB with key: ${imageKey} for element ${selectedElement?.id}`);
+                  } catch (error) {
+                    console.error("[SettingsPanel] Error handling image upload:", error);
+                    // Optionally, inform the user about the error
+                  }
                 }
+                // Reset input value to allow selecting the same file again if needed
+                if (e.target) e.target.value = '';
               }}
             />
           </div>
-          {selectedElement.imageUrl && (
+          {/* Displaying the image will be handled by BackgroundImageElement which now reads from IndexedDB */}
+          {/* We might need a way to show a preview here, or rely on the main canvas preview. */}
+          {/* For now, let's simplify and remove the direct <img> preview here, as BackgroundImageElement will handle it. */}
+          {/* If a preview is strictly needed in SettingsPanel, it would also need to load from IndexedDB. */}
+          {selectedElement.imageUrl && typeof selectedElement.imageUrl === 'string' && selectedElement.imageUrl.startsWith('bg-') && (
             <div style={{...settingRowStyle, flexDirection: 'column', alignItems: 'flex-start'}}>
-              <label style={{...labelStyle, marginBottom: '5px'}}>Current Image:</label>
-              <img src={selectedElement.imageUrl} alt="Selected background" style={{maxWidth: '100%', maxHeight: '100px', border: '1px solid #555', objectFit: 'contain'}}/>
+              <label style={{...labelStyle, marginBottom: '5px'}}>Current Image Key:</label>
+              <span style={{fontSize: '0.8em', color: '#aaa', wordBreak: 'break-all'}}>{selectedElement.imageUrl}</span>
               <button
-                onClick={() => {
-                  console.log(`[SETTINGS DEBUG] Clearing image for element: ${selectedElement?.id}`);
-                  handleSettingChange('imageUrl', null);
+                onClick={async () => { // Make async
+                  if (selectedElement?.imageUrl && typeof selectedElement.imageUrl === 'string' && selectedElement.imageUrl.startsWith('bg-')) {
+                    try {
+                      console.log(`[SettingsPanel] Clearing image with key: ${selectedElement.imageUrl} for element ${selectedElement?.id}`);
+                      await deleteImageFromDb(selectedElement.imageUrl);
+                      handleSettingChange('imageUrl', null);
+                    } catch (error) {
+                      console.error("[SettingsPanel] Error deleting image from DB:", error);
+                      // Optionally, inform the user
+                    }
+                  } else {
+                    // If imageUrl is null or not a 'bg-' key, just clear it from settings
+                    handleSettingChange('imageUrl', null);
+                  }
                 }}
                 style={{...buttonStyle, backgroundColor: '#dc3545', color: 'white', width: 'auto', padding: '3px 8px', fontSize: '0.8em', marginTop: '5px'}}
               >

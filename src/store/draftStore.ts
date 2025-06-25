@@ -19,6 +19,7 @@ import {
 } from '../types/draft';
 
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
+import { deleteImageFromDb } from '../services/imageDb'; //IndexedDB
 
 // Augment CombinedDraftState locally
 export interface CombinedDraftState extends OriginalCombinedDraftState {
@@ -1967,13 +1968,25 @@ const useDraftStore = create<DraftStore>()(
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
         removeStudioElement: (elementId: string) => {
+          // First, find the element to check if it's a BackgroundImage with an imageKey
+          const activeCanvas = get().currentCanvases.find(c => c.id === get().activeCanvasId);
+          const elementToRemove = activeCanvas?.layout.find(el => el.id === elementId);
+
+          if (elementToRemove && elementToRemove.type === 'BackgroundImage' && elementToRemove.imageUrl && typeof elementToRemove.imageUrl === 'string' && elementToRemove.imageUrl.startsWith('bg-')) {
+            const imageKey = elementToRemove.imageUrl;
+            console.log(`[STORE LOG] removeStudioElement: Element ${elementId} is a BackgroundImage with key ${imageKey}. Attempting to delete from DB.`);
+            deleteImageFromDb(imageKey)
+              .then(() => console.log(`[STORE LOG] Successfully deleted image ${imageKey} from DB for element ${elementId}.`))
+              .catch(err => console.error(`[STORE LOG] Error deleting image ${imageKey} from DB for element ${elementId}:`, err));
+          }
+
           set(state => {
             let newSelectedElementId = state.selectedElementId;
             const updatedCanvases = state.currentCanvases.map(canvas => {
               if (canvas.id === state.activeCanvasId) {
                 const newLayout = canvas.layout.filter(el => el.id !== elementId);
                 if (newLayout.length < canvas.layout.length && state.selectedElementId === elementId) {
-                  newSelectedElementId = null;
+                  newSelectedElementId = null; // Clear selection if the selected element is deleted
                 }
                 return { ...canvas, layout: newLayout };
               }
@@ -2172,6 +2185,20 @@ const useDraftStore = create<DraftStore>()(
         },
 
         resetActiveCanvasLayout: () => {
+          const activeCanvas = get().currentCanvases.find(c => c.id === get().activeCanvasId);
+          if (activeCanvas && activeCanvas.layout.length > 0) {
+            console.log(`[STORE LOG] resetActiveCanvasLayout: Resetting canvas ${activeCanvas.id}. Found ${activeCanvas.layout.length} elements.`);
+            activeCanvas.layout.forEach(element => {
+              if (element.type === 'BackgroundImage' && element.imageUrl && typeof element.imageUrl === 'string' && element.imageUrl.startsWith('bg-')) {
+                const imageKey = element.imageUrl;
+                console.log(`[STORE LOG] resetActiveCanvasLayout: Element ${element.id} is a BackgroundImage with key ${imageKey}. Attempting to delete from DB.`);
+                deleteImageFromDb(imageKey)
+                  .then(() => console.log(`[STORE LOG] Successfully deleted image ${imageKey} from DB during canvas reset for element ${element.id}.`))
+                  .catch(err => console.error(`[STORE LOG] Error deleting image ${imageKey} from DB during canvas reset for element ${element.id}:`, err));
+              }
+            });
+          }
+
           set(state => {
             const updatedCanvases = state.currentCanvases.map(canvas =>
               canvas.id === state.activeCanvasId
@@ -2180,10 +2207,10 @@ const useDraftStore = create<DraftStore>()(
             );
             // If the active canvas was found and its layout reset, update relevant state
             // Check if the layout actually changed to prevent unnecessary updates
-            const originalActiveCanvas = state.currentCanvases.find(sc => sc.id === state.activeCanvasId);
-            const newActiveCanvas = updatedCanvases.find(uc => uc.id === state.activeCanvasId);
+            const originalActiveCanvasFromState = state.currentCanvases.find(sc => sc.id === state.activeCanvasId); // Use state from set
+            const newActiveCanvasFromUpdate = updatedCanvases.find(uc => uc.id === state.activeCanvasId);
 
-            if (originalActiveCanvas && newActiveCanvas && originalActiveCanvas.layout.length > 0 && newActiveCanvas.layout.length === 0) {
+            if (originalActiveCanvasFromState && newActiveCanvasFromUpdate && originalActiveCanvasFromState.layout.length > 0 && newActiveCanvasFromUpdate.layout.length === 0) {
               return {
                 ...state,
                 currentCanvases: updatedCanvases,
@@ -2191,7 +2218,12 @@ const useDraftStore = create<DraftStore>()(
                 layoutLastUpdated: Date.now()
               };
             }
-            return state; // Return original state if active canvas not found or no change made
+            // If layout was already empty or active canvas not found (though previous check should handle it)
+            if (originalActiveCanvasFromState && originalActiveCanvasFromState.layout.length === 0) {
+                 console.log(`[STORE LOG] resetActiveCanvasLayout: Canvas ${state.activeCanvasId} was already empty. No state change for layout array needed.`);
+                 return {...state, selectedElementId: null, layoutLastUpdated: Date.now() }; // Still update selection and timestamp
+            }
+            return state; // Return original state if no change made
           });
           get()._autoSaveOrUpdateActiveStudioLayout();
         },
