@@ -1890,7 +1890,7 @@ const useDraftStore = create<DraftStore>()(
         pivotInternalOffset: 0,
       } as StudioElement;
     } else {
-      console.warn(\`[STORE WARN] addStudioElement: Unknown element type "\${elementType}". Creating a generic element.\`);
+      console.warn('[STORE WARN] addStudioElement: Unknown element type "' + elementType + '". Creating a generic element.');
       newElement = {
         id: Date.now().toString(), 
         type: elementType, 
