@@ -4,7 +4,7 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'Aoe4LayoutImages';
 const STORE_NAME = 'backgroundImages';
-const DB_VERSION = 1;
+const DB_VERSION = 3; // Incremented version to resolve conflict with existing v2 in browser.
 
 // Определяем схему базы данных
 interface Aoe4ImageDB extends DBSchema {

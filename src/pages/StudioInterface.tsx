@@ -271,28 +271,14 @@ const StudioInterface: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const { activeStudioLayoutId, savedStudioLayouts, loadStudioLayout, currentCanvases, activeCanvasId } = useDraftStore.getState();
-    console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] activeStudioLayoutId:', activeStudioLayoutId);
-    if (activeStudioLayoutId) {
-      const layoutToLoad = savedStudioLayouts.find(l => l.id === activeStudioLayoutId);
-      if (layoutToLoad) {
-        const activeCanvasInLayoutToLoad = layoutToLoad.canvases.find(c => c.id === layoutToLoad.activeCanvasId);
-        const currentActiveCanvasInState = currentCanvases.find(c => c.id === activeCanvasId);
-        const isLayoutPotentiallyAlreadyLoaded = activeCanvasId === layoutToLoad.activeCanvasId && activeCanvasInLayoutToLoad?.layout.length === currentActiveCanvasInState?.layout.length && JSON.stringify(activeCanvasInLayoutToLoad?.layout) === JSON.stringify(currentActiveCanvasInState?.layout);
-        if (!isLayoutPotentiallyAlreadyLoaded) {
-          console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] Attempting to load layout:', activeStudioLayoutId);
-          loadStudioLayout(activeStudioLayoutId);
-        } else {
-          console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] Layout already seems to be loaded or matches state. Skipping redundant load of layout:', activeStudioLayoutId);
-        }
-      } else {
-        console.warn('LOGAOEINFO: [StudioInterface Mount Layout Effect] activeStudioLayoutId found, but corresponding layout not in savedStudioLayouts. ID:', activeStudioLayoutId);
-      }
-    } else {
-      console.log('LOGAOEINFO: [StudioInterface Mount Layout Effect] No activeStudioLayoutId found. Skipping auto-load.');
-    }
-  }, []);
+  // Removed the useEffect hook that was calling loadStudioLayout on mount.
+  // The Zustand persist middleware should correctly rehydrate currentCanvases,
+  // activeStudioLayoutId, and savedStudioLayouts. Trusting this rehydrated state
+  // is preferred to prevent potential overwrites or inconsistencies caused by an
+  // unnecessary loadStudioLayout call with a potentially flawed idempotency check.
+  // The action _autoSaveOrUpdateActiveStudioLayout in draftStore.ts is responsible
+  // for ensuring that currentCanvases is saved into the correct savedStudioLayouts entry
+  // before persistence.
 
   return (
     <div style={{ backgroundColor: 'black', color: 'white', minHeight: 'calc(100vh - 60px)', display: 'flex', overflow: 'hidden', position: 'relative' }}>
