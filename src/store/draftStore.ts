@@ -55,6 +55,7 @@ interface DraftStore extends CombinedDraftState {
   setBoxSeriesFormat: (format: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null) => void;
   updateBoxSeriesGame: (gameIndex: number, field: 'map' | 'hostCiv' | 'guestCiv', value: string | null) => void;
   setGameWinner: (gameIndex: number, winningPlayer: 'host' | 'guest' | null) => void;
+  toggleBoxSeriesGameVisibility: (gameIndex: number) => void; // New action for visibility
   _resetCurrentSessionState: () => void;
   _updateActivePresetIfNeeded: () => void;
 
@@ -258,13 +259,13 @@ const getOptionNameFromStore = (optionId: string, draftOptions: Aoe2cmRawDraftDa
 
 const _calculateUpdatedBoxSeriesGames = (
   boxSeriesFormat: 'bo1' | 'bo3' | 'bo5' | 'bo7' | null,
-  currentBoxSeriesGames: Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }>,
+  currentBoxSeriesGames: Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null; isVisible?: boolean }>, // Added isVisible
   civPicksHost: string[],
   civPicksGuest: string[],
   mapPicksHost: string[],
   mapPicksGuest: string[],
   mapPicksGlobal: string[]
-): Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null }> => {
+): Array<{ map: string | null; hostCiv: string | null; guestCiv: string | null; winner: 'host' | 'guest' | null; isVisible: boolean }> => { // Ensure isVisible is always boolean in return
   let numGames = 0;
   if (boxSeriesFormat === 'bo1') numGames = 1;
   else if (boxSeriesFormat === 'bo3') numGames = 3;
@@ -279,7 +280,7 @@ const _calculateUpdatedBoxSeriesGames = (
   const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
 
   const newBoxSeriesArray = Array(numGames).fill(null).map((_, index) => {
-    const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null };
+    const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null, isVisible: false }; // Default isVisible to false for new/non-existent games
 
     const mapForGame = combinedMapPicks[index] || null;
 
@@ -288,6 +289,7 @@ const _calculateUpdatedBoxSeriesGames = (
       hostCiv: civPicksHost[index] || null,
       guestCiv: civPicksGuest[index] || null,
       winner: existingGame.winner || null, // Preserve winner if already set
+      isVisible: existingGame.isVisible === undefined ? false : existingGame.isVisible, // Preserve isVisible, default to false if undefined
     };
   });
   return newBoxSeriesArray;
@@ -1314,7 +1316,7 @@ const useDraftStore = create<DraftStore>()(
         // _updateBoxSeriesGamesFromPicks is now removed and replaced by the local helper _calculateUpdatedBoxSeriesGames
         // The actual update to the store will be handled by the calling actions (next subtask).
 
-        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames)), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
+        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames.map(game => ({...game, isVisible: game.isVisible === undefined ? false : game.isVisible})))), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
@@ -1696,26 +1698,27 @@ const useDraftStore = create<DraftStore>()(
               civDraftStatus: 'disconnected', mapDraftStatus: 'disconnected',
               isLoadingCivDraft: false, isLoadingMapDraft: false,
               civDraftError: null, mapDraftError: null,
-              // DO NOT clear boxSeriesGames here anymore, it will be set from the preset.
-              // boxSeriesGames: []
             });
 
             // Now set the preset specific data, INCLUDING boxSeriesGames from the preset
+            const gamesFromPreset = preset.boxSeriesGames ? JSON.parse(JSON.stringify(preset.boxSeriesGames)) : [];
+            const gamesWithVisibility = gamesFromPreset.map((game: any) => ({
+              ...game,
+              isVisible: game.isVisible === undefined ? false : game.isVisible, // Default to false if missing
+            }));
+
             set({
               activePresetId: preset.id,
               hostName: preset.hostName,
               guestName: preset.guestName,
               scores: { ...preset.scores }, // Deep copy
               boxSeriesFormat: preset.boxSeriesFormat,
-              // Load boxSeriesGames from the preset directly into the state.
-              // Ensure a deep copy to prevent direct mutation of preset data if state.boxSeriesGames is modified later.
-              boxSeriesGames: preset.boxSeriesGames ? JSON.parse(JSON.stringify(preset.boxSeriesGames)) : [],
+              boxSeriesGames: gamesWithVisibility,
               hostColor: preset.hostColor || null,
               guestColor: preset.guestColor || null,
-              // civDraftId and mapDraftId will be set by connectToDraft if they exist in the preset object
             });
 
-            console.log('[loadPreset] Applied preset data (including boxSeriesGames with winners) for preset ID:', presetId);
+            console.log('[loadPreset] Applied preset data (including boxSeriesGames with winners and visibility) for preset ID:', presetId);
             if (preset.civDraftId) await get().connectToDraft(preset.civDraftId, 'civ');
             if (preset.mapDraftId) await get().connectToDraft(preset.mapDraftId, 'map');
             set({ activePresetId: preset.id }); // Ensure activePresetId is set after connections
@@ -1724,9 +1727,63 @@ const useDraftStore = create<DraftStore>()(
         },
         deletePreset: (presetId: string) => { const currentActiveId = get().activePresetId; set(state => ({ savedPresets: state.savedPresets.filter(p => p.id !== presetId) })); if (currentActiveId === presetId) get()._resetCurrentSessionState(); },
         updatePresetName: (presetId: string, newName: string) => { set(state => ({ savedPresets: state.savedPresets.map(p => p.id === presetId ? { ...p, name: newName } : p), activePresetId: state.activePresetId === presetId ? presetId : state.activePresetId, })); get()._updateActivePresetIfNeeded(); },
-        setBoxSeriesFormat: (format) => { let numGames = 0; if (format === 'bo1') numGames = 1; else if (format === 'bo3') numGames = 3; else if (format === 'bo5') numGames = 5; else if (format === 'bo7') numGames = 7; let newGames = Array(numGames).fill(null).map(() => ({ map: null, hostCiv: null, guestCiv: null, winner: null })); const state = get(); if (numGames > 0) { const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean); newGames = newGames.map((_game, index) => ({ map: combinedMapPicks[index] || null, hostCiv: state.civPicksHost[index] || null, guestCiv: state.civPicksGuest[index] || null, winner: null, })); } set({ boxSeriesFormat: format, boxSeriesGames: newGames }); get()._updateActivePresetIfNeeded(); },
+        setBoxSeriesFormat: (format) => {
+          let numGames = 0;
+          if (format === 'bo1') numGames = 1;
+          else if (format === 'bo3') numGames = 3;
+          else if (format === 'bo5') numGames = 5;
+          else if (format === 'bo7') numGames = 7;
+
+          const state = get();
+          // Preserve existing games up to the new number of games, then add new ones
+          const existingGames = state.boxSeriesGames.slice(0, numGames);
+          let newGames = Array(numGames).fill(null).map((_, index) => {
+            if (existingGames[index]) {
+              // If game exists, preserve its properties including isVisible
+              return {
+                ...existingGames[index],
+                map: existingGames[index].map || (Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean)[index] || null),
+                hostCiv: existingGames[index].hostCiv || (state.civPicksHost[index] || null),
+                guestCiv: existingGames[index].guestCiv || (state.civPicksGuest[index] || null),
+                // isVisible is already part of existingGames[index] if defined, otherwise it defaults below
+              };
+            }
+            // For new game slots, default everything including isVisible
+            const combinedMapPicks = Array.from(new Set([...state.mapPicksHost, ...state.mapPicksGuest, ...state.mapPicksGlobal])).filter(Boolean);
+            return {
+              map: combinedMapPicks[index] || null,
+              hostCiv: state.civPicksHost[index] || null,
+              guestCiv: state.civPicksGuest[index] || null,
+              winner: null,
+              isVisible: false, // Default new games to not visible
+            };
+          });
+
+          // Ensure all games in newGames have isVisible defined
+          newGames = newGames.map(game => ({
+            ...game,
+            isVisible: game.isVisible === undefined ? false : game.isVisible,
+          }));
+
+          set({ boxSeriesFormat: format, boxSeriesGames: newGames });
+          get()._updateActivePresetIfNeeded();
+        },
         updateBoxSeriesGame: (gameIndex, field, value) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { newGames[gameIndex] = { ...newGames[gameIndex], [field]: value, winner: null }; return { boxSeriesGames: newGames }; } return state; }); get()._updateActivePresetIfNeeded(); },
         setGameWinner: (gameIndex, winningPlayer) => { set(state => { const newGames = [...state.boxSeriesGames]; if (newGames[gameIndex]) { if (newGames[gameIndex].winner === winningPlayer) newGames[gameIndex] = { ...newGames[gameIndex], winner: null }; else newGames[gameIndex] = { ...newGames[gameIndex], winner: winningPlayer }; } let hostScore = 0; let guestScore = 0; newGames.forEach(game => { if (game.winner === 'host') hostScore++; else if (game.winner === 'guest') guestScore++; }); return { boxSeriesGames: newGames, scores: { host: hostScore, guest: guestScore }}; }); get()._updateActivePresetIfNeeded(); },
+        toggleBoxSeriesGameVisibility: (gameIndex: number) => {
+          set(state => {
+            const newGames = [...state.boxSeriesGames];
+            if (newGames[gameIndex]) {
+              newGames[gameIndex] = {
+                ...newGames[gameIndex],
+                isVisible: !(newGames[gameIndex].isVisible === undefined ? false : newGames[gameIndex].isVisible), // Toggle, default to true if undefined before toggle
+              };
+              return { boxSeriesGames: newGames };
+            }
+            return state;
+          });
+          get()._updateActivePresetIfNeeded();
+        },
 
  addStudioElement: (elementType: string) => {
   set(state => {
