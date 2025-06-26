@@ -18,6 +18,8 @@ import {
   LastDraftAction, // Import the new type
 } from '../types/draft';
 
+// customStorage.ts is responsible for broadcasting state changes across tabs.
+// imageDb.ts provides functions to interact with IndexedDB for storing/retrieving image files.
 import { customLocalStorageWithBroadcast } from './customStorage'; // Adjust path if needed
 import { deleteImageFromDb } from '../services/imageDb'; //IndexedDB
 
@@ -84,7 +86,7 @@ interface DraftStore extends CombinedDraftState {
   removeCanvas: (canvasId: string) => void;
   updateCanvasName: (canvasId: string, newName: string) => void;
   setCanvasBackgroundColor: (canvasId: string, color: string | null) => void;
-  // setCanvasBackgroundImage: (canvasId: string, imageUrl: string | null) => void; // To be removed
+  // setCanvasBackgroundImage action was removed as background images are now handled by BackgroundImageElement and its own imageUrl property.
   setActiveStudioLayoutId: (layoutId: string | null) => void;
   toggleCanvasBroadcastBorder: (canvasId: string) => void; // New action for toggling border
 
@@ -109,7 +111,7 @@ const initialCanvases: StudioCanvas[] = [{
   layout: [],
   backgroundColor: null,
   showBroadcastBorder: true, // Default to true
-  // backgroundImage: null, // Removed
+  // The 'backgroundImage' property on StudioCanvas was removed. Backgrounds are now managed via BackgroundImageElement.
 }];
 
 // Initial flags are now derived in TechnicalInterface.tsx based on playerFlagMappings in localStorage.
@@ -2007,10 +2009,10 @@ const useDraftStore = create<DraftStore>()(
 
           if (elementToRemove && elementToRemove.type === 'BackgroundImage' && elementToRemove.imageUrl && typeof elementToRemove.imageUrl === 'string' && elementToRemove.imageUrl.startsWith('bg-')) {
             const imageKey = elementToRemove.imageUrl;
-            console.log(`[STORE LOG] removeStudioElement: Element ${elementId} is a BackgroundImage with key ${imageKey}. Attempting to delete from DB.`);
-            deleteImageFromDb(imageKey)
-              .then(() => console.log(`[STORE LOG] Successfully deleted image ${imageKey} from DB for element ${elementId}.`))
-              .catch(err => console.error(`[STORE LOG] Error deleting image ${imageKey} from DB for element ${elementId}:`, err));
+            // No need to await here, deletion can happen in the background.
+            // Errors will be logged by deleteImageFromDb.
+            deleteImageFromDb(imageKey);
+            console.log(`[STORE LOG] removeStudioElement: Initiated deletion from DB for BackgroundImage element ${elementId} with key ${imageKey}.`);
           }
 
           set(state => {
@@ -2220,14 +2222,13 @@ const useDraftStore = create<DraftStore>()(
         resetActiveCanvasLayout: () => {
           const activeCanvas = get().currentCanvases.find(c => c.id === get().activeCanvasId);
           if (activeCanvas && activeCanvas.layout.length > 0) {
-            console.log(`[STORE LOG] resetActiveCanvasLayout: Resetting canvas ${activeCanvas.id}. Found ${activeCanvas.layout.length} elements.`);
+            console.log(`[STORE LOG] resetActiveCanvasLayout: Resetting canvas ${activeCanvas.id}. Found ${activeCanvas.layout.length} elements to process for potential DB cleanup.`);
             activeCanvas.layout.forEach(element => {
               if (element.type === 'BackgroundImage' && element.imageUrl && typeof element.imageUrl === 'string' && element.imageUrl.startsWith('bg-')) {
                 const imageKey = element.imageUrl;
-                console.log(`[STORE LOG] resetActiveCanvasLayout: Element ${element.id} is a BackgroundImage with key ${imageKey}. Attempting to delete from DB.`);
-                deleteImageFromDb(imageKey)
-                  .then(() => console.log(`[STORE LOG] Successfully deleted image ${imageKey} from DB during canvas reset for element ${element.id}.`))
-                  .catch(err => console.error(`[STORE LOG] Error deleting image ${imageKey} from DB during canvas reset for element ${element.id}:`, err));
+                // Asynchronous deletion, no need to await. Errors logged by deleteImageFromDb.
+                deleteImageFromDb(imageKey);
+                console.log(`[STORE LOG] resetActiveCanvasLayout: Initiated DB deletion for BackgroundImage element ${element.id} with key ${imageKey}.`);
               }
             });
           }
@@ -2438,6 +2439,9 @@ const useDraftStore = create<DraftStore>()(
           //               ...canvas,
           //               layout: canvas.layout.map((el: StudioElement) => {
           //                 if (el.type === "BackgroundImage" && el.imageUrl && typeof el.imageUrl === 'string' && el.imageUrl.startsWith("data:")) {
+          //                    // This specific transformation for "data:" URLs is no longer needed
+          //                    // as imageUrl for BackgroundImage now stores an IndexedDB key (e.g., "bg-...")
+          //                    // or is null. Keys are safe to persist directly.
           //                   return { ...el, imageUrl: "[LOCAL_IMAGE_DATA_NOT_PERSISTED]" };
           //                 }
           //                 return el;
@@ -2451,6 +2455,10 @@ const useDraftStore = create<DraftStore>()(
           //     return savedLayout;
           //   });
           // }
+
+          // The imageUrl for BackgroundImage elements (which is an IndexedDB key) is already included
+          // in currentCanvases and savedStudioLayouts part of stateToPersist.
+          // No special handling is needed here for it anymore, as data URLs are not directly stored in the element state.
           return stateToPersist;
         },
         storage: customLocalStorageWithBroadcast,
