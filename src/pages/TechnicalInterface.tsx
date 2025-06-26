@@ -39,6 +39,7 @@ const TechnicalInterface = () => {
     saveCurrentAsPreset, loadPreset, deletePreset,
     _resetCurrentSessionState,
     setBoxSeriesFormat, updateBoxSeriesGame, setGameWinner,
+    toggleBoxSeriesGameVisibility, // Added new action
   } = useDraftStore();
 
   const playerColors = ['#00C4FF', '#FF9500', '#A64DFF', '#1E3A8A', '#FF0000', '#FF69B4', '#FFFF00', '#00FF00'];
@@ -765,7 +766,19 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
             <div className="box-games-list">
               {boxSeriesGames.map((game, index) => (
                 <div key={index} className="box-game-slot">
-                  <h4 className="game-slot-title">Game {index + 1}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                    <h4 className="game-slot-title" style={{ marginRight: '10px', marginBottom: '0' }}>Game {index + 1}</h4>
+                    <label htmlFor={`game-visible-checkbox-${index}`} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9em' }}>
+                      <input
+                        type="checkbox"
+                        id={`game-visible-checkbox-${index}`}
+                        checked={game.isVisible === undefined ? false : game.isVisible}
+                        onChange={() => toggleBoxSeriesGameVisibility(index)}
+                        style={{ marginRight: '5px' }}
+                      />
+                      Show Game
+                    </label>
+                  </div>
                   <div className="game-slot-selectors">
                     <div className="selector-group">
                       <label htmlFor={`box-host-civ-${index}`} className={game.winner === 'host' ? 'text-winner' : game.winner === 'guest' ? 'text-loser' : ''}>

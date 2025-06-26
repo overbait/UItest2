@@ -34,6 +34,9 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     boxSeriesGames: state.boxSeriesGames,
   }));
 
+  // Filter games based on the isVisible flag
+  const visibleGames = boxSeriesGames.filter(game => game.isVisible === undefined ? false : game.isVisible);
+
   const REFERENCE_SELECTOR_HEIGHT_UNSCALED_PX = 30;
   const BASELINE_FONT_SIZE_UNSCALED_PX = 10;
   const dynamicFontSize = BASELINE_FONT_SIZE_UNSCALED_PX;
@@ -96,17 +99,25 @@ const BoXSeriesOverviewElement: React.FC<BoXSeriesOverviewElementProps> = ({ ele
     fontFamily: gameTitleFont,
   };
 
-  if (!boxSeriesGames || boxSeriesGames.length === 0) {
+  if (!visibleGames || visibleGames.length === 0) { // Use visibleGames here
     if (isBroadcast) return null;
-    return <div className={styles.noGamesMessage} style={{ fontFamily }}>(BoX Series: No Games)</div>;
+    return <div className={styles.noGamesMessage} style={{ fontFamily }}>(BoX Series: No Visible Games)</div>; // Updated message
   }
 
   return (
     <div className={styles.baseElement} style={{ fontFamily, fontSize: `${dynamicFontSize}px` }}>
-      {boxSeriesGames.map((game: BoxSeriesGame, index: number) => {
-        const hostCivKey = `hc-${index}-${game.hostCiv || 'random'}`;
-        const mapKey = `map-${index}-${game.map || 'random'}`;
-        const guestCivKey = `gc-${index}-${game.guestCiv || 'random'}`;
+      {visibleGames.map((game: BoxSeriesGame, index: number) => { // Use visibleGames here
+        // Note: The 'index' here is for the visibleGames array. If the original index is needed for Game X text,
+        // and we want to preserve original numbering (e.g. Game 1, Game 3 if Game 2 is hidden),
+        // we would need to find the original index from boxSeriesGames.
+        // For now, assuming Game {index + 1} refers to the sequence of VISIBLE games.
+        // If original game numbering is critical even when some are hidden, this logic will need adjustment.
+        // Based on "Игры в элементе Box Series Overview на странице Broadcast Studio должны продолжать подстраиваться относительно центра",
+        // re-numbering based on visible games seems acceptable.
+
+        const hostCivKey = `hc-${game.hostCiv || 'random'}-${index}`; // Ensure key uniqueness with potentially sparse original indices
+        const mapKey = `map-${game.map || 'random'}-${index}`;
+        const guestCivKey = `gc-${game.guestCiv || 'random'}-${index}`;
 
         // Opacity states for the <img> overlay fade-in effect
         const [hostCivImgOpacity, setHostCivImgOpacity] = useState(0);

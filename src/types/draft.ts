@@ -19,6 +19,7 @@ export interface BoxSeriesGame {
   hostCiv: string | null;
   guestCiv: string | null;
   winner: 'host' | 'guest' | null;
+  isVisible?: boolean; // Added to control visibility in Broadcast Studio
 }
 
 export interface Aoe2cmRawDraftData {
