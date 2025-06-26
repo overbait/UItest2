@@ -766,19 +766,16 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
             <div className="box-games-list">
               {boxSeriesGames.map((game, index) => (
                 <div key={index} className="box-game-slot">
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-                    <h4 className="game-slot-title" style={{ marginRight: '10px', marginBottom: '0' }}>Game {index + 1}</h4>
-                    <label htmlFor={`game-visible-checkbox-${index}`} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9em' }}>
-                      <input
-                        type="checkbox"
-                        id={`game-visible-checkbox-${index}`}
-                        checked={game.isVisible === undefined ? false : game.isVisible}
-                        onChange={() => toggleBoxSeriesGameVisibility(index)}
-                        style={{ marginRight: '5px' }}
-                      />
-                      Show Game
-                    </label>
-                  </div>
+                  <label htmlFor={`game-visible-checkbox-${index}`} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '5px' }}>
+                    <input
+                      type="checkbox"
+                      id={`game-visible-checkbox-${index}`}
+                      checked={game.isVisible === undefined ? false : game.isVisible}
+                      onChange={() => toggleBoxSeriesGameVisibility(index)}
+                      style={{ marginRight: '8px', transform: 'scale(1.1)' }} // Added some margin and slight scale
+                    />
+                    <h4 className="game-slot-title" style={{ margin: '0', fontWeight: 'normal', fontSize: '1em' }}>Game {index + 1}</h4> {/* Removed default h4 margin, adjusted font */}
+                  </label>
                   <div className="game-slot-selectors">
                     <div className="selector-group">
                       <label htmlFor={`box-host-civ-${index}`} className={game.winner === 'host' ? 'text-winner' : game.winner === 'guest' ? 'text-loser' : ''}>
