@@ -280,7 +280,7 @@ const _calculateUpdatedBoxSeriesGames = (
   const combinedMapPicks = Array.from(new Set([...mapPicksHost, ...mapPicksGuest, ...mapPicksGlobal]));
 
   const newBoxSeriesArray = Array(numGames).fill(null).map((_, index) => {
-    const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null, isVisible: false }; // Default isVisible to false for new/non-existent games
+    const existingGame = currentBoxSeriesGames && currentBoxSeriesGames[index] ? currentBoxSeriesGames[index] : { winner: null, isVisible: true }; // Default isVisible to true for new/non-existent games
 
     const mapForGame = combinedMapPicks[index] || null;
 
@@ -289,7 +289,7 @@ const _calculateUpdatedBoxSeriesGames = (
       hostCiv: civPicksHost[index] || null,
       guestCiv: civPicksGuest[index] || null,
       winner: existingGame.winner || null, // Preserve winner if already set
-      isVisible: existingGame.isVisible === undefined ? false : existingGame.isVisible, // Preserve isVisible, default to false if undefined
+      isVisible: existingGame.isVisible === undefined ? true : existingGame.isVisible, // Preserve isVisible, default to true if undefined
     };
   });
   return newBoxSeriesArray;
@@ -1316,7 +1316,7 @@ const useDraftStore = create<DraftStore>()(
         // _updateBoxSeriesGamesFromPicks is now removed and replaced by the local helper _calculateUpdatedBoxSeriesGames
         // The actual update to the store will be handled by the calling actions (next subtask).
 
-        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames.map(game => ({...game, isVisible: game.isVisible === undefined ? false : game.isVisible})))), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
+        _updateActivePresetIfNeeded: () => { const { activePresetId, savedPresets, hostName, guestName, scores, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames, hostColor, guestColor } = get(); if (activePresetId) { const presetIndex = savedPresets.findIndex(p => p.id === activePresetId); if (presetIndex !== -1) { const updatedPreset: SavedPreset = { ...savedPresets[presetIndex], hostName, guestName, scores: { ...scores }, civDraftId, mapDraftId, boxSeriesFormat, boxSeriesGames: JSON.parse(JSON.stringify(boxSeriesGames.map(game => ({...game, isVisible: game.isVisible === undefined ? true : game.isVisible})))), hostColor, guestColor }; const newSavedPresets = [...savedPresets]; newSavedPresets[presetIndex] = updatedPreset; set({ savedPresets: newSavedPresets }); } } },
         extractDraftIdFromUrl: (url: string) => { try { if (url.startsWith('http://') || url.startsWith('https://')) { const urlObj = new URL(url); if (urlObj.hostname.includes('aoe2cm.net')) { const pathMatch = /\/draft\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (pathMatch && pathMatch[1]) return pathMatch[1]; const observerPathMatch = /\/observer\/([a-zA-Z0-9]+)/.exec(urlObj.pathname); if (observerPathMatch && observerPathMatch[1]) return observerPathMatch[1]; } const pathSegments = urlObj.pathname.split('/'); const potentialId = pathSegments.pop() || pathSegments.pop(); if (potentialId && /^[a-zA-Z0-9_-]+$/.test(potentialId) && potentialId.length > 3) return potentialId; const draftIdParam = urlObj.searchParams.get('draftId') || urlObj.searchParams.get('id'); if (draftIdParam) return draftIdParam; } if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } catch (error) { if (/^[a-zA-Z0-9_-]+$/.test(url) && url.length > 3) return url; return null; } },
 
         connectToDraft: async (draftIdOrUrl: string, draftType: 'civ' | 'map') => {
@@ -1704,7 +1704,7 @@ const useDraftStore = create<DraftStore>()(
             const gamesFromPreset = preset.boxSeriesGames ? JSON.parse(JSON.stringify(preset.boxSeriesGames)) : [];
             const gamesWithVisibility = gamesFromPreset.map((game: any) => ({
               ...game,
-              isVisible: game.isVisible === undefined ? false : game.isVisible, // Default to false if missing
+              isVisible: game.isVisible === undefined ? true : game.isVisible, // Default to true if missing
             }));
 
             set({
@@ -1755,14 +1755,14 @@ const useDraftStore = create<DraftStore>()(
               hostCiv: state.civPicksHost[index] || null,
               guestCiv: state.civPicksGuest[index] || null,
               winner: null,
-              isVisible: false, // Default new games to not visible
+              isVisible: true, // Default new games to visible
             };
           });
 
-          // Ensure all games in newGames have isVisible defined
+          // Ensure all games in newGames have isVisible defined (should default to true now)
           newGames = newGames.map(game => ({
             ...game,
-            isVisible: game.isVisible === undefined ? false : game.isVisible,
+            isVisible: game.isVisible === undefined ? true : game.isVisible,
           }));
 
           set({ boxSeriesFormat: format, boxSeriesGames: newGames });
@@ -1776,7 +1776,7 @@ const useDraftStore = create<DraftStore>()(
             if (newGames[gameIndex]) {
               newGames[gameIndex] = {
                 ...newGames[gameIndex],
-                isVisible: !(newGames[gameIndex].isVisible === undefined ? false : newGames[gameIndex].isVisible), // Toggle, default to true if undefined before toggle
+                isVisible: !newGames[gameIndex].isVisible, // Simple toggle, as isVisible should now always be a boolean
               };
               return { boxSeriesGames: newGames };
             }

@@ -770,11 +770,11 @@ const COUNTRY_PLAYERS_FILE_PATH = 'assets/countryflags/countryplayers.txt';
                     <input
                       type="checkbox"
                       id={`game-visible-checkbox-${index}`}
-                      checked={game.isVisible === undefined ? false : game.isVisible}
+                      checked={game.isVisible} // Simplified: game.isVisible should always be a boolean from the store
                       onChange={() => toggleBoxSeriesGameVisibility(index)}
-                      style={{ marginRight: '8px', transform: 'scale(1.1)' }} // Added some margin and slight scale
+                      style={{ marginRight: '8px', transform: 'scale(1.1)' }}
                     />
-                    <h4 className="game-slot-title" style={{ margin: '0', fontWeight: 'normal', fontSize: '1em' }}>Game {index + 1}</h4> {/* Removed default h4 margin, adjusted font */}
+                    <h4 className="game-slot-title" style={{ margin: '0', fontWeight: 'normal', fontSize: '1em' }}>Game {index + 1}</h4>
                   </label>
                   <div className="game-slot-selectors">
                     <div className="selector-group">
