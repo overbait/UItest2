@@ -301,6 +301,12 @@ const StudioInterface: React.FC = () => {
            </div>
          )}
         </div>
+        {/* Element Settings Panel - Moved Here */}
+        {selectedElement && (
+          <div style={toolboxSectionStyle}>
+            <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
+          </div>
+        )}
         <div style={toolboxSectionStyle}>
          <h3 style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}} onClick={() => setIsSaveLayoutOpen(!isSaveLayoutOpen)}>
            Save Current Layout <span>{isSaveLayoutOpen ? '▼' : '▶'}</span>
@@ -357,9 +363,7 @@ const StudioInterface: React.FC = () => {
            </div>
          )}
         </div>
-        <div style={toolboxSectionStyle}>
-          <SettingsPanel selectedElement={selectedElement} onClose={handleCloseSettingsPanel} />
-        </div>
+        {/* SettingsPanel was here, now moved up */}
         {activeCanvas && (
           <div style={toolboxSectionStyle}>
             <h3 style={{...toolboxHeaderStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between'}} onClick={() => setIsCanvasSettingsOpen(!isCanvasSettingsOpen)}>
