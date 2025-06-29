@@ -10,62 +10,45 @@ import MapPoolElement from '../components/studio/MapPoolElement';
 import CivPoolElement from '../components/studio/CivPoolElement';
 import BackgroundImageElement from '../components/studio/BackgroundImageElement'; // Import new component
 // All elements are now imported.
+import useDraftStore from '../store/draftStore'; // Keep for debug overlay if needed for other parts
 
 interface BroadcastViewProps {
-  targetCanvasId: string;
+  // targetCanvasId: string; // No longer take ID
+  canvasToRenderFromApp: StudioCanvas | null; // Take the object directly
 }
 
-const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
-  const { currentCanvasesFromHook, activeCanvasIdFromHook } = useDraftStore(state => ({
-    currentCanvasesFromHook: state.currentCanvases,
-    activeCanvasIdFromHook: state.activeCanvasId,
-  }));
-  // const [refreshKey, setRefreshKey] = useState(0); // No longer needed
+const BroadcastView: React.FC<BroadcastViewProps> = ({ canvasToRenderFromApp }) => {
+  // const { currentCanvasesFromHook, activeCanvasIdFromHook } = useDraftStore(state => ({
+  // currentCanvasesFromHook: state.currentCanvases,
+  // activeCanvasIdFromHook: state.activeCanvasId,
+  // }));
 
   useEffect(() => {
     (window as any).IS_BROADCAST_VIEW = true;
-
+    // Note: externalPresetChange listener might not be relevant if data is passed via prop
+    // but keeping it for now doesn't hurt.
     const handlePresetChange = (event: Event) => {
       console.log('[BroadcastView] Detected externalPresetChange event, reloading page. Details:', (event as CustomEvent).detail);
       window.location.reload();
     };
-
     window.addEventListener('externalPresetChange', handlePresetChange);
-
     return () => {
       (window as any).IS_BROADCAST_VIEW = false;
       window.removeEventListener('externalPresetChange', handlePresetChange);
     };
   }, []);
 
-  const canvasToRender = useMemo(() => {
-    // First, try with targetCanvasId from URL
-    let foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === targetCanvasId);
+  const canvasToRender = canvasToRenderFromApp; // Use the prop directly
 
-    if (!foundCanvas && activeCanvasIdFromHook && currentCanvasesFromHook.length > 0) {
-      // Try fallback to activeCanvasIdFromHook if targetCanvasId not found
-      console.log(`[BroadcastView] Target canvas ID "${targetCanvasId}" not found. Attempting fallback to activeCanvasIdFromHook: "${activeCanvasIdFromHook}"`);
-      foundCanvas = currentCanvasesFromHook.find(canvas => canvas.id === activeCanvasIdFromHook);
-    }
+  // For debug overlay, still useful to see some store state if needed
+  const { activeCanvasIdFromHook: storeActiveId, currentCanvasesFromHook: storeCanvases } = useDraftStore(state => ({
+    activeCanvasIdFromHook: state.activeCanvasId,
+    currentCanvasesFromHook: state.currentCanvases,
+  }));
 
-    if (!foundCanvas && currentCanvasesFromHook.length > 0) {
-      // If still not found (e.g., targetCanvasId was invalid AND activeCanvasIdFromHook was invalid/null),
-      // and there are canvases available, fall back to the first available canvas.
-      console.log(`[BroadcastView] Target canvas ID "${targetCanvasId}" and activeCanvasIdFromHook "${activeCanvasIdFromHook}" not found or invalid. Attempting fallback to the first available canvas.`);
-      foundCanvas = currentCanvasesFromHook[0];
-      if (foundCanvas) {
-        console.log(`[BroadcastView] Fell back to first available canvas: ID "${foundCanvas.id}", Name "${foundCanvas.name}"`);
-      }
-    }
-    // If foundCanvas is still undefined here, it means currentCanvasesFromHook is empty.
-    return foundCanvas;
-  }, [currentCanvasesFromHook, targetCanvasId, activeCanvasIdFromHook]); // Removed refreshKey dependency
 
   if (!canvasToRender) {
-    // This message will now primarily appear if currentCanvasesFromHook is empty.
-    const message = currentCanvasesFromHook.length === 0
-      ? "No canvases available in the current layout."
-      : `Canvas with ID '${targetCanvasId}' not found, and fallback to active or first canvas also failed.`;
+    const message = "No canvas data provided to BroadcastView component.";
     return (
       <div style={{ width: '1920px', height: '1080px', backgroundColor: 'rgba(255,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px' }}>
         {message}
@@ -114,14 +97,11 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     >
       <div style={debugInfoStyle}>
         DEBUG INFO (BroadcastView):
-        Target Canvas ID: {targetCanvasId || "N/A"}
-        Active Hook ID: {activeCanvasIdFromHook || "N/A"}
-        Rendered Canvas ID: {canvasToRender.id}
-        Rendered Canvas Name: {canvasToRender.name}
-        Layout Elements Count: {canvasToRender.layout.length}
-        Layout Element Types: {canvasToRender.layout.map(el => el.type).join(', ') || "None"}
-        Current Canvases from Hook Count: {currentCanvasesFromHook.length}
-        {/* Window Dimensions: {window.innerWidth}x{window.innerHeight} */}
+        Prop Canvas ID: {canvasToRenderFromApp?.id || "N/A (no prop)"}
+        Prop Canvas Name: {canvasToRenderFromApp?.name || "N/A"}
+        Prop Layout Count: {canvasToRenderFromApp?.layout?.length ?? "N/A"}
+        Store Active ID: {storeActiveId || "N/A"}
+        Store Canvas Count: {storeCanvases.length}
         User Agent (for OBS debugging): {navigator.userAgent}
       </div>
       {/* Old direct background image rendering removed */}
