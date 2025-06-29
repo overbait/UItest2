@@ -80,10 +80,33 @@ const Navigation = () => {
   );
 };
 
+import useDraftStore from './store/draftStore'; // Import the store
+import { StudioCanvas } from './types/draft'; // Import StudioCanvas type
+
 const App: React.FC = () => {
   const queryParams = new URLSearchParams(window.location.search);
   const viewType = queryParams.get('view');
-  const canvasId = queryParams.get('canvasId');
+  const canvasId = queryParams.get('canvasId'); // This will be targetCanvasId
+  const layoutDataParam = queryParams.get('layoutData');
+
+  // Effect for hydrating store from URL if layoutData is present
+  useEffect(() => {
+    if (viewType === 'broadcast' && canvasId && layoutDataParam) {
+      try {
+        const decodedJson = atob(layoutDataParam);
+        const canvasDataObject = JSON.parse(decodedJson) as StudioCanvas;
+
+        if (canvasDataObject.id === canvasId) {
+          console.log('[App.tsx] Hydrating canvas from layoutData in URL for canvasId:', canvasId);
+          useDraftStore.getState().hydrateCanvasFromData(canvasDataObject);
+        } else {
+          console.warn('[App.tsx] Mismatch between canvasId in URL and id in layoutData. URL canvasId:', canvasId, 'Data ID:', canvasDataObject.id);
+        }
+      } catch (e) {
+        console.error('[App.tsx] Error processing layoutData from URL:', e);
+      }
+    }
+  }, [viewType, canvasId, layoutDataParam]); // Dependencies for the effect
 
   if (viewType === 'broadcast' && canvasId) {
     // For Suspense to work with BroadcastView if it were lazy-loaded (it's not currently, but good practice)

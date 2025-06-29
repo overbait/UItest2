@@ -93,6 +93,7 @@ interface DraftStore extends CombinedDraftState {
 
   // Import/Export Actions
   importLayoutsFromFile: (data: { savedStudioLayouts: SavedStudioLayout[], currentCanvases: StudioCanvas[], activeCanvasId: string | null }) => void;
+  hydrateCanvasFromData: (canvasData: StudioCanvas) => void; // New action for OBS data hydration
 
   // WebSocket Actions
   connectToWebSocket: (draftId: string, draftType: 'civ' | 'map') => void;
@@ -2228,6 +2229,43 @@ const useDraftStore = create<DraftStore>()(
       },
         setActiveStudioLayoutId: (layoutId: string | null) => {
           set({ activeStudioLayoutId: layoutId });
+        },
+
+        hydrateCanvasFromData: (canvasData: StudioCanvas) => {
+          set(state => {
+            console.log("[hydrateCanvasFromData] Attempting to hydrate with canvas:", canvasData.id, canvasData.name);
+            // Check if this canvas already exists by ID
+            const existingCanvasIndex = state.currentCanvases.findIndex(c => c.id === canvasData.id);
+            let newCanvases = [...state.currentCanvases];
+
+            if (existingCanvasIndex !== -1) {
+              // Update existing canvas if found
+              console.log("[hydrateCanvasFromData] Canvas ID already exists. Updating it.");
+              newCanvases[existingCanvasIndex] = canvasData;
+            } else {
+              // Add as a new canvas if ID does not exist
+              console.log("[hydrateCanvasFromData] Canvas ID is new. Adding it.");
+              newCanvases.push(canvasData);
+            }
+
+            // Ensure there's at least one canvas if newCanvases became empty (should not happen here)
+            if (newCanvases.length === 0) {
+                const defaultId = `default-hydrated-${Date.now()}`;
+                newCanvases.push({ id: defaultId, name: "Default Hydrated", layout: [], backgroundColor: null });
+                console.warn("[hydrateCanvasFromData] newCanvases was empty, added a default.");
+                return { currentCanvases: newCanvases, activeCanvasId: defaultId, layoutLastUpdated: Date.now() };
+            }
+
+            // Set the hydrated canvas as active
+            return {
+              currentCanvases: newCanvases,
+              activeCanvasId: canvasData.id, // Set the hydrated/updated canvas as active
+              layoutLastUpdated: Date.now(),
+            };
+          });
+          // Optionally, if OBS instance should persist this hydrated canvas in its own localStorage:
+          // get()._autoSaveOrUpdateActiveStudioLayout();
+          // For now, let's not auto-save, as the URL is the source of truth for this session.
         },
 
         importLayoutsFromFile: (data) => {

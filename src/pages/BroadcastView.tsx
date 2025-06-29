@@ -121,76 +121,64 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         Layout Elements Count: {canvasToRender.layout.length}
         Layout Element Types: {canvasToRender.layout.map(el => el.type).join(', ') || "None"}
         Current Canvases from Hook Count: {currentCanvasesFromHook.length}
-        Window Dimensions: {window.innerWidth}x{window.innerHeight}
+        {/* Window Dimensions: {window.innerWidth}x{window.innerHeight} */}
         User Agent (for OBS debugging): {navigator.userAgent}
       </div>
       {/* Old direct background image rendering removed */}
-      {canvasToRender.layout.map((element: StudioElement) => {
+      {canvasToRender.layout.map((element: StudioElement, index: number) => { // Added index for key
         // console.log('BroadcastView - Rendering element.type:', element.type);
         // console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
-        const outerDivStyle = {
+        const outerDivStyle: React.CSSProperties = { // Added React.CSSProperties type
           position: 'absolute',
           left: `${element.position.x}px`,
           top: `${element.position.y}px`,
           width: `${element.size.width * currentScale}px`,
           height: `${element.size.height * currentScale}px`,
           boxSizing: 'border-box',
+          // Simple visible border for debugging the element itself
+          border: '2px solid lime',
+                          backgroundColor: 'rgba(0, 255, 0, 0.1)', // Semi-transparent green background
         };
 
-        const currentOverflow = (element.type === "MapPoolElement" || element.type === "CivPoolElement") ? 'visible' : 'hidden';
+        // const currentOverflow = (element.type === "MapPoolElement" || element.type === "CivPoolElement") ? 'visible' : 'hidden';
 
-        const innerDivStyle = {
-          width: `${element.size.width}px`,
-          height: `${element.size.height}px`,
-          transform: `scale(${currentScale})`,
-          transformOrigin: 'top left',
-          overflow: currentOverflow, // Use the conditional overflow
-          boxSizing: 'border-box',
-        };
+        // const innerDivStyle = {
+        //   width: `${element.size.width}px`,
+        //   height: `${element.size.height}px`,
+        //   transform: `scale(${currentScale})`,
+        //   transformOrigin: 'top left',
+        //   overflow: currentOverflow, // Use the conditional overflow
+        //   boxSizing: 'border-box',
+        // };
 
-        let content = null;
-        if (element.type === "ScoreOnly") {
-          content = <ScoreOnlyElement element={element} isBroadcast={true} />;
-        } else if (element.type === "NicknamesOnly") {
-          content = <NicknamesOnlyElement element={element} isBroadcast={true} />;
-        } else if (element.type === "BoXSeriesOverview") {
-          content = <BoXSeriesOverviewElement element={element} isBroadcast={true} />;
-        } else if (element.type === "CountryFlags") {
-          content = <CountryFlagsElement element={element} isBroadcast={true} />;
-        } else if (element.type === "ColorGlowElement") {
-          content = <ColorGlowElement element={element} isBroadcast={true} />;
-        } else if (element.type === "MapPoolElement") {
-          content = <MapPoolElement element={element} isBroadcast={true} />;
-        } else if (element.type === "CivPoolElement") {
-          content = <CivPoolElement element={element} isBroadcast={true} />;
-        } else if (element.type === "BackgroundImage") {
-          content = <BackgroundImageElement element={element} isBroadcast={true} />;
-        } else {
-          content = (
-            <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dotted #555', color: '#ccc' }}>
-              Unknown Element: {element.type}
-            </div>
-          );
-        }
+        // Simplified content for testing
+        const content = (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '16px', boxSizing: 'border-box' }}>
+            Placeholder for: {element.type} (ID: {element.id})
+            <br />
+            Pos: {element.position.x},{element.position.y}
+            <br />
+            Size: {element.size.width}x{element.size.height}
+            <br />
+            Scale: {currentScale}
+          </div>
+        );
 
-        // const currentScale = element.scale || 1; // Moved up
-
-        // If content is null (e.g., BackgroundImageElement returned null for broadcast),
-        // then don't render the wrapper divs for this element.
-        if (!content) {
-          return null;
-        }
+        // Always render the placeholder
+        // if (!content) {
+        //   return null;
+        // }
 
         return (
           <div
-            key={element.id}
-            style={outerDivStyle} // Use the logged style object
+            key={element.id || `debug-${index}`} // Use element.id if available, otherwise index
+            style={outerDivStyle}
           >
-            <div style={innerDivStyle}> {/* Use the logged style object */}
+            {/* <div style={innerDivStyle}> */} {/* Temporarily remove inner div for simplicity */}
                {content}
-            </div>
+            {/* </div> */}
           </div>
         );
       })}
