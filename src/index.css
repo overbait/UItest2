@@ -48,7 +48,7 @@
 @layer base {
   html, body, #root {
     @apply h-full; /* Ensures html, body, and #root take full viewport height */
-    background-color: #1e1e1e; /* Added here */
+    background-color: transparent; /* Changed for OBS transparency */
   }
   html, body {
     overflow-y: auto; /* Allows vertical scrolling if content overflows */
