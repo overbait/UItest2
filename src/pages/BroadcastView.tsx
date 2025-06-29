@@ -130,16 +130,30 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         // console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
-        const outerDivStyle: React.CSSProperties = { // Added React.CSSProperties type
+        const outerDivStyle: React.CSSProperties = {
           position: 'absolute',
           left: `${element.position.x}px`,
           top: `${element.position.y}px`,
           width: `${element.size.width * currentScale}px`,
           height: `${element.size.height * currentScale}px`,
           boxSizing: 'border-box',
-          // Simple visible border for debugging the element itself
-          border: '2px solid lime',
-                          backgroundColor: 'rgba(0, 255, 0, 0.1)', // Semi-transparent green background
+          // Minimal direct styling, relying on child for visibility
+          // border: '1px solid red', // Keep for now to see if the box itself is there
+        };
+
+        const fixedChildStyle: React.CSSProperties = {
+          position: 'fixed', // Fixed positioning to try and break out of parent constraints
+          top: `${100 + index * 30}px`, // Staggered fixed position for each element
+          left: '50px',
+          width: '200px',
+          height: '25px',
+          backgroundColor: 'magenta',
+          color: 'white',
+          zIndex: 10000 + index, // Ensure it's above debug overlay if possible
+          border: '1px solid white',
+          fontSize: '10px',
+          overflow: 'hidden',
+          padding: '2px',
         };
 
         // const currentOverflow = (element.type === "MapPoolElement" || element.type === "CivPoolElement") ? 'visible' : 'hidden';
@@ -155,15 +169,18 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
 
         // Simplified content for testing
         const content = (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '16px', boxSizing: 'border-box' }}>
-            Placeholder for: {element.type} (ID: {element.id})
-            <br />
-            Pos: {element.position.x},{element.position.y}
-            <br />
-            Size: {element.size.width}x{element.size.height}
-            <br />
-            Scale: {currentScale}
-          </div>
+          <>
+            {/* This fixed child is the main thing we hope to see */}
+            <div style={fixedChildStyle}>
+              FIXED TEST: {element.type} ({element.id}) @ {element.position.x},{element.position.y}
+            </div>
+            {/* This content is inside the absolutely positioned parent */}
+            <div style={{ width: '100%', height: '100%', border: '1px dotted cyan', color: 'lime', fontSize: '10px', overflow: 'hidden', boxSizing: 'border-box' }}>
+              ABS: {element.type} ({element.id})
+              <br/>
+              Sz: {element.size.width}x{element.size.height} Sc: {currentScale}
+            </div>
+          </>
         );
 
         // Always render the placeholder
