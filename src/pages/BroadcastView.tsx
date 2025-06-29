@@ -73,10 +73,23 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
     );
   }
 
-  if (canvasToRender) { // Ensure canvasToRender is not null before logging its properties
-    console.log('BroadcastView - canvasToRender:', JSON.parse(JSON.stringify(canvasToRender))); // Log a deep clone for cleaner inspection
-    console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
-  }
+  // if (canvasToRender) { // Ensure canvasToRender is not null before logging its properties
+  //   console.log('BroadcastView - canvasToRender:', JSON.parse(JSON.stringify(canvasToRender))); // Log a deep clone for cleaner inspection
+  //   console.log('BroadcastView - canvasToRender.layout:', canvasToRender.layout); // Log the layout array directly
+  // }
+
+  const debugInfoStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    color: 'white',
+    padding: '10px',
+    zIndex: 9999,
+    fontSize: '12px',
+    fontFamily: 'monospace',
+    whiteSpace: 'pre-wrap', // To respect newlines
+  };
 
   // const backgroundImageStyle: React.CSSProperties = { // Old style, no longer needed here
   //   position: 'absolute',
@@ -99,10 +112,22 @@ const BroadcastView: React.FC<BroadcastViewProps> = ({ targetCanvasId }) => {
         border: canvasToRender.showBroadcastBorder === false ? '1px dashed transparent' : '1px dashed #777', // Conditional border
       }}
     >
+      <div style={debugInfoStyle}>
+        DEBUG INFO (BroadcastView):
+        Target Canvas ID: {targetCanvasId || "N/A"}
+        Active Hook ID: {activeCanvasIdFromHook || "N/A"}
+        Rendered Canvas ID: {canvasToRender.id}
+        Rendered Canvas Name: {canvasToRender.name}
+        Layout Elements Count: {canvasToRender.layout.length}
+        Layout Element Types: {canvasToRender.layout.map(el => el.type).join(', ') || "None"}
+        Current Canvases from Hook Count: {currentCanvasesFromHook.length}
+        Window Dimensions: {window.innerWidth}x{window.innerHeight}
+        User Agent (for OBS debugging): {navigator.userAgent}
+      </div>
       {/* Old direct background image rendering removed */}
       {canvasToRender.layout.map((element: StudioElement) => {
-        console.log('BroadcastView - Rendering element.type:', element.type);
-        console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
+        // console.log('BroadcastView - Rendering element.type:', element.type);
+        // console.log('BroadcastView - Rendering element object:', JSON.parse(JSON.stringify(element))); // Deep clone for cleaner log
         const currentScale = element.scale || 1;
 
         const outerDivStyle = {
