@@ -10,7 +10,7 @@ import MapPoolElement from '../components/studio/MapPoolElement';
 import CivPoolElement from '../components/studio/CivPoolElement';
 import BackgroundImageElement from '../components/studio/BackgroundImageElement'; // Import new component
 // All elements are now imported.
-import useDraftStore from '../store/draftStore'; // Keep for debug overlay if needed for other parts
+// import useDraftStore from '../store/draftStore'; // Keep for debug overlay if needed for other parts <-- REMOVED DUPLICATE
 
 interface BroadcastViewProps {
   // targetCanvasId: string; // No longer take ID
